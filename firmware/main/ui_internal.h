@@ -77,7 +77,9 @@ void home_refresh_printer(void);
 lv_font_t *ui_clock_font(int px, lv_font_t **old);
 lv_font_t *ui_date_font(int px, lv_font_t **old);   // NULL if the font could not be made
 lv_font_t *ui_header_font(void);
-const lv_image_dsc_t *ui_agent_logo(int size);  // 24 or 32 px
+const lv_image_dsc_t *ui_agent_logo(int size);  // 24 or 32 px, for the agent in g_claude
+const char *ui_agent_name(void);                // "Claude Code" / "Codex"
+uint32_t ui_agent_color(void);                  // brand accent for charts and badges
 
 extern hub_claude_t g_claude;
 void claude_create(lv_obj_t *page);

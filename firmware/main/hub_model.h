@@ -58,6 +58,7 @@ typedef struct {
 #define HUB_CLAUDE_MODELS 4
 typedef struct {
     bool valid;
+    char provider[12];   // "claude" or "codex"
     // Plan limits, from Claude Code's status line (Pro/Max only).
     bool has_5h, has_7d;
     float pct_5h, pct_7d;

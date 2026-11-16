@@ -54,6 +54,11 @@ header = true
 left = ["claude", "events"]
 right = ["weather", "media", "stats"]
 
+[ai]
+# Which coding agent the AI page shows: "auto", "claude" or "codex". "auto" picks
+# whichever you used most recently (Claude Code if neither has been used).
+agent = "auto"
+
 [claude]
 # Opt-in: fetch your current 5-hour and weekly limits from Anthropic every minute,
 # using the sign-in Claude Code saved on this PC. Uses no tokens or API credits.

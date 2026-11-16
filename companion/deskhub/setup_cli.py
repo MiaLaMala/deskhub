@@ -203,6 +203,24 @@ def step_live_limits(config_path: pathlib.Path):
         config_path.write_text(tomlkit.dumps(doc), encoding="utf-8")
 
 
+def step_agent(config_path: pathlib.Path):
+    heading("AI agent")
+    print("The AI page can show Claude Code or OpenAI Codex usage. 'auto' shows whichever\n"
+          "you used most recently.")
+    doc = tomlkit.parse(config_path.read_text(encoding="utf-8"))
+    ai = doc.get("ai") or tomlkit.table()
+    current = str(ai.get("agent", "auto"))
+    while True:
+        agent = ask("Which AI agent should the AI page show? auto/claude/codex", current).lower()
+        if agent in ("auto", "claude", "codex"):
+            break
+        print("Type auto, claude or codex.")
+    if ai.get("agent") != agent:
+        ai["agent"] = agent
+        doc["ai"] = ai
+        config_path.write_text(tomlkit.dumps(doc), encoding="utf-8")
+
+
 def step_printers(config_path: pathlib.Path):
     heading("3D printers")
     print("Show the status of Bambu Lab printers (A1, P1, X1, H2D) on the board.")
@@ -372,6 +390,7 @@ def main():
     step_pages(config_path)
     step_home(config_path)
     step_live_limits(config_path)
+    step_agent(config_path)
 
     step_flash(firmware)
     print("\nRestart the companion (uv run python -m deskhub) to pick up calendar or token changes.")

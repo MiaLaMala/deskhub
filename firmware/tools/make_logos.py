@@ -8,15 +8,17 @@ downsampled, so edges stay smooth at small sizes. Needs Pillow.
 Logos are the trademarks of their owners and are used only to label which
 service the usage numbers belong to.
 """
+import math
 import pathlib
 import re
 import sys
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageChops, ImageDraw
 
 # name -> (svg file, colour, sizes in px)
 LOGOS = {
     "claude": ("claude.svg", (0xD9, 0x77, 0x57), (24, 32)),
+    "codex": ("openai.svg", (0xF2, 0xF3, 0xFA), (24, 32)),
 }
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent / "main"
@@ -24,12 +26,12 @@ SS = 8  # supersampling factor
 
 
 def tokens(d: str):
-    for m in re.finditer(r"[MmLlHhVvCcSsZz]|-?(?:\d+\.?\d*|\.\d+)(?:e-?\d+)?", d):
+    for m in re.finditer(r"[MmLlHhVvCcSsAaZz]|-?(?:\d+\.?\d*|\.\d+)(?:e-?\d+)?", d):
         yield m.group(0)
 
 
 def flatten(d: str) -> list[list[tuple[float, float]]]:
-    """SVG path data -> list of polygons (absolute coordinates). Supports M L H V C S Z."""
+    """SVG path data -> list of polygons (absolute coordinates). Supports M L H V C S A Z."""
     polys, cur = [], []
     x = y = 0.0
     sx = sy = 0.0
@@ -54,6 +56,41 @@ def flatten(d: str) -> list[list[tuple[float, float]]]:
             e = t ** 3
             pts.append((a * p0[0] + b * p1[0] + c * p2[0] + e * p3[0],
                         a * p0[1] + b * p1[1] + c * p2[1] + e * p3[1]))
+        return pts
+
+    def arc(p0, rx, ry, rot, large, sweep, p1, steps=24):
+        """SVG elliptical arc as points (endpoint to centre parameterisation, SVG spec F.6.5)."""
+        if rx == 0 or ry == 0:
+            return [p1]
+        rx, ry = abs(rx), abs(ry)
+        phi = math.radians(rot)
+        cp, sp = math.cos(phi), math.sin(phi)
+        dx, dy = (p0[0] - p1[0]) / 2, (p0[1] - p1[1]) / 2
+        x1 = cp * dx + sp * dy
+        y1 = -sp * dx + cp * dy
+        lam = (x1 / rx) ** 2 + (y1 / ry) ** 2
+        if lam > 1:
+            rx, ry = rx * math.sqrt(lam), ry * math.sqrt(lam)
+        num_ = rx * rx * ry * ry - rx * rx * y1 * y1 - ry * ry * x1 * x1
+        den = rx * rx * y1 * y1 + ry * ry * x1 * x1
+        k = math.sqrt(max(0.0, num_ / den)) if den else 0.0
+        if large == sweep:
+            k = -k
+        cx1, cy1 = k * rx * y1 / ry, -k * ry * x1 / rx
+        cx = cp * cx1 - sp * cy1 + (p0[0] + p1[0]) / 2
+        cy = sp * cx1 + cp * cy1 + (p0[1] + p1[1]) / 2
+        a0 = math.atan2((y1 - cy1) / ry, (x1 - cx1) / rx)
+        a1 = math.atan2((-y1 - cy1) / ry, (-x1 - cx1) / rx)
+        da = a1 - a0
+        if sweep and da < 0:
+            da += 2 * math.pi
+        elif not sweep and da > 0:
+            da -= 2 * math.pi
+        pts = []
+        for s in range(1, steps + 1):
+            a = a0 + da * s / steps
+            ex, ey = rx * math.cos(a), ry * math.sin(a)
+            pts.append((cp * ex - sp * ey + cx, sp * ex + cp * ey + cy))
         return pts
 
     while i < len(toks):
@@ -106,6 +143,13 @@ def flatten(d: str) -> list[list[tuple[float, float]]]:
             cur += cubic((x, y), (x1, y1), (x2, y2), (x3, y3))
             last_ctrl = (x2, y2)
             x, y = x3, y3
+        elif c == "A":
+            rx, ry, rot, large, sweep, nx, ny = num(), num(), num(), num(), num(), num(), num()
+            if rel:
+                nx, ny = x + nx, y + ny
+            cur += arc((x, y), rx, ry, rot, bool(large), bool(sweep), (nx, ny))
+            x, y = nx, ny
+            last_ctrl = None
         else:
             raise ValueError(f"unsupported path command {cmd}")
     if cur:
@@ -120,11 +164,15 @@ def render(svg: pathlib.Path, color, size: int) -> Image.Image:
     big = size * SS
     scale = big / max(vb[2], vb[3])
     mask = Image.new("L", (big, big), 0)
-    draw = ImageDraw.Draw(mask)
+
+    # Even-odd fill: each sub-path toggles the pixels it covers, so inner
+    # sub-paths cut holes (the OpenAI mark has one).
     for poly in flatten(d):
         pts = [((px - vb[0]) * scale, (py - vb[1]) * scale) for px, py in poly]
         if len(pts) >= 3:
-            draw.polygon(pts, fill=255)
+            layer = Image.new("L", (big, big), 0)
+            ImageDraw.Draw(layer).polygon(pts, fill=255)
+            mask = ImageChops.logical_xor(mask.convert("1"), layer.convert("1")).convert("L")
     mask = mask.resize((size, size), Image.LANCZOS)
     img = Image.new("RGBA", (size, size), color + (0,))
     img.putalpha(mask)

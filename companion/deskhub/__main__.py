@@ -15,6 +15,7 @@ import websockets
 from .calendar_feed import fetch_events
 from .claude_alerts import ClaudeAlerts
 from .claude_usage import ClaudeUsage
+from .codex_usage import CodexUsage, codex_home
 from .media import Media
 from .pages import enabled_pages, home_message, layout_message
 from .printer import PrinterService
@@ -39,6 +40,21 @@ def find_config(arg: str | None) -> pathlib.Path:
     sys.exit("config.toml not found. Copy config.example.toml to config.toml and edit it.")
 
 
+def pick_ai(agent: str, claude: dict | None, codex: dict | None) -> dict:
+    """The AI page message. "auto" shows whichever agent was active last (Claude on a tie)."""
+    if agent == "codex" and codex is not None:
+        provider = "codex"
+    elif agent == "auto" and codex is not None and claude is not None \
+            and codex.get("last_active", 0) > claude.get("last_active", 0):
+        provider = "codex"
+    elif claude is not None:
+        provider = "claude"
+    else:
+        provider = "codex"
+    snap = codex if provider == "codex" else claude
+    return {**snap, "type": "ai", "provider": provider}
+
+
 class Companion:
     def __init__(self, cfg: dict):
         self.cfg = cfg
@@ -54,7 +70,13 @@ class Companion:
             from .claude_live import LiveLimits
             live = LiveLimits()
             log.info("live Claude limits enabled")
-        self.claude = ClaudeUsage(live=live)
+        self.agent = cfg.get("ai", {}).get("agent", "auto")
+        if self.agent not in ("auto", "claude", "codex"):
+            log.warning("[ai] agent = %r is not auto, claude or codex; using auto", self.agent)
+            self.agent = "auto"
+        self.claude = ClaudeUsage(live=live) if self.agent != "codex" else None
+        self.codex = CodexUsage() if self.agent == "codex" or (
+            self.agent == "auto" and codex_home().is_dir()) else None
         self.claude_msg = None
         self.alerts = ClaudeAlerts() if cfg.get("claude", {}).get("alerts", True) else None
         self.printer_msg = None
@@ -89,13 +111,18 @@ class Companion:
                 log.debug("media poll failed: %s", e)
             await asyncio.sleep(1)
 
+    def ai_snapshot(self) -> dict:
+        claude = self.claude.snapshot() if self.claude else None
+        codex = self.codex.snapshot() if self.codex else None
+        return pick_ai(self.agent, claude, codex)
+
     async def claude_loop(self):
         while True:
             try:
-                self.claude_msg = await asyncio.to_thread(self.claude.snapshot)
+                self.claude_msg = await asyncio.to_thread(self.ai_snapshot)
                 await self.send(self.claude_msg)
             except Exception as e:
-                log.warning("claude usage failed: %s", e)
+                log.warning("AI usage failed: %s", e)
             await asyncio.sleep(5)
 
     async def alerts_loop(self):

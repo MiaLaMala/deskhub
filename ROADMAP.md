@@ -4,11 +4,6 @@ Ideas for Desk Hub, roughly in order of value. Each item notes how it would work
 
 ## Usefulness
 
-- [ ] **Codex usage, and other agents.** The same gauges as Claude, for whichever agent you use.
-  - Read Codex usage from its local files (`~/.codex/`) in the companion.
-  - Add a `provider` field to the `claude` message, renamed to `ai`, so the board knows which agent it is showing.
-  - Add each agent's logo in `firmware/tools/make_logos.py` and pick it in `ui_agent_logo()`.
-
 - [ ] **Timer / Pomodoro page.** It runs on the board alone and works without the PC.
   - Quick presets (5, 15, 25 minutes), a big countdown ring, pause and reset, and a full-screen "done" alert.
   - It could also show on Home as a small widget while running.
@@ -87,3 +82,4 @@ Ideas for Desk Hub, roughly in order of value. Each item notes how it would work
 - [x] Bambu Lab printers (cloud and local), including dual-nozzle models
 - [x] One-command setup (`deskhub-setup`), public README with screenshots, MIT license
 - [x] Claude Code "waiting for you" alert: full-screen on the board, with Show on PC and Not now
+- [x] Codex usage on the AI page and Home, with the agent picked automatically and its own logo

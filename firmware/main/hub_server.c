@@ -155,6 +155,8 @@ static void on_claude(const cJSON *m)
     static hub_claude_t c;
     memset(&c, 0, sizeof(c));
     c.valid = true;
+    copy_str(c.provider, sizeof(c.provider), m, "provider");
+    if (!c.provider[0]) strlcpy(c.provider, "claude", sizeof(c.provider));
 
     const cJSON *limits = cJSON_GetObjectItemCaseSensitive(m, "limits");
     const cJSON *w5 = cJSON_GetObjectItemCaseSensitive(limits, "five_hour");
@@ -340,7 +342,7 @@ static void on_text(int fd, char *text)
         else if (strcmp(type, "media") == 0) on_media(m);
         else if (strcmp(type, "events") == 0) on_events(m);
         else if (strcmp(type, "tiles") == 0) on_tiles(m);
-        else if (strcmp(type, "claude") == 0) on_claude(m);
+        else if (strcmp(type, "ai") == 0 || strcmp(type, "claude") == 0) on_claude(m);
         else if (strcmp(type, "printer") == 0) on_printer(m);
         else if (strcmp(type, "layout") == 0) on_layout(m);
         else if (strcmp(type, "home") == 0) on_home(m);

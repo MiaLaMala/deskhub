@@ -36,6 +36,7 @@ static uint8_t *s_art_buf;
 static lv_obj_t *s_pages[PAGE_COUNT];
 static lv_obj_t *s_nav[PAGE_COUNT];
 static lv_obj_t *s_wifi_icon, *s_pc_icon;
+static lv_obj_t *s_nav_logo;   // the AI tab's agent logo
 static int s_page = -1;
 
 // Default until the companion says otherwise: everything but the printer page.
@@ -85,11 +86,27 @@ lv_font_t *ui_date_font(int px, lv_font_t **old)
     return f;
 }
 
-// Logo of the AI agent whose usage the AI page shows. Only Claude Code is tracked
-// today; add another agent's logo in tools/make_logos.py and pick it here.
+// The AI agent whose usage the AI page shows (the companion's "provider").
+// To add an agent: its logo in tools/make_logos.py, then a case here.
+static bool agent_is_codex(void)
+{
+    return strcmp(g_claude.provider, "codex") == 0;
+}
+
 const lv_image_dsc_t *ui_agent_logo(int size)
 {
+    if (agent_is_codex()) return size >= 32 ? &logo_codex_32 : &logo_codex_24;
     return size >= 32 ? &logo_claude_32 : &logo_claude_24;
+}
+
+const char *ui_agent_name(void)
+{
+    return agent_is_codex() ? "Codex" : "Claude Code";
+}
+
+uint32_t ui_agent_color(void)
+{
+    return agent_is_codex() ? 0x10a37f : 0xd97757;
 }
 
 // ---- shared helpers --------------------------------------------------------
@@ -366,6 +383,7 @@ static void build_rail(lv_obj_t *scr)
             // The AI tab shows the active agent's own logo instead of a glyph.
             l = lv_image_create(b);
             lv_image_set_src(l, ui_agent_logo(32));
+            s_nav_logo = l;
         } else {
             l = ui_label(b, g_icon_32, COL_DIM, glyphs[i]);
         }
@@ -584,7 +602,9 @@ void ui_set_tiles(const hub_tile_t *tiles, int n)
 
 void ui_set_claude(const hub_claude_t *c)
 {
+    bool agent_changed = strcmp(g_claude.provider, c->provider) != 0;
     g_claude = *c;
+    if (agent_changed && s_nav_logo) lv_image_set_src(s_nav_logo, ui_agent_logo(32));
     claude_refresh();
     home_refresh_claude();
 }

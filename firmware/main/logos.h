@@ -5,3 +5,5 @@
 
 extern const lv_image_dsc_t logo_claude_24;
 extern const lv_image_dsc_t logo_claude_32;
+extern const lv_image_dsc_t logo_codex_24;
+extern const lv_image_dsc_t logo_codex_32;

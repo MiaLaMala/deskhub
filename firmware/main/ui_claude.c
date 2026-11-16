@@ -1,5 +1,5 @@
-// Claude Code usage: plan limits (from the status line bridge) plus token
-// totals from local transcripts, sent by the companion.
+// AI agent usage (Claude Code or Codex, see g_claude.provider): plan limits
+// plus token totals from local transcripts, sent by the companion.
 #include <stdio.h>
 #include <string.h>
 
@@ -9,7 +9,6 @@
 #define CARD_W ((CONTENT_W - 2 * 12) / 3)
 #define TOP_H 200
 #define CHART_W 400
-#define CLAUDE_ORANGE 0xd97757
 
 hub_claude_t g_claude;
 
@@ -159,9 +158,9 @@ void claude_create(lv_obj_t *page)
     lv_obj_set_style_pad_all(s_chart, 0, 0);
     lv_obj_set_style_pad_column(s_chart, 14, 0);
     lv_obj_set_style_radius(s_chart, 6, LV_PART_ITEMS);
-    lv_obj_set_style_bg_grad_color(s_chart, lv_color_hex(0xf2b48f), LV_PART_ITEMS);
+    lv_obj_set_style_bg_grad_color(s_chart, lv_color_lighten(lv_color_hex(ui_agent_color()), 110), LV_PART_ITEMS);
     lv_obj_set_style_bg_grad_dir(s_chart, LV_GRAD_DIR_VER, LV_PART_ITEMS);
-    s_ser = lv_chart_add_series(s_chart, lv_color_hex(CLAUDE_ORANGE), LV_CHART_AXIS_PRIMARY_Y);
+    s_ser = lv_chart_add_series(s_chart, lv_color_hex(ui_agent_color()), LV_CHART_AXIS_PRIMARY_Y);
     for (int i = 0; i < HUB_CLAUDE_DAYS; i++) {
         s_day_lbl[i] = ui_label(hist, &lv_font_montserrat_14, COL_MUTED, "");
         lv_obj_set_width(s_day_lbl[i], CHART_W / HUB_CLAUDE_DAYS);
@@ -179,7 +178,7 @@ void claude_create(lv_obj_t *page)
         lv_obj_set_width(s_model_val[i], 80);
         lv_obj_set_style_text_align(s_model_val[i], LV_TEXT_ALIGN_RIGHT, 0);
         lv_obj_set_pos(s_model_val[i], mx + mw - 80, 30 + i * 44);
-        s_model_bar[i] = ui_bar(hist, CLAUDE_ORANGE);
+        s_model_bar[i] = ui_bar(hist, ui_agent_color());
         lv_obj_set_size(s_model_bar[i], mw, 6);
         lv_obj_set_pos(s_model_bar[i], mx, 50 + i * 44);
     }
@@ -216,7 +215,13 @@ static void refresh_limits(void)
     const hub_claude_t *c = &g_claude;
     char buf[48], tok[16];
 
-    if (c->has_5h) {
+    if (!c->has_5h && c->has_7d && strcmp(c->provider, "codex") == 0) {
+        // Some Codex plans only have a weekly limit.
+        show_arc(&s_5h, false);
+        lv_label_set_text(s_5h.big, "--");
+        lv_label_set_text(s_5h.sub, "This plan has no 5-hour limit");
+        lv_label_set_text(s_5h.reset, "");
+    } else if (c->has_5h) {
         set_limit(&s_5h, c->pct_5h);
         set_asof(s_5h.sub, c->limits_updated);
         ui_fmt_countdown(buf, sizeof(buf), c->reset_5h);
@@ -251,7 +256,8 @@ static void refresh_limits(void)
     } else {
         show_arc(&s_7d, false);
         lv_label_set_text(s_7d.big, "--");
-        lv_label_set_text(s_7d.sub, c->valid ? "No limit data yet. It appears after a\nClaude Code reply (Pro/Max plans)." : "");
+        snprintf(buf, sizeof(buf), "No limit data yet. It appears after a\n%s reply.", ui_agent_name());
+        lv_label_set_text(s_7d.sub, c->valid ? buf : "");
         lv_label_set_text(s_7d.reset, "");
     }
 }
@@ -259,6 +265,11 @@ static void refresh_limits(void)
 void claude_refresh(void)
 {
     const hub_claude_t *c = &g_claude;
+    // Brand colour of the current agent (it can switch at runtime).
+    uint32_t col = ui_agent_color();
+    lv_chart_set_series_color(s_chart, s_ser, lv_color_hex(col));
+    lv_obj_set_style_bg_grad_color(s_chart, lv_color_lighten(lv_color_hex(col), 110), LV_PART_ITEMS);
+    for (int i = 0; i < HUB_CLAUDE_MODELS; i++) ui_bar_set_color(s_model_bar[i], col);
     if (g_pc_online) lv_obj_add_flag(s_offline, LV_OBJ_FLAG_HIDDEN);
     else lv_obj_remove_flag(s_offline, LV_OBJ_FLAG_HIDDEN);
     refresh_limits();

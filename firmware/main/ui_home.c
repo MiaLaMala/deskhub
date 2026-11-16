@@ -202,14 +202,13 @@ static void create_claude(lv_obj_t *page)
 {
     lv_obj_t *c = widget_card(page, PAGE_CLAUDE);
     lv_obj_set_style_pad_ver(c, 10, 0);
-    // AI badge: sparkle in Claude orange on a softly tinted tile.
+    // AI badge: the agent's logo on a tile tinted in its brand colour.
     s_cl_badge = lv_obj_create(c);
     lv_obj_remove_style_all(s_cl_badge);
     lv_obj_remove_flag(s_cl_badge, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_style_radius(s_cl_badge, 12, 0);
-    lv_obj_set_style_bg_color(s_cl_badge, lv_color_hex(0xd97757), 0);
+    lv_obj_set_style_bg_color(s_cl_badge, lv_color_hex(ui_agent_color()), 0);
     lv_obj_set_style_bg_opa(s_cl_badge, LV_OPA_20, 0);
-    // The agent's own logo (Claude for now; the companion only tracks Claude Code).
     s_cl_icon = lv_image_create(s_cl_badge);
     lv_image_set_src(s_cl_icon, ui_agent_logo(24));
     lv_obj_center(s_cl_icon);
@@ -584,7 +583,7 @@ static void claude_limit(int i, bool has, float pct, time_t reset)
         lv_label_set_text(s_cl_val[i], "--");
         lv_obj_set_style_text_color(s_cl_val[i], lv_color_hex(COL_MUTED), 0);
         lv_bar_set_value(s_cl_bar[i], 0, LV_ANIM_OFF);
-        lv_label_set_text(s_cl_sub[i], !g_pc_online ? "PC offline" : "Waiting for Claude Code");
+        lv_label_set_text(s_cl_sub[i], !g_pc_online ? "PC offline" : g_claude.valid ? "No data yet" : "Waiting for PC");
         return;
     }
     uint32_t color = ui_level_color(pct);
@@ -600,9 +599,14 @@ static void claude_limit(int i, bool has, float pct, time_t reset)
 void home_refresh_claude(void)
 {
     const hub_claude_t *c = &g_claude;
+    if (!s_cl_icon) return;
+    lv_image_set_src(s_cl_icon, ui_agent_logo(24));
+    lv_obj_set_style_bg_color(s_cl_badge, lv_color_hex(ui_agent_color()), 0);
     claude_limit(0, c->valid && c->has_5h, c->pct_5h, c->reset_5h);
     claude_limit(1, c->valid && c->has_7d, c->pct_7d, c->reset_7d);
-    if (c->valid && !c->has_5h && c->has_7d) {
+    if (c->valid && !c->has_5h && c->has_7d && strcmp(c->provider, "codex") == 0) {
+        lv_label_set_text(s_cl_sub[0], "No 5-hour limit");
+    } else if (c->valid && !c->has_5h && c->has_7d) {
         // The 5-hour window expired; a new one starts at the next prompt.
         lv_label_set_text(s_cl_val[0], "0%");
         lv_obj_set_style_text_color(s_cl_val[0], lv_color_hex(COL_GOOD), 0);
