@@ -78,7 +78,9 @@ class Companion:
         self.codex = CodexUsage() if self.agent == "codex" or (
             self.agent == "auto" and codex_home().is_dir()) else None
         self.claude_msg = None
-        self.alerts = ClaudeAlerts() if cfg.get("claude", {}).get("alerts", True) else None
+        ccfg = cfg.get("claude", {})
+        self.alerts = (ClaudeAlerts(idle_after=float(ccfg.get("idle_alert_seconds", 30)))
+                       if ccfg.get("alerts", True) else None)
         self.printer_msg = None
         self.connected_once = False
         self.ws = None

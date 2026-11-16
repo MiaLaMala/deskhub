@@ -67,6 +67,8 @@ live_limits = false
 # Full-screen alert on the board when a Claude Code session needs a permission or is
 # waiting for your reply. Needs the hooks: `uv run python install_claude.py hooks`.
 alerts = true
+# A session that finished its turn alerts once it has waited this many seconds.
+idle_alert_seconds = 30
 
 # Shortcut tiles, in order. Up to 16. Pick 2/4/6/8/12/16 for an even grid.
 #

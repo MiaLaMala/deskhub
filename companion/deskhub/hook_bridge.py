@@ -24,6 +24,10 @@ WAITING = {
     "elicitation_dialog": "input",
     "agent_needs_input": "input",
 }
+ASKS = {
+    "AskUserQuestion": "Claude has a question for you",
+    "ExitPlanMode": "Claude has a plan ready for your review",
+}
 
 
 def sessions_dir() -> pathlib.Path:
@@ -77,12 +81,25 @@ def record(event: str, data: dict):
         path.unlink(missing_ok=True)
         return
     state, message = "working", ""
+    tool = str(data.get("tool_name") or "")
     if event == "Notification":
         state = WAITING.get(data.get("notification_type"), "")
         if not state:
             return
         message = " ".join(str(data.get("message") or "").split())[:200]
-    elif event not in ("UserPromptSubmit", "PostToolUse", "Stop"):
+    elif event == "PermissionRequest":
+        # A permission dialog is showing (terminal and desktop app alike).
+        state, message = "permission", f"Claude wants to use {tool}" if tool else ""
+    elif event == "PreToolUse":
+        # Tools that stop and wait for you without a permission dialog.
+        if tool not in ASKS:
+            return
+        state, message = "input", ASKS[tool]
+    elif event == "Stop":
+        # Finished its turn. The companion alerts once it has been idle a little
+        # while (the desktop app never sends Claude Code's idle_prompt notification).
+        state = "idle"
+    elif event not in ("UserPromptSubmit", "PostToolUse"):
         return
     cwd = str(data.get("cwd") or "")
     rec = {

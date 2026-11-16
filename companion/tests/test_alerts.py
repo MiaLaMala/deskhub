@@ -56,7 +56,15 @@ check(state()["state"] == "working" and state()["message"] == "", "PostToolUse -
 hook("Notification", notification_type="idle_prompt", message="Claude is waiting for your input")
 check(state()["state"] == "input", "idle_prompt -> input")
 hook("Stop")
-check(state()["state"] == "working", "Stop -> working")
+check(state()["state"] == "idle", "Stop -> idle")
+hook("PermissionRequest", tool_name="Bash")
+check(state()["state"] == "permission" and state()["message"] == "Claude wants to use Bash", "PermissionRequest -> permission")
+hook("PostToolUse")
+hook("PreToolUse", tool_name="AskUserQuestion")
+check(state()["state"] == "input" and state()["message"] == "Claude has a question for you", "AskUserQuestion -> input")
+hook("PostToolUse")
+hook("PreToolUse", tool_name="Bash")
+check(state()["state"] == "working", "other PreToolUse ignored")
 hook("Notification", notification_type="elicitation_dialog", message="Pick one")
 check(state()["state"] == "input", "elicitation_dialog -> input")
 hook("Notification", notification_type="agent_needs_input", message="x")
@@ -99,13 +107,15 @@ def ours(cfg):
 got = install("hooks")
 check((home / ".deskhub" / "hook_bridge.py").is_file(), "bridge copied")
 check((home / ".deskhub" / "settings.json.bak").is_file(), "settings backed up")
-for ev in ["Notification", "UserPromptSubmit", "PostToolUse", "Stop", "SessionEnd"]:
+for ev in ["Notification", "PermissionRequest", "PreToolUse", "UserPromptSubmit", "PostToolUse", "Stop", "SessionEnd"]:
     mine = ours(got).get(ev, [])
-    check(len(mine) == 1 and mine[0]["matcher"] == "" and mine[0]["hooks"][0]["type"] == "command"
+    want = "AskUserQuestion|ExitPlanMode" if ev == "PreToolUse" else ""
+    check(len(mine) == 1 and mine[0]["matcher"] == want and mine[0]["hooks"][0]["type"] == "command"
           and mine[0]["hooks"][0]["command"].endswith(f'hook_bridge.py" {ev}'), f"{ev} hook added: {mine}")
 check(got["hooks"]["Notification"][0] == other and got["hooks"]["Notification"][1:] == ours(got)["Notification"],
       "existing hook first, ours appended")
-check(got["hooks"]["PreToolUse"] == settings["hooks"]["PreToolUse"] and got["statusLine"] == settings["statusLine"], "other settings untouched")
+check(got["hooks"]["PreToolUse"][0] == settings["hooks"]["PreToolUse"][0] and got["statusLine"] == settings["statusLine"],
+      "other settings untouched")
 
 again = install("hooks")
 check(again == got, "re-running does not duplicate")
@@ -160,6 +170,15 @@ check(m and m["id"] == "b" and m["detail"] == "Pick an option", f"state change l
 
 put("b", "working")
 check(a.poll() == {"type": "alert", "clear": True}, "clear when the session starts working")
+
+put("i", "idle", age=5, project="idle-proj")
+check(a.poll() is None, "just-finished session does not alert yet")
+put("i", "idle", age=40, project="idle-proj")
+m = a.poll()
+check(m and m["id"] == "i" and m["kind"] == "input" and m["detail"] == "Finished. Waiting for your reply",
+      f"idle 30+ s alerts as waiting: {m}")
+put("i", "working")
+check(a.poll() == {"type": "alert", "clear": True}, "clear when the idle session resumes")
 
 put("old", "permission", age=31 * 60)
 check(a.poll() is None, "30+ minute old waiting session ignored")

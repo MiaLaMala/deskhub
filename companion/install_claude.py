@@ -25,7 +25,10 @@ STATE = DEST / "statusline_previous.json"
 SRC = pathlib.Path(__file__).resolve().parent / "deskhub" / "statusline_bridge.py"
 HOOK_BRIDGE = DEST / "hook_bridge.py"
 HOOK_SRC = pathlib.Path(__file__).resolve().parent / "deskhub" / "hook_bridge.py"
-HOOK_EVENTS = ["Notification", "UserPromptSubmit", "PostToolUse", "Stop", "SessionEnd"]
+HOOK_EVENTS = ["Notification", "PermissionRequest", "PreToolUse", "UserPromptSubmit", "PostToolUse", "Stop",
+               "SessionEnd"]
+# PreToolUse only for the tools that wait for you, so other tool calls skip the hook.
+HOOK_MATCHERS = {"PreToolUse": "AskUserQuestion|ExitPlanMode"}
 
 
 def load() -> dict:
@@ -118,7 +121,8 @@ def install_hooks():
     hooks = settings.setdefault("hooks", {})
     for event in HOOK_EVENTS:
         cmd = f'"{py}" "{HOOK_BRIDGE.as_posix()}" {event}'
-        hooks.setdefault(event, []).append({"matcher": "", "hooks": [{"type": "command", "command": cmd}]})
+        hooks.setdefault(event, []).append({"matcher": HOOK_MATCHERS.get(event, ""),
+                                            "hooks": [{"type": "command", "command": cmd}]})
     write(settings)
     print("Installed. New Claude Code sessions will tell the hub when they are waiting for you.")
 

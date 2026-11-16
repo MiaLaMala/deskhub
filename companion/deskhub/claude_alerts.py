@@ -16,10 +16,12 @@ log = logging.getLogger(__name__)
 
 FRESH_S = 30 * 60
 STALE_S = 2 * 3600
+IDLE_AFTER_S = 30  # a finished session alerts once it has waited this long
 
 
 class ClaudeAlerts:
-    def __init__(self, root: pathlib.Path | None = None):
+    def __init__(self, root: pathlib.Path | None = None, idle_after: float = IDLE_AFTER_S):
+        self.idle_after = idle_after
         self.root = root or pathlib.Path.home() / ".deskhub" / "claude_sessions"
         self.dismissed: dict[str, int] = {}  # session id -> `updated` of the dismissed alert
         self.sessions: dict[str, dict] = {}
@@ -45,8 +47,11 @@ class ClaudeAlerts:
         now = time.time()
         best = None
         for sid, d in self.sessions.items():
-            if d.get("state") not in ("permission", "input") or now - d["updated"] > FRESH_S:
+            state, age = d.get("state"), now - d["updated"]
+            if state not in ("permission", "input", "idle") or age > FRESH_S:
                 continue
+            if state == "idle" and age < self.idle_after:
+                continue  # just finished: you are probably still looking at it
             if self.dismissed.get(sid) == d["updated"]:
                 continue
             if best is None or d["updated"] > best[1]["updated"]:
@@ -54,11 +59,12 @@ class ClaudeAlerts:
         if best is None:
             return None
         sid, d = best
-        if d["state"] == "permission":
+        kind = "permission" if d["state"] == "permission" else "input"
+        if kind == "permission":
             title, detail = "Claude needs your permission", d.get("message")
         else:
             title, detail = "Claude is waiting for you", d.get("message") or "Finished. Waiting for your reply"
-        return {"type": "alert", "id": sid, "kind": d["state"], "agent": "claude",
+        return {"type": "alert", "id": sid, "kind": kind, "agent": "claude",
                 "title": ascii_fold(title, 60), "detail": ascii_fold(detail, 120),
                 "project": ascii_fold(d.get("project"), 40)}
 

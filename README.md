@@ -246,7 +246,7 @@ If you use OpenAI Codex instead, the AI page shows its usage the same way. The c
 
 ### Waiting alerts
 
-When a Claude Code session needs a permission approval, or has finished and is waiting for your reply, the board shows a full-screen alert with the project name. Tap **Show on PC** to bring that session's window to the front, or **Not now** to dismiss it. A finished session only alerts after about a minute of waiting, so the board doesn't nag while you're still at the PC.
+When a Claude Code session needs a permission approval, asks you a question, has a plan ready, or has finished and is waiting for your reply, the board shows a full-screen alert with the project name. Tap **Show on PC** to bring that session's window to the front, or **Not now** to dismiss it. A finished session only alerts after it has waited 30 seconds (`idle_alert_seconds` under `[claude]`), so the board doesn't nag while you're still at the PC. If you installed the hooks before, run the install command again to pick up new ones.
 
 ![Waiting alert](docs/screenshots/alert.png)
 
