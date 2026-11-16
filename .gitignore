@@ -1,0 +1,11 @@
+firmware/build/
+firmware/managed_components/
+firmware/sdkconfig
+firmware/sdkconfig.old
+firmware/dependencies.lock
+companion/.venv/
+companion/config.toml
+__pycache__/
+backup/
+.omc/
+*.log

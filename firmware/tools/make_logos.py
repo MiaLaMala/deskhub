@@ -1,0 +1,166 @@
+"""Rasterize AI agent logos (SVG, single filled path) into LVGL ARGB8888 images.
+
+    python firmware/tools/make_logos.py <svg-dir>
+
+Writes firmware/main/logos.c and logos.h. Each logo is rendered at 8x and
+downsampled, so edges stay smooth at small sizes. Needs Pillow.
+
+Logos are the trademarks of their owners and are used only to label which
+service the usage numbers belong to.
+"""
+import pathlib
+import re
+import sys
+
+from PIL import Image, ImageDraw
+
+# name -> (svg file, colour, sizes in px)
+LOGOS = {
+    "claude": ("claude.svg", (0xD9, 0x77, 0x57), (24, 32)),
+}
+
+ROOT = pathlib.Path(__file__).resolve().parent.parent / "main"
+SS = 8  # supersampling factor
+
+
+def tokens(d: str):
+    for m in re.finditer(r"[MmLlHhVvCcSsZz]|-?(?:\d+\.?\d*|\.\d+)(?:e-?\d+)?", d):
+        yield m.group(0)
+
+
+def flatten(d: str) -> list[list[tuple[float, float]]]:
+    """SVG path data -> list of polygons (absolute coordinates). Supports M L H V C S Z."""
+    polys, cur = [], []
+    x = y = 0.0
+    sx = sy = 0.0
+    last_ctrl = None
+    cmd = None
+    toks = list(tokens(d))
+    i = 0
+
+    def num():
+        nonlocal i
+        v = float(toks[i])
+        i += 1
+        return v
+
+    def cubic(p0, p1, p2, p3, steps=16):
+        pts = []
+        for k in range(1, steps + 1):
+            t = k / steps
+            a = (1 - t) ** 3
+            b = 3 * (1 - t) ** 2 * t
+            c = 3 * (1 - t) * t * t
+            e = t ** 3
+            pts.append((a * p0[0] + b * p1[0] + c * p2[0] + e * p3[0],
+                        a * p0[1] + b * p1[1] + c * p2[1] + e * p3[1]))
+        return pts
+
+    while i < len(toks):
+        if re.match(r"[A-Za-z]", toks[i]):
+            cmd = toks[i]
+            i += 1
+            if cmd in "Zz":
+                if cur:
+                    polys.append(cur)
+                cur = []
+                x, y = sx, sy
+                last_ctrl = None
+                continue
+        rel = cmd.islower()
+        c = cmd.upper()
+        if c == "M":
+            nx, ny = num(), num()
+            x, y = (x + nx, y + ny) if rel else (nx, ny)
+            if cur:
+                polys.append(cur)
+            cur = [(x, y)]
+            sx, sy = x, y
+            cmd = "l" if rel else "L"  # following pairs are line-tos
+            last_ctrl = None
+        elif c == "L":
+            nx, ny = num(), num()
+            x, y = (x + nx, y + ny) if rel else (nx, ny)
+            cur.append((x, y))
+            last_ctrl = None
+        elif c == "H":
+            nx = num()
+            x = x + nx if rel else nx
+            cur.append((x, y))
+            last_ctrl = None
+        elif c == "V":
+            ny = num()
+            y = y + ny if rel else ny
+            cur.append((x, y))
+            last_ctrl = None
+        elif c in "CS":
+            if c == "C":
+                x1, y1 = num(), num()
+                if rel:
+                    x1, y1 = x + x1, y + y1
+            else:  # reflect the previous control point
+                x1, y1 = (2 * x - last_ctrl[0], 2 * y - last_ctrl[1]) if last_ctrl else (x, y)
+            x2, y2, x3, y3 = num(), num(), num(), num()
+            if rel:
+                x2, y2, x3, y3 = x + x2, y + y2, x + x3, y + y3
+            cur += cubic((x, y), (x1, y1), (x2, y2), (x3, y3))
+            last_ctrl = (x2, y2)
+            x, y = x3, y3
+        else:
+            raise ValueError(f"unsupported path command {cmd}")
+    if cur:
+        polys.append(cur)
+    return polys
+
+
+def render(svg: pathlib.Path, color, size: int) -> Image.Image:
+    text = svg.read_text(encoding="utf-8")
+    vb = [float(v) for v in re.search(r'viewBox="([^"]+)"', text).group(1).split()]
+    d = " ".join(re.findall(r'<path[^>]*\sd="([^"]+)"', text))
+    big = size * SS
+    scale = big / max(vb[2], vb[3])
+    mask = Image.new("L", (big, big), 0)
+    draw = ImageDraw.Draw(mask)
+    for poly in flatten(d):
+        pts = [((px - vb[0]) * scale, (py - vb[1]) * scale) for px, py in poly]
+        if len(pts) >= 3:
+            draw.polygon(pts, fill=255)
+    mask = mask.resize((size, size), Image.LANCZOS)
+    img = Image.new("RGBA", (size, size), color + (0,))
+    img.putalpha(mask)
+    return img
+
+
+def c_array(name: str, img: Image.Image) -> str:
+    w, h = img.size
+    rgba = img.tobytes()
+    data = bytearray(len(rgba))
+    data[0::4], data[1::4], data[2::4], data[3::4] = rgba[2::4], rgba[1::4], rgba[0::4], rgba[3::4]  # LVGL ARGB8888 is B, G, R, A
+    rows = [", ".join(f"0x{v:02x}" for v in data[i:i + 16]) for i in range(0, len(data), 16)]
+    return (f"static const uint8_t {name}_px[] = {{\n    " + ",\n    ".join(rows) + "\n};\n"
+            f"const lv_image_dsc_t {name} = {{\n"
+            f"    .header = {{.magic = LV_IMAGE_HEADER_MAGIC, .cf = LV_COLOR_FORMAT_ARGB8888, "
+            f".w = {w}, .h = {h}, .stride = {w * 4}}},\n"
+            f"    .data_size = sizeof({name}_px),\n    .data = {name}_px,\n}};\n")
+
+
+def main():
+    src = pathlib.Path(sys.argv[1])
+    c_parts = ["// Generated by tools/make_logos.py. Do not edit.",
+               "// Logos are the trademarks of their owners; used to label usage data.",
+               '#include "logos.h"', ""]
+    h_parts = ["// Generated by tools/make_logos.py. Do not edit.", "#pragma once", "", '#include "lvgl.h"', ""]
+    for name, (file, color, sizes) in LOGOS.items():
+        for s in sizes:
+            ident = f"logo_{name}_{s}"
+            img = render(src / file, color, s)
+            img.save(src / f"{ident}.png")
+            c_parts.append(c_array(ident, img))
+            h_parts.append(f"extern const lv_image_dsc_t {ident};")
+    (ROOT / "logos.c").write_text("\n".join(c_parts), encoding="utf-8")
+    (ROOT / "logos.h").write_text("\n".join(h_parts) + "\n", encoding="utf-8")
+    print("wrote", ROOT / "logos.c")
+
+
+if __name__ == "__main__":
+    main()

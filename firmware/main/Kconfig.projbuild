@@ -1,0 +1,57 @@
+menu "Desk Hub"
+
+    config HUB_WIFI_SSID
+        string "Wi-Fi SSID (2.4 GHz)"
+        default ""
+
+    config HUB_WIFI_PASSWORD
+        string "Wi-Fi password"
+        default ""
+
+    config HUB_TOKEN
+        string "Companion token"
+        default "change-me"
+        help
+            Shared secret. Put the same value in the companion's config.toml.
+
+    config HUB_HOSTNAME
+        string "mDNS hostname"
+        default "deskhub"
+        help
+            The hub answers at <hostname>.local on your network.
+
+    config HUB_TZ
+        string "POSIX time zone"
+        default "EST5EDT,M3.2.0,M11.1.0"
+        help
+            Examples: PST8PDT,M3.2.0,M11.1.0 / CST6CDT,M3.2.0,M11.1.0 /
+            GMT0BST,M3.5.0/1,M10.5.0 / CET-1CEST,M3.5.0,M10.5.0/3
+
+    config HUB_CITY
+        string "City name shown on the weather page"
+        default "New York"
+
+    config HUB_LATITUDE
+        string "Latitude"
+        default "40.7128"
+
+    config HUB_LONGITUDE
+        string "Longitude"
+        default "-74.0060"
+
+    config HUB_FAHRENHEIT
+        bool "Use Fahrenheit and mph"
+        default y
+
+    config HUB_24H
+        bool "24-hour clock"
+        default n
+
+    config HUB_SCREEN_OFF_MIN
+        int "Turn the screen off after this many idle minutes (0 = never)"
+        default 0
+        range 0 240
+        help
+            Any touch, or new media starting, turns it back on.
+
+endmenu

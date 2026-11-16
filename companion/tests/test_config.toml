@@ -1,0 +1,17 @@
+[hub]
+host = "127.0.0.1:8765"
+token = "test-token"
+
+[calendar]
+days = 3
+[[calendar.feeds]]
+name = "Test"
+url = "tests/data/sample.ics"
+color = "#f5a524"
+
+[[tiles]]
+label = "Vol +"
+icon = "volume_up"
+color = "#3a4256"
+action = "volume"
+target = "up"

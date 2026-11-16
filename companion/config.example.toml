@@ -1,0 +1,161 @@
+# Copy to config.toml and edit.
+
+[hub]
+# The hub's mDNS name (CONFIG_HUB_HOSTNAME + ".local") or its IP address.
+host = "deskhub.local"
+# Must match "Companion token" in the firmware's menuconfig.
+token = "change-me"
+
+[calendar]
+# How many days ahead to show.
+days = 7
+# Easiest: run `uv run deskhub-calendars` to add Google or Apple calendars interactively.
+#
+# ICS feeds. Google Calendar: Settings > your calendar > "Secret address in iCal format".
+# Outlook.com: Settings > Calendar > Shared calendars > Publish a calendar > ICS link.
+# Local .ics files work too (path instead of URL).
+[[calendar.feeds]]
+name = "Personal"
+url = ""
+color = "#7c9cff"
+
+# [[calendar.feeds]]
+# name = "Work"
+# url = "https://outlook.office365.com/owa/calendar/.../calendar.ics"
+# color = "#f5a524"
+
+# Google Calendar (secret iCal address; webcal:// links work too).
+# [[calendar.feeds]]
+# name = "Google"
+# url = "https://calendar.google.com/calendar/ical/.../private-.../basic.ics"
+# color = "#4285f4"
+
+# Apple iCloud over CalDAV (works with private calendars). Needs an app-specific
+# password from account.apple.com > Sign-In and Security > App-Specific Passwords.
+# Store it with `uv run deskhub-calendars` (add-apple); it lives in the OS credential
+# store (service "deskhub-caldav", keyed by username), never in this file.
+# `calendars` filters by display name; leave it out for all calendars.
+# [[calendar.feeds]]
+# type = "caldav"
+# name = "iCloud"
+# url = "https://caldav.icloud.com/"
+# username = "you@icloud.com"
+# calendars = ["Home", "Work"]
+# color = "#ff5a5f"
+
+[home]
+# The time and date sit in a slim bar across the top (header = true, the default).
+# Set header = false and add "clock" to a column for the big clock widget instead.
+header = true
+# Home screen widgets, top to bottom, in two columns. Available: clock, claude,
+# events, weather, media, stats, printer. The left column is wider (the big clock
+# fits there); "events" stretches to fill its column. Widgets for hidden pages
+# are skipped, and widgets that don't fit are left out.
+left = ["claude", "events"]
+right = ["weather", "media", "stats"]
+
+[claude]
+# Opt-in: fetch your current 5-hour and weekly limits from Anthropic every minute,
+# using the sign-in Claude Code saved on this PC. Uses no tokens or API credits.
+# The endpoint is undocumented and may change. See README > Claude Code usage.
+live_limits = false
+# Full-screen alert on the board when a Claude Code session needs a permission or is
+# waiting for your reply. Needs the hooks: `uv run python install_claude.py hooks`.
+alerts = true
+
+# Shortcut tiles, in order. Up to 16. Pick 2/4/6/8/12/16 for an even grid.
+#
+# action:
+#   keys   - press a key combination, e.g. "ctrl+shift+m", "win+shift+s", "f13"
+#   run    - run a program or command, e.g. "notepad.exe", "code C:\\Code\\project"
+#   open   - open a file, folder or URL with its default app
+#   media  - "toggle", "next", "prev"
+#   volume - "up", "down", "mute"
+#   lock   - lock the PC
+#
+# icon: one of home insights memory speed music_note event calendar_today wb_sunny cloud
+#   grid_view apps wifi computer desktop_windows play_arrow pause skip_next skip_previous
+#   volume_up volume_down volume_off mic mic_off lock photo_camera screenshot_monitor
+#   terminal code public folder keyboard power_settings_new schedule timer mail chat
+#   sports_esports rocket_launch bolt star favorite settings refresh dark_mode headphones
+#   videocam movie developer_board lan shuffle repeat
+
+[[tiles]]
+label = "Mute mic"
+icon = "mic_off"
+color = "#b4413c"
+action = "keys"
+target = "ctrl+shift+m"
+
+[[tiles]]
+label = "Mute sound"
+icon = "volume_off"
+color = "#3a4256"
+action = "volume"
+target = "mute"
+
+[[tiles]]
+label = "Vol -"
+icon = "volume_down"
+color = "#3a4256"
+action = "volume"
+target = "down"
+
+[[tiles]]
+label = "Vol +"
+icon = "volume_up"
+color = "#3a4256"
+action = "volume"
+target = "up"
+
+[[tiles]]
+label = "Screenshot"
+icon = "screenshot_monitor"
+color = "#2f6f5e"
+action = "keys"
+target = "win+shift+s"
+
+[[tiles]]
+label = "Terminal"
+icon = "terminal"
+color = "#2b2f3a"
+action = "run"
+target = "wt.exe"
+
+[[tiles]]
+label = "Downloads"
+icon = "folder"
+color = "#8a6d1f"
+action = "open"
+target = "~/Downloads"
+
+[[tiles]]
+label = "Lock PC"
+icon = "lock"
+color = "#5b3fa0"
+action = "lock"
+target = ""
+
+[pages]
+# Home is always shown. Remove names to hide pages. Without this block every page
+# except "printer" is shown; "printer" is added by itself once a printer is configured.
+enabled = ["home", "stats", "ai", "calendar", "weather", "media", "printer", "shortcuts"]
+
+# Bambu Lab 3D printers (A1, A1 mini, P1P, P1S, X1C, X1E, H2D). Easiest: run
+# `uv run deskhub-printers`. Access codes and cloud tokens live in the OS credential
+# store (service "deskhub-bambu"), never in this file. Up to 4 printers.
+#
+# Over your home network (needs LAN Only Mode or Developer Mode on the printer):
+# [[printers]]
+# name = "P1S"
+# type = "local"
+# serial = "01P00A000000000"
+# host = "192.168.1.60"
+#
+# Through your Bambu account (region "us", or "cn" for China accounts):
+# [[printers]]
+# name = "A1 mini"
+# type = "cloud"
+# serial = "030000000000000"
+# account = "you@example.com"
+# region = "us"
