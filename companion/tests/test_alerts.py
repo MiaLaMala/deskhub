@@ -141,6 +141,7 @@ def put(sid, state, age=0, message="", project="proj", pids=()):
         "updated": int(time.time() - age), "pids": list(pids)}), encoding="utf-8")
 
 a = ClaudeAlerts(watch_dir)
+a.foreground_pid = lambda: 0
 check(a.poll() is None and a.msg is None, "nothing waiting -> nothing sent at start")
 
 put("a", "permission", age=20, message="Claude needs your permission to use Bash", project="alpha")
@@ -179,6 +180,22 @@ check(m and m["id"] == "i" and m["kind"] == "input" and m["detail"] == "Finished
       f"idle 30+ s alerts as waiting: {m}")
 put("i", "working")
 check(a.poll() == {"type": "alert", "clear": True}, "clear when the idle session resumes")
+
+# A waiting session whose window is in front counts as seen, and stays seen.
+fg = {"pid": 4242}
+a.foreground_pid = lambda: fg["pid"]
+put("v", "idle", age=40, project="viewed", pids=[1, 4242, 9])
+check(a.poll() is None, "session in the front window is treated as seen")
+fg["pid"] = 0
+check(a.poll() is None, "...and stays seen after switching away")
+put("v", "permission", age=0, project="viewed", pids=[1, 4242, 9])
+m = a.poll()
+check(m and m["id"] == "v", f"new state after switching away alerts again: {m}")
+fg["pid"] = 4242
+check(a.poll() == {"type": "alert", "clear": True}, "looking at it clears the board")
+fg["pid"] = 0
+put("v", "working")
+a.poll()
 
 put("old", "permission", age=31 * 60)
 check(a.poll() is None, "30+ minute old waiting session ignored")

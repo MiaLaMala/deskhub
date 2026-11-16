@@ -22,6 +22,7 @@ IDLE_AFTER_S = 30  # a finished session alerts once it has waited this long
 class ClaudeAlerts:
     def __init__(self, root: pathlib.Path | None = None, idle_after: float = IDLE_AFTER_S):
         self.idle_after = idle_after
+        self.foreground_pid = foreground_pid  # replaceable in tests
         self.root = root or pathlib.Path.home() / ".deskhub" / "claude_sessions"
         self.dismissed: dict[str, int] = {}  # session id -> `updated` of the dismissed alert
         self.sessions: dict[str, dict] = {}
@@ -68,9 +69,24 @@ class ClaudeAlerts:
                 "title": ascii_fold(title, 60), "detail": ascii_fold(detail, 120),
                 "project": ascii_fold(d.get("project"), 40)}
 
+    def _mark_seen(self):
+        """Opening a session in the desktop app (or its terminal) fires no hook, so
+        treat a waiting session as seen while the window that runs it is in front.
+        It alerts again only once its state changes."""
+        try:
+            fg = self.foreground_pid()
+        except Exception:
+            return
+        if not fg:
+            return
+        for sid, d in self.sessions.items():
+            if d.get("state") in ("permission", "input", "idle") and fg in (d.get("pids") or []):
+                self.dismissed[sid] = d["updated"]
+
     def poll(self) -> dict | None:
         """The message to send if the alert changed since the last call, else None."""
         self._load()
+        self._mark_seen()
         new = self._pick()
         if new == self.msg:
             return None
@@ -95,6 +111,23 @@ class ClaudeAlerts:
                 result = f"failed ({e})"
         log.info("alert focus %s: %s", sid, result)
         return result
+
+
+def foreground_pid() -> int:
+    """Process id that owns the window in front, or 0."""
+    if sys.platform != "win32":
+        return 0
+    import ctypes
+    from ctypes import wintypes
+
+    u32 = ctypes.windll.user32
+    u32.GetForegroundWindow.restype = wintypes.HWND
+    hwnd = u32.GetForegroundWindow()
+    if not hwnd:
+        return 0
+    pid = wintypes.DWORD()
+    u32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+    return pid.value
 
 
 def focus_pids(pids: list[int]) -> str:
