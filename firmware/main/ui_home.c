@@ -412,6 +412,7 @@ static void layout_printer(int w, int h)
 // The game being played, or the last one with a play button.
 static lv_obj_t *s_gm_img, *s_gm_ph, *s_gm_cap, *s_gm_sub, *s_gm_name, *s_gm_play;
 static uint32_t s_gm_appid;   // what the play button launches
+static int s_gm_iw = 2, s_gm_ih = 3;   // shape of the cover shown (2:3 until one arrives)
 
 static void game_play_cb(lv_event_t *e)
 {
@@ -458,11 +459,18 @@ static void layout_game(int w, int h)
     lv_obj_t *c = s_w[W_GAME];
     if (h <= 0) h = lv_obj_get_height(c);
     int inner = h - lv_obj_get_style_pad_top(c, 0) - lv_obj_get_style_pad_bottom(c, 0) - 2;
-    int tile_h = inner, tile_w = inner * 2 / 3;
+    // Full height at the cover's own shape; a wide image is capped so the text
+    // keeps room, and then shrinks in height instead of being squeezed.
+    int tile_h = inner, tile_w = inner * s_gm_iw / s_gm_ih;
+    int max_w = (w - 32) * 2 / 5;
+    if (tile_w > max_w) {
+        tile_w = max_w;
+        tile_h = tile_w * s_gm_ih / s_gm_iw;
+    }
     lv_obj_set_size(s_gm_ph, tile_w, tile_h);
     lv_obj_set_size(s_gm_img, tile_w, tile_h);
-    lv_obj_set_pos(s_gm_ph, 0, 0);
-    lv_obj_set_pos(s_gm_img, 0, 0);
+    lv_obj_set_pos(s_gm_ph, 0, (inner - tile_h) / 2);
+    lv_obj_set_pos(s_gm_img, 0, (inner - tile_h) / 2);
     int x = tile_w + 14, text_w = w - 32 - x;
     int y0 = (inner - 66) / 2;   // the three lines, centred beside the cover
     lv_obj_set_pos(s_gm_cap, x, y0);
@@ -1017,6 +1025,8 @@ void home_refresh_game(void)
     const lv_image_dsc_t *thumb = games_thumb(&thumb_id);
     if (g && thumb && thumb_id == g->appid) {
         lv_image_set_src(s_gm_img, thumb);
+        s_gm_iw = thumb->header.w;
+        s_gm_ih = thumb->header.h;
         lv_obj_remove_flag(s_gm_img, LV_OBJ_FLAG_HIDDEN);
     } else {
         lv_obj_add_flag(s_gm_img, LV_OBJ_FLAG_HIDDEN);
