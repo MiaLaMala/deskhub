@@ -73,7 +73,8 @@ check("games" not in tomllib.loads(conf.read_text(encoding="utf-8")), "removing 
 # The result loads in the companion.
 from deskhub.custom_games import load_games
 run(["1", "", "", "", ""], g.cmd_add, conf, fake_windows)
-check(len(load_games(tomllib.loads(conf.read_text(encoding="utf-8")))) == 1, "companion loads it")
+check(len(load_games({**tomllib.loads(conf.read_text(encoding="utf-8")), "game_presets": {"enabled": False}})) == 1,
+      "companion loads it")
 
 shutil.rmtree(root)
 print("\nPROBLEMS:" if problems else "\nOK", problems if problems else "")

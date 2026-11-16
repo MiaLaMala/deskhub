@@ -158,7 +158,9 @@ Everything comes from Steam's local files on your PC: the registry (which game i
 
 ### Games that aren't on Steam
 
-Minecraft, emulators and games from other launchers can show on the Games page too. The easiest way to add one is to start the game, then run:
+Popular games are recognised without any setup: League of Legends, Teamfight Tactics, VALORANT, Fortnite, Rocket League, Minecraft, Minecraft Bedrock, Roblox, Overwatch 2, World of Warcraft, Diablo IV, Hearthstone, StarCraft II, Call of Duty, Genshin Impact, Honkai: Star Rail, Zenless Zone Zero, Grand Theft Auto V, Apex Legends, EA SPORTS FC, The Sims 4, Halo Infinite, Escape from Tarkov, osu!. League of Legends and Teamfight Tactics run as the same program, so the companion asks the League client's local API, on your PC only, which one you're in. Riot, Epic and Battle.net games launch through their own launcher when you tap them, and games also sold on Steam get their Steam cover. To turn the built-in list off, set `enabled = false` under `[game_presets]` in `config.toml`, or skip some with `disabled = ["Roblox"]`. Your own `[[games]]` entry with the same name replaces a built-in one.
+
+For anything else, such as emulators, modpacks or games from other launchers, the easiest way to add one is to start the game, then run:
 
 ```powershell
 uv run deskhub-games
@@ -170,7 +172,7 @@ It lists the programs that have a window open, so you pick the game instead of l
 [[games]]
 name = "Minecraft"
 process = "javaw.exe"          # the program's file name; a list works too
-match = "net.minecraft"        # optional: text its command line must contain
+match = "minecraft"        # optional: text its command line must contain
 image = "C:/Users/you/Pictures/minecraft.png"   # optional: a file or https URL
 launch = "C:/XboxGames/Minecraft Launcher/Content/Minecraft.exe"   # optional
 ```

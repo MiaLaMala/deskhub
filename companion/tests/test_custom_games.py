@@ -27,7 +27,8 @@ tmp = pathlib.Path(tempfile.mkdtemp())
 img = tmp / "mc.png"
 Image.new("RGB", (800, 800), (40, 160, 60)).save(img)
 
-games = cg.load_games({"games": [
+NOPRESETS = {"game_presets": {"enabled": False}}
+games = cg.load_games({**NOPRESETS, "games": [
     {"name": "Minecraft", "process": "javaw.exe", "match": "Minecraft", "image": str(img),
      "launch": "minecraft://"},
     {"name": "Dolphin", "process": ["Dolphin.exe", "DolphinWX.exe"]},
@@ -107,7 +108,7 @@ check(all(f.startswith(b"STM1") and len(f) == 16 + 2 * struct.unpack("<HH", f[8:
 check(not any(struct.unpack("<I", f[4:8])[0] == dol for f in frames), "no image -> no frame (board placeholder)")
 
 # Window title matching (a modpack that runs as a generic java.exe).
-tg = cg.load_games({"games": [
+tg = cg.load_games({**NOPRESETS, "games": [
     {"name": "GT: New Horizons", "title": "New Horizons", "process": ["java.exe", "javaw.exe"]},
     {"name": "Any window", "title": "Some Emulator"},   # title alone is enough
 ]})

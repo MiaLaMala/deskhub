@@ -60,7 +60,13 @@ right = ["weather", "media", "stats"]
 # itself when Steam is found.
 enabled = true
 
-# Games that aren't on Steam show on the Games page too: one [[games]] block each
+# Popular non-Steam games (League of Legends, Teamfight Tactics, VALORANT, Fortnite,
+# Minecraft, Roblox, Battle.net games and more) are recognised without any setup.
+# [game_presets]
+# enabled = true
+# disabled = ["Roblox"]
+#
+# Other games that aren't on Steam show on the Games page too: one [[games]] block each
 # (uncomment and edit). The companion watches for the process, counts the session,
 # remembers when you last played, and the board can start it with `launch`.
 #   name    - shown on the board
@@ -74,7 +80,7 @@ enabled = true
 # [[games]]
 # name = "Minecraft"
 # process = "javaw.exe"
-# match = "net.minecraft"
+# match = "minecraft"
 # image = "C:/Users/you/Pictures/minecraft.png"
 # launch = "C:/XboxGames/Minecraft Launcher/Content/Minecraft.exe"
 #

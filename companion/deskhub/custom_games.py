@@ -29,6 +29,7 @@ from .text import ascii_fold
 log = logging.getLogger(__name__)
 
 STATE_FILE = pathlib.Path.home() / ".deskhub" / "custom_games.json"
+ART_CACHE = pathlib.Path.home() / ".deskhub" / "steam_art"
 ID_BASE = 0xC0000000   # above every Steam appid, so the two never collide
 SAVE_EVERY_S = 60
 
@@ -43,8 +44,14 @@ def is_custom(appid: int) -> bool:
 
 
 def load_games(cfg: dict) -> list[dict]:
+    """Your [[games]] entries, then the built-in presets (game_presets.py) that you
+    haven't turned off or replaced with an entry of the same name."""
+    from .game_presets import preset_entries
+
+    user = list(cfg.get("games", []) or [])
+    taken = {str(g.get("name", "")).strip().lower() for g in user}
     games = []
-    for g in cfg.get("games", []) or []:
+    for g in user + preset_entries(cfg, taken):
         name = str(g.get("name", "")).strip()
         procs = g.get("process", [])
         procs = [procs] if isinstance(procs, str) else list(procs)
@@ -61,6 +68,7 @@ def load_games(cfg: dict) -> list[dict]:
             "title": title,
             "image": str(g.get("image", "")).strip(),
             "launch": str(g.get("launch", "")).strip(),
+            "mode": str(g.get("mode", "")),   # presets: "lol" / "tft" share one program
         })
     return games
 
@@ -78,6 +86,8 @@ class CustomGames:
         self._running: int = 0            # id of the custom game running now
         self._start = 0.0
         self._saved_at = 0.0
+        self._league = ("lol", -1e9)      # (mode, when asked)
+        self.league_mode = None           # replaceable in tests
 
     def _load(self) -> dict[int, dict]:
         try:
@@ -114,8 +124,25 @@ class CustomGames:
                 if g["title"]:
                     continue
                 if name in g["process"] and (not g["match"] or g["match"] in cmdline()):
-                    return g["id"]
+                    return self._pick_mode(g)
         return 0
+
+    def _pick_mode(self, g: dict) -> int:
+        """League of Legends and Teamfight Tactics are one program: ask the League
+        client which one is on (at most every 30 s) and return that entry's id."""
+        if not g["mode"]:
+            return g["id"]
+        mode, at = self._league
+        now = self._clock()
+        if now - at >= 30:
+            from .game_presets import league_mode
+
+            mode = (self.league_mode or league_mode)()
+            self._league = (mode, now)
+        for other in self.games:
+            if other["mode"] == mode and set(other["process"]) & set(g["process"]):
+                return other["id"]
+        return g["id"]
 
     def poll(self) -> dict | None:
         """Track the running custom game. Returns it (with session_s and total_min)
@@ -166,8 +193,13 @@ class CustomGames:
             if src.startswith(("http://", "https://")):
                 import httpx
 
+                cache = ART_CACHE / f"url_{zlib.crc32(src.encode()):08x}.img"
+                if cache.is_file():
+                    return cache.read_bytes()
                 r = httpx.get(src, timeout=15, follow_redirects=True)
                 r.raise_for_status()
+                cache.parent.mkdir(parents=True, exist_ok=True)
+                cache.write_bytes(r.content)
                 return r.content
             return pathlib.Path(os.path.expandvars(os.path.expanduser(src))).read_bytes()
         except Exception as e:  # missing file, network
