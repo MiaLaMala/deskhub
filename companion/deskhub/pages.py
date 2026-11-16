@@ -25,8 +25,19 @@ def enabled_pages(cfg: dict) -> list[str]:
     return [p for p in ALL_PAGES if p == "home" or p in want]
 
 
+NAV_POSITIONS = ("left", "right", "bottom")
+
+
+def nav_position(cfg: dict) -> str:
+    """Where the board's navigation bar goes: [pages] nav = "left" (default),
+    "right" or "bottom"."""
+    nav = str((cfg.get("pages") or {}).get("nav", "left")).strip().lower()
+    return nav if nav in NAV_POSITIONS else "left"
+
+
 def layout_message(cfg: dict) -> dict:
-    return {"type": "layout", "pages": enabled_pages(cfg)}
+    # The board restarts when "nav" changes, so it always gets one.
+    return {"type": "layout", "pages": enabled_pages(cfg), "nav": nav_position(cfg)}
 
 
 # Home screen widgets, placed in two columns top to bottom. "events" stretches to

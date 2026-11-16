@@ -7,7 +7,9 @@
 #include "ui_internal.h"
 
 #define CARD_W ((CONTENT_W - 2 * 12) / 3)
-#define TOP_H 200
+#define TOP_H (UI_COMPACT ? 168 : 200)
+#define ARC_D (UI_COMPACT ? 96 : 112)
+#define HIST_CHART_H (CONTENT_H - TOP_H - 12 - 32 - 24 - 32)   // 140 beside a rail, 104 above the dock
 #define CHART_W 400
 
 hub_claude_t g_claude;
@@ -69,8 +71,8 @@ static void make_limit_card(lv_obj_t *page, limit_card_t *c, int x, const char *
     lv_obj_align(t, LV_ALIGN_TOP_LEFT, 0, 0);
 
     c->arc = lv_arc_create(card);
-    lv_obj_set_size(c->arc, 112, 112);
-    lv_obj_align(c->arc, LV_ALIGN_TOP_MID, 0, 22);
+    lv_obj_set_size(c->arc, ARC_D, ARC_D);
+    lv_obj_align(c->arc, LV_ALIGN_TOP_MID, 0, UI_COMPACT ? 20 : 22);
     lv_arc_set_rotation(c->arc, 135);
     lv_arc_set_bg_angles(c->arc, 0, 270);
     lv_arc_set_range(c->arc, 0, 100);
@@ -81,7 +83,7 @@ static void make_limit_card(lv_obj_t *page, limit_card_t *c, int x, const char *
     lv_obj_set_style_arc_rounded(c->arc, true, LV_PART_INDICATOR);
     lv_obj_set_style_arc_color(c->arc, lv_color_hex(COL_CARD_HI), LV_PART_MAIN);
     c->pct = ui_label(card, &lv_font_montserrat_32, COL_TEXT, "");
-    lv_obj_set_width(c->pct, 112);
+    lv_obj_set_width(c->pct, ARC_D);
     lv_obj_set_style_text_align(c->pct, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_align_to(c->pct, c->arc, LV_ALIGN_CENTER, 0, -2);
 
@@ -135,11 +137,11 @@ void claude_create(lv_obj_t *page)
     static const char *names[4] = {"Tokens", "Output", "Messages", "Last hour"};
     for (int i = 0; i < 4; i++) {
         lv_obj_t *n = ui_label(today, &lv_font_montserrat_16, COL_MUTED, names[i]);
-        lv_obj_set_pos(n, 0, 30 + i * 36);
+        lv_obj_set_pos(n, 0, 30 + i * (UI_COMPACT ? 30 : 36));
         s_today_val[i] = ui_label(today, i == 0 ? &lv_font_montserrat_20 : &lv_font_montserrat_16, COL_TEXT, "--");
         lv_obj_set_width(s_today_val[i], 90);
         lv_obj_set_style_text_align(s_today_val[i], LV_TEXT_ALIGN_RIGHT, 0);
-        lv_obj_set_pos(s_today_val[i], CARD_W - 32 - 90, 28 + i * 36);
+        lv_obj_set_pos(s_today_val[i], CARD_W - 32 - 90, 28 + i * (UI_COMPACT ? 30 : 36));
     }
 
     lv_obj_t *hist = ui_card(page);
@@ -154,7 +156,7 @@ void claude_create(lv_obj_t *page)
     lv_obj_set_style_text_align(s_peak, LV_TEXT_ALIGN_RIGHT, 0);
 
     s_chart = lv_chart_create(hist);
-    lv_obj_set_size(s_chart, CHART_W, 140);
+    lv_obj_set_size(s_chart, CHART_W, HIST_CHART_H);
     lv_obj_set_pos(s_chart, 0, 24);
     lv_chart_set_type(s_chart, LV_CHART_TYPE_BAR);
     lv_chart_set_point_count(s_chart, HUB_CLAUDE_DAYS);
@@ -171,7 +173,7 @@ void claude_create(lv_obj_t *page)
         s_day_lbl[i] = ui_label(hist, &lv_font_montserrat_14, COL_MUTED, "");
         lv_obj_set_width(s_day_lbl[i], CHART_W / HUB_CLAUDE_DAYS);
         lv_obj_set_style_text_align(s_day_lbl[i], LV_TEXT_ALIGN_CENTER, 0);
-        lv_obj_set_pos(s_day_lbl[i], i * CHART_W / HUB_CLAUDE_DAYS, 170);
+        lv_obj_set_pos(s_day_lbl[i], i * CHART_W / HUB_CLAUDE_DAYS, 24 + HIST_CHART_H + 6);
     }
 
     const int mx = CHART_W + 28, mw = CONTENT_W - 32 - mx;

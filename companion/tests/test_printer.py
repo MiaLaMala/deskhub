@@ -148,7 +148,7 @@ _pg.steam_installed = lambda: False
 check("printer" in enabled_pages({"printers": [{"serial": "x"}]}), "printer auto-added")
 check(enabled_pages({"pages": {"enabled": ["stats"]}, "printers": [{"serial": "x"}]}) == ["home", "stats"],
       "explicit pages win; home forced")
-check(layout_message({"pages": {"enabled": ["media", "home"]}}) == {"type": "layout", "pages": ["home", "media"]},
+check(layout_message({"pages": {"enabled": ["media", "home"]}}) == {"type": "layout", "pages": ["home", "media"], "nav": "left"},
       "layout message")
 
 

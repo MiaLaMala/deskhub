@@ -199,6 +199,9 @@ action = "lock"
 target = ""
 
 [pages]
+# Where the navigation bar goes: "left" (default), "right" or "bottom". The board
+# restarts once when this changes, to lay its pages out for the new space.
+# nav = "left"
 # Home is always shown. Remove names to hide pages. Without this block every page
 # except "printer" and "games" is shown; "printer" is added by itself once a printer is
 # configured and "games" when Steam is installed.

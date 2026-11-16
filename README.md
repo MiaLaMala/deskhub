@@ -77,7 +77,7 @@ It asks these questions in order. When you run it again, each answer you gave be
 4. **Calendars**: setup asks whether you want to add Google or Apple calendars now. See [Calendars](#calendars).
 5. **3D printers**: whether to add or change Bambu Lab printers. See [3D printer](#3d-printer-bambu-lab).
 6. **Games**: whether to add games that aren't on Steam, such as Minecraft. See [Games that aren't on Steam](#games-that-arent-on-steam).
-7. **Pages**: a yes/no for each page, to choose which ones the sidebar shows. Home is always shown.
+7. **Pages**: a yes/no for each page, to choose which ones the sidebar shows (Home is always shown), then where the navigation bar goes: `left`, `right` or `bottom`. Moving it restarts the board once so every page is laid out for the new space; with the bar along the bottom, pages use a slightly more compact layout.
 8. **Home screen**: whether the time and date go in a slim top bar, then which widgets go in each column.
 9. **Claude Code limits**: whether to turn on live limits. See [Claude Code usage](#claude-code-usage).
 10. **Waiting alerts**: whether the board shows when a Claude Code session is waiting for you. Setup offers to add the hooks to Claude Code's settings, update hooks from an older version, or remove them when you turn alerts off. See [Waiting alerts](#waiting-alerts).

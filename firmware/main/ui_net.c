@@ -11,10 +11,10 @@
 
 #define CARD_W ((CONTENT_W - 2 * 12) / 3)
 // Sizes for the Internet view inside the Stats page (388 px tall).
-#define VIEW_H 388
-#define TOP_H 130
-#define CHART_H 110
-#define BOT_H (VIEW_H - TOP_H - CHART_H - 24)
+#define VIEW_H (CONTENT_H - 52)            // 388 beside a rail, 320 above the dock
+#define TOP_H (UI_COMPACT ? 116 : 130)
+#define BOT_H (UI_COMPACT ? 96 : 124)
+#define CHART_H (VIEW_H - TOP_H - BOT_H - 24)   // 110 beside a rail
 
 hub_net_t g_net;
 
@@ -79,23 +79,23 @@ static lv_obj_t *line(lv_obj_t *parent, const lv_font_t *font, uint32_t color, i
 void net_page_create(lv_obj_t *page)
 {
     lv_obj_t *c = top_card(page, 0, "LATENCY");
-    s_lat = line(c, &lv_font_montserrat_48, COL_TEXT, 20);
-    s_lat_sub = line(c, &lv_font_montserrat_14, COL_MUTED, 78);
+    s_lat = line(c, UI_COMPACT ? &lv_font_montserrat_32 : &lv_font_montserrat_48, COL_TEXT, UI_COMPACT ? 24 : 20);
+    s_lat_sub = line(c, &lv_font_montserrat_14, COL_MUTED, UI_COMPACT ? 64 : 78);
 
     c = top_card(page, 1, "STATUS");
     s_status = line(c, &lv_font_montserrat_32, COL_GOOD, 22);
-    s_up = line(c, &lv_font_montserrat_16, COL_TEXT, 60);
-    s_drop = line(c, &lv_font_montserrat_14, COL_MUTED, 80);
+    s_up = line(c, &lv_font_montserrat_16, COL_TEXT, UI_COMPACT ? 54 : 60);
+    s_drop = line(c, &lv_font_montserrat_14, COL_MUTED, UI_COMPACT ? 70 : 80);
 
     c = top_card(page, 2, "DATA USED");
     // Label on the left, amount on the right, one row each.
-    lv_obj_t *l = line(c, &lv_font_montserrat_16, COL_MUTED, 34);
+    lv_obj_t *l = line(c, &lv_font_montserrat_16, COL_MUTED, UI_COMPACT ? 28 : 34);
     lv_label_set_text(l, "Today");
-    s_today = line(c, &lv_font_montserrat_24, COL_TEXT, 28);
+    s_today = line(c, &lv_font_montserrat_24, COL_TEXT, UI_COMPACT ? 22 : 28);
     lv_obj_set_style_text_align(s_today, LV_TEXT_ALIGN_RIGHT, 0);
-    l = line(c, &lv_font_montserrat_16, COL_MUTED, 72);
+    l = line(c, &lv_font_montserrat_16, COL_MUTED, UI_COMPACT ? 58 : 72);
     lv_label_set_text(l, "This month");
-    s_month = line(c, &lv_font_montserrat_24, COL_TEXT, 66);
+    s_month = line(c, &lv_font_montserrat_24, COL_TEXT, UI_COMPACT ? 52 : 66);
     lv_obj_set_style_text_align(s_month, LV_TEXT_ALIGN_RIGHT, 0);
 
     // Latency over the last two minutes.
@@ -127,22 +127,22 @@ void net_page_create(lv_obj_t *page)
     cap = ui_caption(b, "SPEED TEST");
     lv_obj_set_pos(cap, 0, 0);
     lv_obj_t *dl = ui_label(b, g_icon_32, COL_CYAN, ICON_ARROW_DOWNWARD);
-    lv_obj_set_pos(dl, 0, 26);
+    lv_obj_set_pos(dl, 0, UI_COMPACT ? 20 : 26);
     s_down = ui_label(b, &lv_font_montserrat_32, COL_TEXT, "");
-    lv_obj_set_pos(s_down, 36, 24);
+    lv_obj_set_pos(s_down, 36, UI_COMPACT ? 18 : 24);
     lv_obj_t *ul = ui_label(b, g_icon_32, COL_ACCENT2, ICON_ARROW_UPWARD);
-    lv_obj_set_pos(ul, 230, 26);
+    lv_obj_set_pos(ul, 230, UI_COMPACT ? 20 : 26);
     s_upl = ui_label(b, &lv_font_montserrat_32, COL_TEXT, "");
-    lv_obj_set_pos(s_upl, 266, 24);
+    lv_obj_set_pos(s_upl, 266, UI_COMPACT ? 18 : 24);
     s_sp_sub = ui_label(b, &lv_font_montserrat_14, COL_MUTED, "");
-    lv_obj_set_pos(s_sp_sub, 0, 66);
+    lv_obj_set_pos(s_sp_sub, 0, UI_COMPACT ? 54 : 66);
     s_now = ui_label(b, &lv_font_montserrat_14, COL_DIM, "");
     lv_obj_align(s_now, LV_ALIGN_TOP_RIGHT, 0, 0);
 
     s_run = lv_button_create(b);
     lv_obj_remove_style_all(s_run);
-    lv_obj_set_size(s_run, 150, 48);
-    lv_obj_set_style_radius(s_run, 24, 0);
+    lv_obj_set_size(s_run, 150, UI_COMPACT ? 40 : 48);
+    lv_obj_set_style_radius(s_run, UI_COMPACT ? 20 : 24, 0);
     lv_obj_set_style_bg_color(s_run, lv_color_hex(COL_ACCENT), 0);
     lv_obj_set_style_bg_opa(s_run, LV_OPA_COVER, 0);
     lv_obj_set_style_bg_color(s_run, lv_color_hex(COL_ACCENT2), LV_STATE_PRESSED);

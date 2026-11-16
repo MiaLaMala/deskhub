@@ -15,7 +15,10 @@
 #define THUMB_H 60
 #define PORT_W 96
 #define PORT_H 144
-#define TOP_H (HDR_H + 32)
+// The header shows smaller above the bottom dock, so the recent covers keep their size.
+#define IMG_W (UI_COMPACT ? 218 : HDR_W)
+#define IMG_H (UI_COMPACT ? 102 : HDR_H)
+#define TOP_H (IMG_H + 32)
 
 hub_steam_t g_steam;
 
@@ -164,24 +167,25 @@ void games_page_create(lv_obj_t *page)
     lv_obj_set_size(s_now_box, LV_PCT(100), LV_PCT(100));
     lv_obj_remove_flag(s_now_box, LV_OBJ_FLAG_SCROLLABLE);
     s_now_img = lv_image_create(s_now_box);
-    lv_obj_set_size(s_now_img, HDR_W, HDR_H);
+    lv_obj_set_size(s_now_img, IMG_W, IMG_H);
+    lv_image_set_inner_align(s_now_img, LV_IMAGE_ALIGN_STRETCH);
     lv_obj_set_style_radius(s_now_img, 12, 0);
     lv_obj_set_style_clip_corner(s_now_img, true, 0);
     lv_obj_set_style_bg_color(s_now_img, lv_color_hex(COL_CARD_HI), 0);
     lv_obj_set_style_bg_opa(s_now_img, LV_OPA_COVER, 0);
     lv_obj_set_pos(s_now_img, 0, 0);
-    const int tx = HDR_W + 20, tw = CONTENT_W - 32 - tx;
+    const int tx = IMG_W + 20, tw = CONTENT_W - 32 - tx;
     s_now_cap = ui_caption(s_now_box, "NOW PLAYING");
     lv_obj_set_style_text_color(s_now_cap, lv_color_hex(COL_GOOD), 0);
     lv_obj_set_pos(s_now_cap, tx, 4);
     s_now_name = ui_label(s_now_box, &lv_font_montserrat_24, COL_TEXT, "");
     lv_label_set_long_mode(s_now_name, LV_LABEL_LONG_DOT);
-    lv_obj_set_size(s_now_name, tw, 62);
-    lv_obj_set_pos(s_now_name, tx, 30);
+    lv_obj_set_size(s_now_name, tw, UI_COMPACT ? 30 : 62);
+    lv_obj_set_pos(s_now_name, tx, UI_COMPACT ? 24 : 30);
     s_now_time = ui_label(s_now_box, &lv_font_montserrat_20, COL_TEXT, "");
-    lv_obj_set_pos(s_now_time, tx, HDR_H - 54);
+    lv_obj_set_pos(s_now_time, tx, UI_COMPACT ? 54 : IMG_H - 54);
     s_now_total = ui_label(s_now_box, &lv_font_montserrat_16, COL_MUTED, "");
-    lv_obj_set_pos(s_now_total, tx, HDR_H - 24);
+    lv_obj_set_pos(s_now_total, tx, UI_COMPACT ? 80 : IMG_H - 24);
 
     s_idle = lv_obj_create(top);
     lv_obj_remove_style_all(s_idle);
@@ -296,9 +300,11 @@ void games_refresh(void)
                                       : !s->found ? "Steam isn't installed on the PC"
                                       : "Start a game, or pick one below");
     }
+    const int rows = (IMG_H - 24) / 27;   // friend rows that fit in the card
     for (int i = 0; i < HUB_STEAM_FRIENDS; i++) {
-        lv_label_set_text(s_fr_name[i], i < s->friend_count ? s->friend_name[i] : "");
-        lv_label_set_text(s_fr_game[i], i < s->friend_count ? s->friend_game[i] : "");
+        bool on = i < s->friend_count && i < rows;
+        lv_label_set_text(s_fr_name[i], on ? s->friend_name[i] : "");
+        lv_label_set_text(s_fr_game[i], on ? s->friend_game[i] : "");
     }
     if (s->friend_count) lv_obj_remove_flag(s_fr_cap, LV_OBJ_FLAG_HIDDEN);
     else lv_obj_add_flag(s_fr_cap, LV_OBJ_FLAG_HIDDEN);

@@ -6,6 +6,7 @@
 
 #include "esp_heap_caps.h"
 #include "esp_log.h"
+#include "esp_system.h"
 #include "hub_server.h"
 #include "icons.h"
 #include "logos.h"
@@ -37,6 +38,7 @@ static lv_obj_t *s_pages[PAGE_COUNT];
 static lv_obj_t *s_nav[PAGE_COUNT];
 static lv_obj_t *s_wifi_icon, *s_pc_icon;
 static lv_obj_t *s_nav_logo;   // the AI tab's agent logo
+int g_nav = NAV_LEFT;
 
 #define RAIL_PAD_V 10
 #define RAIL_GAP 2
@@ -318,11 +320,19 @@ static void apply_layout(void)
     }
     // Share the rail's height between the tabs that are shown, so it is filled
     // whether 4 or 10 pages are on (capped so a few tabs don't get huge).
-    int status_h = 2 * lv_font_get_line_height(g_icon_24) + 8;
-    int avail = PAGE_H - 2 * RAIL_PAD_V - status_h - (shown + 2) * RAIL_GAP;
-    int tab_h = shown ? avail / shown : RAIL_TAB_MAX;
-    if (tab_h > RAIL_TAB_MAX) tab_h = RAIL_TAB_MAX;
-    for (int i = 0; i < PAGE_COUNT; i++) lv_obj_set_height(s_nav[i], tab_h);
+    int status = 2 * lv_font_get_line_height(g_icon_24) + 8;
+    if (g_nav == NAV_BOTTOM) {
+        // The same idea across the dock's width (the status icons take ~80 px).
+        int avail = 800 - 28 - 80 - (shown + 2) * RAIL_GAP;
+        int tab_w = shown ? avail / shown : 72;
+        if (tab_w > 72) tab_w = 72;
+        for (int i = 0; i < PAGE_COUNT; i++) lv_obj_set_size(s_nav[i], tab_w, DOCK_H - 16);
+    } else {
+        int avail = 480 - 2 * RAIL_PAD_V - status - (shown + 2) * RAIL_GAP;
+        int tab_h = shown ? avail / shown : RAIL_TAB_MAX;
+        if (tab_h > RAIL_TAB_MAX) tab_h = RAIL_TAB_MAX;
+        for (int i = 0; i < PAGE_COUNT; i++) lv_obj_set_size(s_nav[i], 60, tab_h);
+    }
     stats_set_net_enabled(g_pages_mask & (1u << PAGE_NETWORK));
     home_apply_layout();
     if (s_page >= 0 && !(g_pages_mask & (1u << s_page))) {
@@ -343,6 +353,32 @@ static void load_layout(void)
         if (nvs_get_u32(h, "pages", &mask) == ESP_OK) g_pages_mask = mask | 1u;
         nvs_close(h);
     }
+}
+
+// Where the navigation bar goes; read before anything is built.
+static void load_nav(void)
+{
+    nvs_handle_t h;
+    uint8_t nav;
+    if (nvs_open("hub", NVS_READONLY, &h) == ESP_OK) {
+        if (nvs_get_u8(h, "nav", &nav) == ESP_OK && nav <= NAV_BOTTOM) g_nav = nav;
+        nvs_close(h);
+    }
+}
+
+// Moving the bar changes every page's size, so save it and restart: the
+// pages are rebuilt for the new space at boot.
+void ui_set_nav(int nav)
+{
+    if (nav < NAV_LEFT || nav > NAV_BOTTOM || nav == g_nav) return;
+    nvs_handle_t h;
+    if (nvs_open("hub", NVS_READWRITE, &h) == ESP_OK) {
+        nvs_set_u8(h, "nav", (uint8_t)nav);
+        nvs_commit(h);
+        nvs_close(h);
+    }
+    ESP_LOGI(TAG, "navigation bar moved; restarting");
+    esp_restart();
 }
 
 void ui_set_layout(uint32_t mask)
@@ -417,17 +453,28 @@ static void build_rail(lv_obj_t *scr)
 {
     lv_obj_t *rail = lv_obj_create(scr);
     lv_obj_remove_style_all(rail);
-    lv_obj_set_size(rail, RAIL_W, PAGE_H);
     lv_obj_set_style_bg_color(rail, lv_color_hex(COL_RAIL), 0);
     lv_obj_set_style_bg_opa(rail, LV_OPA_COVER, 0);
-    lv_obj_set_style_border_side(rail, LV_BORDER_SIDE_RIGHT, 0);
     lv_obj_set_style_border_color(rail, lv_color_hex(COL_BORDER), 0);
     lv_obj_set_style_border_width(rail, 1, 0);
-    lv_obj_set_style_pad_ver(rail, RAIL_PAD_V, 0);
-    lv_obj_set_flex_flow(rail, LV_FLEX_FLOW_COLUMN);
-    lv_obj_set_flex_align(rail, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_set_style_pad_row(rail, RAIL_GAP, 0);
     lv_obj_remove_flag(rail, LV_OBJ_FLAG_SCROLLABLE);
+    if (g_nav == NAV_BOTTOM) {
+        // A dock along the bottom: tabs left to right, status icons at the end.
+        lv_obj_set_size(rail, 800, DOCK_H);
+        lv_obj_set_pos(rail, 0, 480 - DOCK_H);
+        lv_obj_set_style_border_side(rail, LV_BORDER_SIDE_TOP, 0);
+        lv_obj_set_style_pad_hor(rail, 14, 0);
+        lv_obj_set_flex_flow(rail, LV_FLEX_FLOW_ROW);
+        lv_obj_set_style_pad_column(rail, RAIL_GAP, 0);
+    } else {
+        lv_obj_set_size(rail, RAIL_W, 480);
+        lv_obj_set_pos(rail, g_nav == NAV_RIGHT ? 800 - RAIL_W : 0, 0);
+        lv_obj_set_style_border_side(rail, g_nav == NAV_RIGHT ? LV_BORDER_SIDE_LEFT : LV_BORDER_SIDE_RIGHT, 0);
+        lv_obj_set_style_pad_ver(rail, RAIL_PAD_V, 0);
+        lv_obj_set_flex_flow(rail, LV_FLEX_FLOW_COLUMN);
+        lv_obj_set_style_pad_row(rail, RAIL_GAP, 0);
+    }
+    lv_obj_set_flex_align(rail, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
 
     // Tabs top to bottom: every page in PAGE_* order, except Shortcuts, which
     // always sits last, just above the status icons.
@@ -464,8 +511,9 @@ static void build_rail(lv_obj_t *scr)
     lv_obj_t *spacer = lv_obj_create(rail);
     lv_obj_remove_style_all(spacer);
     lv_obj_set_flex_grow(spacer, 1);
-    lv_obj_set_width(spacer, 1);
+    lv_obj_set_size(spacer, 1, 1);
     s_pc_icon = ui_label(rail, g_icon_24, COL_DIM, ICON_DESKTOP_WINDOWS);
+    if (g_nav == NAV_BOTTOM) lv_obj_set_style_pad_right(s_pc_icon, 6, 0);
     s_wifi_icon = ui_label(rail, g_icon_24, COL_DIM, ICON_WIFI_OFF);
 }
 
@@ -595,6 +643,7 @@ void ui_init(void)
     lv_obj_set_style_text_color(scr, lv_color_hex(COL_TEXT), 0);
     lv_obj_remove_flag(scr, LV_OBJ_FLAG_SCROLLABLE);
 
+    load_nav();
     build_stars(scr);
     build_rail(scr);
 
@@ -606,7 +655,7 @@ void ui_init(void)
         lv_obj_t *p = lv_obj_create(scr);
         lv_obj_remove_style_all(p);
         lv_obj_set_size(p, PAGE_W, PAGE_H);
-        lv_obj_set_pos(p, RAIL_W, 0);
+        lv_obj_set_pos(p, g_nav == NAV_LEFT ? RAIL_W : 0, 0);
         lv_obj_set_style_pad_all(p, PAD, 0);
         lv_obj_remove_flag(p, LV_OBJ_FLAG_SCROLLABLE);
         lv_obj_add_flag(p, LV_OBJ_FLAG_HIDDEN);

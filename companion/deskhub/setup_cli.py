@@ -339,6 +339,16 @@ def step_pages(config_path: pathlib.Path):
     arr = tomlkit.array()
     arr.extend(chosen)
     pages["enabled"] = arr
+    from .pages import NAV_POSITIONS, nav_position
+
+    current_nav = nav_position(doc.unwrap())
+    while True:
+        nav = ask("Navigation bar: left, right or bottom", current_nav).lower()
+        if nav in NAV_POSITIONS:
+            break
+        print("Type left, right or bottom.")
+    if nav != "left" or "nav" in pages:
+        pages["nav"] = nav
     config_path.write_text(tomlkit.dumps(doc), encoding="utf-8")
 
 

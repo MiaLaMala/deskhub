@@ -48,9 +48,9 @@ fw = root / "firmware"; fw.mkdir()
                               'CONFIG_HUB_FAHRENHEIT=y\n# CONFIG_HUB_24H is not set\n')
 conf = root / "config.toml"
 shutil.copy(pathlib.Path(__file__).parent.parent / "config.example.toml", conf)
-# Wi-Fi, city, pick, F, 24h, calendars, printers, games, 10 pages (hide Weather and Games), top bar, home left+right, live limits, flash
+# Wi-Fi, city, pick, F, 24h, calendars, printers, games, 10 pages (hide Weather and Games), nav bar, top bar, home left+right, live limits, flash
 answers = iter(["", "Charlotte, NC", "1", "", "", "n", "n", "n",
-                "", "", "", "n", "", "", "", "", "n", "", "y", "clock, events", "media, bogus", "printer", "y", "", "", "codex", "n"])
+                "", "", "", "n", "", "", "", "", "n", "", "bottom", "y", "clock, events", "media, bogus", "printer", "y", "", "", "codex", "n"])
 builtins.input = lambda prompt="": next(answers)
 # Never touch the real Claude Code settings: point the alerts step at a temp file.
 s.CLAUDE_SETTINGS = root / "claude_settings.json"
@@ -90,6 +90,10 @@ import tomllib
 pages = tomllib.loads(conf.read_text())["pages"]["enabled"]
 check(pages == ["home", "stats", "ai", "calendar", "media", "printer", "shortcuts", "timer", "network"], f"pages saved: {pages}")
 check("# Home is always shown" in conf.read_text(), "pages comment kept")
+from deskhub.pages import layout_message
+check(tomllib.loads(conf.read_text())["pages"].get("nav") == "bottom", "nav bar position saved")
+check(layout_message(tomllib.loads(conf.read_text()))["nav"] == "bottom", "nav sent to the board")
+check(layout_message({})["nav"] == "left" and layout_message({"pages": {"nav": "top"}})["nav"] == "left", "nav defaults to left")
 shutil.rmtree(root)
 
 print("\nPROBLEMS:" if problems else "\nOK", problems if problems else "")

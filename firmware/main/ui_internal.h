@@ -26,12 +26,17 @@
 #define COL_BAD      0xff6b8a
 
 // Layout: navigation rail on the left, pages to its right.
-#define RAIL_W 88
-#define PAGE_W (800 - RAIL_W)          // 712
-#define PAGE_H 480
+// The navigation bar sits on the left (default), the right or along the bottom.
+// Read from NVS at boot; pages are built for the space that leaves.
+enum { NAV_LEFT, NAV_RIGHT, NAV_BOTTOM };
+extern int g_nav;
+#define RAIL_W 88                      // side rail width
+#define DOCK_H 68                      // bottom dock height
+#define PAGE_W (g_nav == NAV_BOTTOM ? 800 : 800 - RAIL_W)   // 712 beside the rail
+#define PAGE_H (g_nav == NAV_BOTTOM ? 480 - DOCK_H : 480)   // 412 above the dock
 #define PAD 20
-#define CONTENT_W (PAGE_W - 2 * PAD)   // 672
-#define CONTENT_H (PAGE_H - 2 * PAD)   // 440
+#define CONTENT_W (PAGE_W - 2 * PAD)   // 672 with a side rail, 760 with the dock
+#define CONTENT_H (PAGE_H - 2 * PAD)   // 440 with a side rail, 372 with the dock
 
 // Material Icons and the large clock font, rendered at runtime by Tiny TTF.
 extern lv_font_t *g_icon_24, *g_icon_32, *g_icon_48, *g_icon_80, *g_font_clock;
@@ -153,3 +158,4 @@ void home_refresh_net(void);
 void net_refresh_live(void);   // the "Now" line, on each stats message
 void stats_set_view(int view);          // 0 = PC, 1 = Internet
 void stats_set_net_enabled(bool on);
+#define UI_COMPACT (CONTENT_H < 400)   // the bottom dock leaves 372 px: pages use tighter layouts

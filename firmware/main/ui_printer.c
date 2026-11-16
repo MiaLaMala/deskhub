@@ -10,6 +10,11 @@
 #define RIGHT_X (LEFT_W + 12)
 #define RIGHT_W (CONTENT_W - RIGHT_X)
 #define SWATCH 30
+// Card heights on the right; tighter above the bottom dock.
+#define JOB_H (UI_COMPACT ? 96 : 112)
+#define TEMPS_H (UI_COMPACT ? 104 : 120)
+#define TEMPS_Y (56 + JOB_H + 12)
+#define AMS_Y (TEMPS_Y + TEMPS_H + 12)
 
 static lv_obj_t *s_body, *s_empty, *s_empty_sub;
 static lv_obj_t *s_name, *s_chip, *s_chip_lbl, *s_count;
@@ -95,7 +100,7 @@ void printer_create(lv_obj_t *page)
     lv_obj_set_size(left, LEFT_W, CONTENT_H - 56);
     lv_obj_set_pos(left, 0, 56);
     s_arc = lv_arc_create(left);
-    lv_obj_set_size(s_arc, 220, 220);
+    lv_obj_set_size(s_arc, UI_COMPACT ? 180 : 220, UI_COMPACT ? 180 : 220);
     lv_obj_align(s_arc, LV_ALIGN_TOP_MID, 0, 6);
     lv_arc_set_rotation(s_arc, 135);
     lv_arc_set_bg_angles(s_arc, 0, 270);
@@ -130,21 +135,21 @@ void printer_create(lv_obj_t *page)
 
     // Right top: the file being printed.
     lv_obj_t *job = ui_card(s_body);
-    lv_obj_set_size(job, RIGHT_W, 112);
+    lv_obj_set_size(job, RIGHT_W, JOB_H);
     lv_obj_set_pos(job, RIGHT_X, 56);
     s_file_cap = ui_caption(job, "PRINTING");
     lv_obj_set_pos(s_file_cap, 0, 0);
     s_file = ui_label(job, &lv_font_montserrat_24, COL_TEXT, "");
     lv_label_set_long_mode(s_file, LV_LABEL_LONG_DOT);
     lv_obj_set_width(s_file, RIGHT_W - 32);
-    lv_obj_set_pos(s_file, 0, 22);
+    lv_obj_set_pos(s_file, 0, UI_COMPACT ? 20 : 22);
     s_speed = ui_label(job, &lv_font_montserrat_14, COL_MUTED, "");
-    lv_obj_set_pos(s_speed, 0, 58);
+    lv_obj_set_pos(s_speed, 0, UI_COMPACT ? 48 : 58);
 
     // Right middle: temperatures.
     lv_obj_t *temps = ui_card(s_body);
-    lv_obj_set_size(temps, RIGHT_W, 120);
-    lv_obj_set_pos(temps, RIGHT_X, 180);
+    lv_obj_set_size(temps, RIGHT_W, TEMPS_H);
+    lv_obj_set_pos(temps, RIGHT_X, TEMPS_Y);
     static const char *names[3] = {"Nozzle", "Bed", "Chamber"};
     static const char *glyphs[3] = {ICON_LOCAL_FIRE, ICON_LAYERS, ICON_DEVICE_THERMOSTAT};
     static const uint32_t tints[3] = {COL_WARN, COL_ACCENT2, COL_CYAN};
@@ -155,15 +160,15 @@ void printer_create(lv_obj_t *page)
         lv_obj_t *nm = ui_label(temps, &lv_font_montserrat_14, COL_MUTED, names[i]);
         lv_obj_set_pos(nm, i * col + 30, 4);
         s_temp_val[i] = ui_label(temps, &lv_font_montserrat_32, COL_TEXT, "--");
-        lv_obj_set_pos(s_temp_val[i], i * col, 32);
+        lv_obj_set_pos(s_temp_val[i], i * col, UI_COMPACT ? 24 : 32);
         s_temp_tgt[i] = ui_label(temps, &lv_font_montserrat_14, COL_MUTED, "");
-        lv_obj_set_pos(s_temp_tgt[i], i * col, 70);
+        lv_obj_set_pos(s_temp_tgt[i], i * col, UI_COMPACT ? 58 : 70);
     }
 
     // Right bottom: AMS filament slots.
     s_ams_card = ui_card(s_body);
-    lv_obj_set_size(s_ams_card, RIGHT_W, CONTENT_H - 312);
-    lv_obj_set_pos(s_ams_card, RIGHT_X, 312);
+    lv_obj_set_size(s_ams_card, RIGHT_W, CONTENT_H - AMS_Y);
+    lv_obj_set_pos(s_ams_card, RIGHT_X, AMS_Y);
     lv_obj_t *cap = ui_caption(s_ams_card, "FILAMENT");
     lv_obj_set_pos(cap, 0, 0);
     const int step = (RIGHT_W - 32) / HUB_MAX_AMS;
@@ -176,13 +181,14 @@ void printer_create(lv_obj_t *page)
         lv_obj_set_style_border_color(d, lv_color_hex(COL_TEXT), 0);
         lv_obj_set_style_outline_color(d, lv_color_hex(COL_ACCENT), 0);
         lv_obj_set_style_outline_pad(d, 3, 0);
-        lv_obj_set_pos(d, i * step + (step - SWATCH) / 2, 26);
+        lv_obj_set_pos(d, i * step + (step - SWATCH) / 2, UI_COMPACT ? 22 : 26);
         s_ams_dot[i] = d;
         s_ams_lbl[i] = ui_label(s_ams_card, &lv_font_montserrat_14, COL_MUTED, "");
         lv_label_set_long_mode(s_ams_lbl[i], LV_LABEL_LONG_CLIP);
         lv_obj_set_width(s_ams_lbl[i], step);
         lv_obj_set_style_text_align(s_ams_lbl[i], LV_TEXT_ALIGN_CENTER, 0);
         lv_obj_set_pos(s_ams_lbl[i], i * step, 62);
+            if (UI_COMPACT) lv_obj_add_flag(s_ams_lbl[i], LV_OBJ_FLAG_HIDDEN);   // no room for labels
     }
     s_ams_none = ui_label(s_ams_card, &lv_font_montserrat_16, COL_DIM, "No AMS data");
     lv_obj_set_pos(s_ams_none, 0, 32);
@@ -310,9 +316,10 @@ void printer_refresh(void)
     for (int i = 0; i < HUB_MAX_AMS; i++) {
         bool on = i < p->ams_count;
         if (on) {
-            lv_obj_set_pos(s_ams_dot[i], i * step + (step - SWATCH) / 2, 26);
+            lv_obj_set_pos(s_ams_dot[i], i * step + (step - SWATCH) / 2, UI_COMPACT ? 22 : 26);
             lv_obj_set_width(s_ams_lbl[i], step);
             lv_obj_set_pos(s_ams_lbl[i], i * step, 62);
+            if (UI_COMPACT) lv_obj_add_flag(s_ams_lbl[i], LV_OBJ_FLAG_HIDDEN);   // no room for labels
             lv_obj_remove_flag(s_ams_dot[i], LV_OBJ_FLAG_HIDDEN);
             lv_obj_set_style_bg_color(s_ams_dot[i], lv_color_hex(p->ams_color[i]), 0);
             lv_obj_set_style_outline_width(s_ams_dot[i], p->ams_active[i] ? 2 : 0, 0);

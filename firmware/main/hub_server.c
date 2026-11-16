@@ -261,6 +261,12 @@ static void on_layout(const cJSON *m)
     }
     display_lock();
     ui_set_layout(mask);
+    // "nav": "left" | "right" | "bottom" (restarts the board when it changes).
+    char nav[8];
+    copy_str(nav, sizeof(nav), m, "nav");
+    if (!strcmp(nav, "left")) ui_set_nav(0);
+    else if (!strcmp(nav, "right")) ui_set_nav(1);
+    else if (!strcmp(nav, "bottom")) ui_set_nav(2);
     display_unlock();
 }
 
