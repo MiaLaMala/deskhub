@@ -72,7 +72,13 @@ It asks these questions in order. When you run it again, each answer you gave be
 2. **City**: type something like `Charlotte, NC` or `Paris, France` and pick from the matches. This sets the weather location and the time zone.
 3. **Units**: two yes/no questions. The first asks "Fahrenheit and mph", which defaults to yes for US cities. The second asks "24-hour clock".
 4. **Calendars**: setup asks whether you want to add Google or Apple calendars now. See [Calendars](#calendars).
-5. **Build and flash**: setup asks before it builds. Then it finds the board's USB port, or asks for the COM port if it can't tell (Device Manager lists it under *Ports*), and installs the firmware. The first build takes a few minutes.
+5. **3D printers**: whether to add or change Bambu Lab printers. See [3D printer](#3d-printer-bambu-lab).
+6. **Pages**: a yes/no for each page, to choose which ones the sidebar shows. Home is always shown.
+7. **Home screen**: whether the time and date go in a slim top bar, then which widgets go in each column.
+8. **Claude Code limits**: whether to turn on live limits. See [Claude Code usage](#claude-code-usage).
+9. **Waiting alerts**: whether the board shows when a Claude Code session is waiting for you. Setup offers to add the hooks to Claude Code's settings, update hooks from an older version, or remove them when you turn alerts off. See [Waiting alerts](#waiting-alerts).
+10. **AI agent**: which agent the AI page shows: `auto`, `claude` or `codex`.
+11. **Build and flash**: setup asks before it builds. Then it finds the board's USB port, or asks for the COM port if it can't tell (Device Manager lists it under *Ports*), and installs the firmware. The first build takes a few minutes.
 
 Setup also creates `companion/config.toml` and gives the board and the companion a shared random token, so they can trust each other.
 

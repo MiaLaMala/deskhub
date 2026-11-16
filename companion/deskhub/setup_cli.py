@@ -8,6 +8,8 @@ any time to change something.
 import argparse
 import getpass
 import importlib.resources
+import importlib.util
+import json
 import os
 import pathlib
 import re
@@ -203,6 +205,55 @@ def step_live_limits(config_path: pathlib.Path):
         config_path.write_text(tomlkit.dumps(doc), encoding="utf-8")
 
 
+CLAUDE_SETTINGS = pathlib.Path.home() / ".claude" / "settings.json"
+INSTALLER = pathlib.Path(__file__).resolve().parent.parent / "install_claude.py"
+
+
+def hook_events_installed() -> set[str]:
+    """Claude Code hook events that already run the desk hub's hook_bridge.py."""
+    try:
+        hooks = json.loads(CLAUDE_SETTINGS.read_text(encoding="utf-8")).get("hooks") or {}
+    except (OSError, ValueError):
+        return set()
+    return {ev for ev, entries in hooks.items() if "hook_bridge.py" in json.dumps(entries)}
+
+
+def hook_events_wanted() -> set[str]:
+    spec = importlib.util.spec_from_file_location("install_claude", INSTALLER)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return set(mod.HOOK_EVENTS)
+
+
+def run_installer(*args: str) -> bool:
+    return subprocess.run([sys.executable, str(INSTALLER), *args]).returncode == 0
+
+
+def step_alerts(config_path: pathlib.Path):
+    heading("Waiting alerts")
+    print("When a Claude Code session needs a permission, asks a question, or has finished and\n"
+          "is waiting for your reply, the board shows it on the Home usage card and the AI\n"
+          "page. This needs small hooks in Claude Code's settings (~/.claude/settings.json);\n"
+          "your other hooks are left alone and a backup is kept.")
+    doc = tomlkit.parse(config_path.read_text(encoding="utf-8"))
+    claude = doc.get("claude") or tomlkit.table()
+    installed = hook_events_installed()
+    on = yes("Show waiting alerts on the board", bool(claude.get("alerts", True)))
+    if claude.get("alerts") != on:
+        claude["alerts"] = on
+        doc["claude"] = claude
+        config_path.write_text(tomlkit.dumps(doc), encoding="utf-8")
+    if on and not installed:
+        if yes("Add the hooks to Claude Code now", True) and run_installer("hooks"):
+            print("Hooks added. Sessions you start from now on will report to the board.")
+    elif on and installed != hook_events_wanted():
+        if yes("Your hooks are from an older version. Update them", True):
+            run_installer("hooks")
+    elif not on and installed:
+        if yes("Remove the hooks from Claude Code too", True):
+            run_installer("hooks", "--remove")
+
+
 def step_agent(config_path: pathlib.Path):
     heading("AI agent")
     print("The AI page can show Claude Code or OpenAI Codex usage. 'auto' shows whichever\n"
@@ -390,6 +441,7 @@ def main():
     step_pages(config_path)
     step_home(config_path)
     step_live_limits(config_path)
+    step_alerts(config_path)
     step_agent(config_path)
 
     step_flash(firmware)

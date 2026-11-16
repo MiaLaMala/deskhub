@@ -47,8 +47,12 @@ conf = root / "config.toml"
 shutil.copy(pathlib.Path(__file__).parent.parent / "config.example.toml", conf)
 # Wi-Fi, city, pick, F, 24h, calendars, printers, 7 pages (hide Weather), top bar, home left+right, live limits, flash
 answers = iter(["", "Charlotte, NC", "1", "", "", "n", "n",
-                "", "", "", "n", "", "", "", "", "y", "clock, events", "media, bogus", "printer", "y", "codex", "n"])
+                "", "", "", "n", "", "", "", "", "y", "clock, events", "media, bogus", "printer", "y", "", "", "codex", "n"])
 builtins.input = lambda prompt="": next(answers)
+# Never touch the real Claude Code settings: point the alerts step at a temp file.
+s.CLAUDE_SETTINGS = root / "claude_settings.json"
+installer_calls = []
+s.run_installer = lambda *a: installer_calls.append(a) or True
 getpass.getpass = lambda prompt="": ""
 sys.argv = ["deskhub-setup", "--config", str(conf), "--firmware", str(fw)]
 s.main()
@@ -65,6 +69,20 @@ _home = _t.loads(conf.read_text())["home"]
 check(_home == {"header": True, "left": ["clock", "events"], "right": ["printer"]}, f"home layout saved: {_home}")
 check("live_limits = true" in conf.read_text(), "live limits turned on")
 check('agent = "codex"' in conf.read_text(), "AI agent saved")
+check(installer_calls == [("hooks",)], f"alerts step installs the hooks: {installer_calls}")
+check("alerts = true" in conf.read_text(), "alerts kept on")
+
+# Turning alerts off with hooks installed offers to remove them; old hooks get updated.
+import json as _j
+s.CLAUDE_SETTINGS.write_text(_j.dumps({"hooks": {"Stop": [{"matcher": "", "hooks": [{"type": "command", "command": "py hook_bridge.py Stop"}]}]}}))
+installer_calls.clear()
+answers = iter(["n", ""])
+s.step_alerts(conf)
+check(installer_calls == [("hooks", "--remove")] and "alerts = false" in conf.read_text(), f"alerts off removes hooks: {installer_calls}")
+installer_calls.clear()
+answers = iter(["y", ""])
+s.step_alerts(conf)
+check(installer_calls == [("hooks",)], f"outdated hooks get updated: {installer_calls}")
 import tomllib
 pages = tomllib.loads(conf.read_text())["pages"]["enabled"]
 check(pages == ["home", "stats", "ai", "calendar", "media", "printer", "shortcuts", "timer"], f"pages saved: {pages}")
