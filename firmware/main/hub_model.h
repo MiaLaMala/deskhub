@@ -129,3 +129,22 @@ typedef struct {
     char detail[128];
     char project[48];
 } hub_alert_t;
+
+// Steam: the game being played and recently played games.
+#define HUB_STEAM_RECENT 5
+typedef struct {
+    uint32_t appid;
+    char name[48];
+    time_t last;        // last played (recent games)
+    int total_min;      // total playtime
+} hub_game_t;
+
+typedef struct {
+    bool valid;         // a steam message has arrived
+    bool found;         // Steam is installed on the PC
+    bool playing;
+    hub_game_t now;     // when playing
+    int session_s;      // seconds into this session when the message was sent
+    hub_game_t recent[HUB_STEAM_RECENT];
+    int recent_count;
+} hub_steam_t;

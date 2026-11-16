@@ -12,6 +12,7 @@ The board runs custom firmware (ESP-IDF + LVGL). A small Python app on your Wind
 | ![Calendar](docs/screenshots/calendar.png) | ![Now playing](docs/screenshots/media.png) |
 | ![3D printer](docs/screenshots/printer.png) | ![Shortcuts](docs/screenshots/shortcuts.png) |
 | ![Timer](docs/screenshots/timer.png) | ![Waiting alert](docs/screenshots/alert.png) |
+| ![Games](docs/screenshots/games.png) | |
 
 ## Features
 
@@ -25,6 +26,7 @@ The board runs custom firmware (ESP-IDF + LVGL). A small Python app on your Wind
 | Media | Whatever Windows lists as playing (Spotify, YouTube in a browser, VLC…) with the cover, a seek bar and controls | companion |
 | Shortcuts | Up to 16 buttons: key combos, apps, folders, URLs, volume, media, lock PC | companion |
 | 3D printer | Bambu Lab print state, progress, temperatures and AMS colours for up to 4 printers (optional) | companion, over MQTT |
+| Games | The Steam game you're playing with its cover and session time, your five most recent games, and a tap to launch one (optional) | companion, from Steam's local files |
 | Timer | Countdown with presets from 1 to 45 minutes, pause and reset, and a full-screen "Time's up" card. The time left shows on its sidebar tab | the board itself, works without the PC |
 
 ## What you need
@@ -142,10 +144,16 @@ Home is always shown. To hide other pages, list the ones you want in `companion/
 
 ```toml
 [pages]
-enabled = ["home", "stats", "ai", "calendar", "weather", "media", "printer", "shortcuts"]
+enabled = ["home", "stats", "ai", "calendar", "weather", "media", "printer", "shortcuts", "timer", "games"]
 ```
 
-Remove a name to hide that page. Without a `[pages]` block everything is shown except the 3D printer page, which turns on by itself once you add a printer. Setup asks about each page too (the *Pages* step). The companion sends the list to the board every time it connects, so restart the companion after editing.
+Remove a name to hide that page. Without a `[pages]` block everything is shown except the 3D printer page, which turns on by itself once you add a printer, and the Games page, which turns on when Steam is installed. Setup asks about each page too (the *Pages* step). The companion sends the list to the board every time it connects, so restart the companion after editing.
+
+## Steam
+
+The Games page shows the game you're playing, with its cover and how long this session has run, and your five most recent games. Tap a recent game to launch it. The Home widget `game` shows the same game in a small card.
+
+Everything comes from Steam's local files on your PC: the registry (which game is running), the library manifests and your `localconfig.vdf` (recent games and playtime). Cover art comes from Steam's public image CDN, and the names of recent games you've uninstalled from the public Store API. Only the game's appid is sent, and both are cached in `~/.deskhub`. Launching opens `steam://rungameid/<appid>`, and only for games in the recent list. Steam only keeps total playtime in that file for some games, so the total shows when it's there and is left out otherwise. To turn this off, set `enabled = false` under `[steam]` in `config.toml`.
 
 ## Customizing Home
 
@@ -165,6 +173,7 @@ right = ["weather", "media", "stats"]
 | `media` | now playing, with a play/pause button | 120 px |
 | `stats` | CPU, GPU and RAM bars | 120 px |
 | `printer` | 3D print progress, time left and status | 120 px |
+| `game` | the Steam game you're playing (or your latest one), with its cover | 120 px |
 | `clock` | the big clock and date, for use without the top bar (see below) | about 124 px |
 
 How the columns behave:
@@ -322,11 +331,14 @@ The board runs a WebSocket server at `ws://deskhub.local/ws`. The companion conn
 | `layout` | `pages`, the page names to show. Sent right after `hello_ok`. |
 | `home` | `left` and `right`, the Home widget names per column, top to bottom, and `header` (time and date in a top bar). Sent right after `layout`. |
 | `printer` | `printers` (up to 4) with `name`, `model`, `online`, `state`, `pct`, `remaining_min`, `layer`/`layers`, `file`, temperatures, `speed`, `error` and `ams`. Sent when something changes, and at least every 30 seconds. |
+| `steam` | `found`, `playing` (`appid`, `name`, `session_s`, `total_min`) and `recent` (up to 5 with `appid`, `name`, `last`, `total_min`). Sent when something changes, and at least every 60 seconds. |
+| binary | `STM1`, then `u32 appid`, `u16 width`, `u16 height`, `u16 kind`, `u16 0` and RGB565 little-endian pixels. Kind 0 is the playing game's header (340x159), 1 a thumbnail (128x60), 2 a portrait cover (96x144). |
 | `claude` | `limits`, the current 5-hour `block`, `today`, `last_hour`, `days` (7 values) and `models`. Sent every 5 seconds. |
 
 | From the board | Contents |
 | --- | --- |
 | `media` | `cmd` (`toggle`, `next`, `prev` or `seek`) and `value` (seconds, for `seek`) |
+| `steam_launch` | `appid`, a recent or running game to launch |
 | `shortcut` | `id`, the button's index. The PC looks up what the button does, so the board never holds commands. |
 
 The board treats the PC as offline once nothing has arrived for 5 seconds. Without the token, other devices on your network can't drive the display or trigger your shortcuts. The traffic is not encrypted, so use a network you trust.

@@ -34,7 +34,9 @@ CONFIG_ESP_WIFI_ENABLE_WPA3_SAE=y
 
 # LVGL 9
 CONFIG_LV_COLOR_DEPTH_16=y
-CONFIG_LV_USE_CLIB_MALLOC=y
+# LVGL objects live in PSRAM (lv_mem_psram.c): plain malloc put every object
+# under 512 bytes in internal RAM, which ran out as pages were added.
+CONFIG_LV_USE_CUSTOM_MALLOC=y
 CONFIG_LV_USE_CLIB_STRING=y
 CONFIG_LV_USE_CLIB_SPRINTF=y
 CONFIG_LV_DEF_REFR_PERIOD=16

@@ -62,7 +62,7 @@ const char *ui_icon_by_name(const char *name, char out[5]);
 bool ui_media_has_art(void);
 void ui_show_page(int page);
 
-enum { PAGE_HOME, PAGE_STATS, PAGE_CLAUDE, PAGE_CALENDAR, PAGE_WEATHER, PAGE_MEDIA, PAGE_PRINTER, PAGE_SHORTCUTS, PAGE_TIMER,
+enum { PAGE_HOME, PAGE_STATS, PAGE_CLAUDE, PAGE_CALENDAR, PAGE_WEATHER, PAGE_MEDIA, PAGE_PRINTER, PAGE_SHORTCUTS, PAGE_TIMER, PAGE_GAMES,
        PAGE_COUNT };
 
 // Pages shown in the rail (bit per PAGE_*). Home is always on.
@@ -131,3 +131,14 @@ lv_obj_t *claude_history_card(void);
 void ui_rail_set_badge(int page, uint32_t color);
 void ui_alert_relayout(void);   // after Home re-lays out its widgets
 void shortcuts_set_lit(uint32_t mask);
+
+extern hub_steam_t g_steam;
+void games_page_create(lv_obj_t *page);
+void games_refresh(void);
+void games_tick(void);
+int games_session_s(void);                          // live seconds into the current session
+const lv_image_dsc_t *games_thumb(uint32_t *appid); // Home thumbnail, NULL if none
+void games_launch(uint32_t appid);
+void ui_fmt_playtime(char *buf, size_t n, int minutes);  // "312 h" / "45 min"
+void home_refresh_game(void);
+void games_fmt_ago(char *buf, size_t n, time_t t);    // "Yesterday", "3 days ago"

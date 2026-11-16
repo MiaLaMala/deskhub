@@ -22,3 +22,7 @@ void ui_set_home(const char *spec);
 void ui_set_alert(const hub_alert_t *a);
 // Shortcut tiles that are "on" (bit i = tile i), e.g. mic or speaker muted.
 void ui_set_tile_state(uint32_t on_mask);
+// Steam: what is playing and the recent games, plus their cover art.
+// kind: 0 = header of the playing game, 1 = Home thumbnail, 2 = portrait cover.
+void ui_set_steam(const hub_steam_t *s);
+void ui_set_steam_art(uint32_t appid, int kind, uint16_t w, uint16_t h, const uint8_t *rgb565);

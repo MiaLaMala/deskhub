@@ -4,14 +4,7 @@ Ideas for Desk Hub, roughly in order of value. Each item notes how it would work
 
 ## Integrations
 
-- [ ] **Steam: the current game and quick launch.**
-  - **Now playing:** while a game runs, show it on the board with its cover art (like album art), the session time and total playtime. A Home widget and/or a section on the Stats page.
-    - The companion reads the running game from Steam's registry value `HKCU\Software\Valve\Steam\RunningAppID`.
-    - The name comes from the game's `appmanifest_<id>.acf`. Cover art comes from Steam's public CDN header image, resized like album covers.
-  - **Quick launch:** a tile, or a strip of the last 3 to 5 games played, that starts a game on the PC.
-    - Recent games and last-played times come from `userdata/<id>/config/localconfig.vdf`, locally with no API key.
-    - Launching uses `steam://rungameid/<id>`.
-  - Optional: show which friends are in game, via the Steam Web API with the user's own API key (opt-in).
+- [ ] **Steam extras (opt-in, your own Steam Web API key).** Which friends are in game, and total playtime for every game (Steam's local files only have it for some).
 
 - [ ] **Phone notifications and text messages.**
   - **Approach:** read phone notifications through Windows rather than talking to the phone directly. Windows' Phone Link already mirrors texts and app notifications from Android phones and iPhones into Windows notifications. The companion reads them with the `UserNotificationListener` API (Windows asks the user for permission once), and could show other PC notifications too, such as Discord or Teams.
@@ -19,6 +12,14 @@ Ideas for Desk Hub, roughly in order of value. Each item notes how it would work
   - **Privacy:** off by default. Options to show the sender only, to hide previews, and to pick which apps count. Message text only goes to the paired board over the LAN and isn't stored.
   - **Limits:** replying from the board isn't possible with this approach. Phone Link has no supported way for other apps to send messages, so replies stay on the phone or in Phone Link. iPhone support in Phone Link is more limited than Android.
   - **Alternative for Android:** the open KDE Connect protocol could give the companion texts, battery level and "find my phone" directly, without Phone Link. It's more work and Android-only.
+
+- [ ] **Internet stats.** How the connection is doing, at a glance.
+  - **Live:** ping to a nearby server (for example 1.1.1.1) every few seconds, with jitter and packet loss, and a small latency chart. Download and upload speed right now comes from the PC's network counters, which the Stats page already reads.
+  - **Speed test:** a scheduled test (for example every few hours, plus a button on the board) for real download and upload speed. Runs in the companion, e.g. with Ookla's `speedtest` CLI or Cloudflare's speed test, opt-in because it uses data.
+  - **Status:** online or offline, how long the connection has been up, and a note when it drops, so outages show on the board even when the PC is busy.
+  - **Data used:** totals for today and this month from the PC's network counters, kept by the companion across restarts.
+  - **On the board:** a section on the Stats page or its own Network page, plus an optional Home widget (ping and the last speed test).
+  - **Privacy:** the public IP and provider name stay off unless turned on.
 
 ## Design
 
@@ -75,3 +76,4 @@ Ideas for Desk Hub, roughly in order of value. Each item notes how it would work
 - [x] Codex usage on the AI page and Home, with the agent picked automatically and its own logo
 - [x] Timer page: presets, countdown ring, pause and reset, a "Time's up" card, and the time left on its sidebar tab
 - [x] Shortcut tiles that light up for mic and speaker mute, plus a `mic` action that mutes the microphone in Windows
+- [x] Steam: a Games page and Home widget with the game being played, its cover and session time, and the last 5 games to launch with a tap

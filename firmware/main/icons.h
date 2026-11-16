@@ -70,3 +70,4 @@ static const hub_icon_t HUB_ICONS[] = {
 #define ICON_REPLAY            "\xEE\x81\x82" /* e042 */
 #define ICON_CLOSE             "\xEE\x97\x8D" /* e5cd */
 #define ICON_OPEN_IN_NEW       "\xEE\xA2\x9E" /* e89e */
+#define ICON_SPORTS_ESPORTS    "\xEE\xA8\xA8" /* ea28 */

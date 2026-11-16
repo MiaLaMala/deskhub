@@ -22,10 +22,10 @@
 #define GAP 12
 #define EVENT_ROWS_MAX 3
 
-enum { W_CLOCK, W_CLAUDE, W_EVENTS, W_WEATHER, W_MEDIA, W_STATS, W_PRINTER, W_COUNT };
-static const char *const W_NAMES[W_COUNT] = {"clock", "claude", "events", "weather", "media", "stats", "printer"};
-static const int W_HEIGHT[W_COUNT] = {152, 88, 176, 120, 120, 120, 120};
-static const int W_PAGE[W_COUNT] = {-1, PAGE_CLAUDE, PAGE_CALENDAR, PAGE_WEATHER, PAGE_MEDIA, PAGE_STATS, PAGE_PRINTER};
+enum { W_CLOCK, W_CLAUDE, W_EVENTS, W_WEATHER, W_MEDIA, W_STATS, W_PRINTER, W_GAME, W_COUNT };
+static const char *const W_NAMES[W_COUNT] = {"clock", "claude", "events", "weather", "media", "stats", "printer", "game"};
+static const int W_HEIGHT[W_COUNT] = {152, 88, 176, 120, 120, 120, 120, 120};
+static const int W_PAGE[W_COUNT] = {-1, PAGE_CLAUDE, PAGE_CALENDAR, PAGE_WEATHER, PAGE_MEDIA, PAGE_STATS, PAGE_PRINTER, PAGE_GAMES};
 #define W_MIN_EVENTS 120
 
 static lv_obj_t *s_w[W_COUNT];
@@ -405,6 +405,62 @@ static void layout_printer(int w, int h)
     lv_obj_set_width(s_pr_bar, w - 32);
 }
 
+// ---- game (Steam) ---------------------------------------------------------
+// The game being played, or the last one with a play button.
+static lv_obj_t *s_gm_img, *s_gm_ph, *s_gm_cap, *s_gm_sub, *s_gm_name, *s_gm_play;
+static uint32_t s_gm_appid;   // what the play button launches
+
+static void game_play_cb(lv_event_t *e)
+{
+    (void)e;
+    if (s_gm_appid) games_launch(s_gm_appid);
+}
+
+static void create_game(lv_obj_t *page)
+{
+    lv_obj_t *c = widget_card(page, PAGE_GAMES);
+    s_gm_ph = lv_obj_create(c);
+    lv_obj_remove_style_all(s_gm_ph);
+    lv_obj_remove_flag(s_gm_ph, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_size(s_gm_ph, 128, 60);
+    lv_obj_set_style_radius(s_gm_ph, 8, 0);
+    lv_obj_set_style_bg_color(s_gm_ph, lv_color_hex(COL_CARD_HI), 0);
+    lv_obj_set_style_bg_opa(s_gm_ph, LV_OPA_COVER, 0);
+    lv_obj_t *pi = ui_label(s_gm_ph, g_icon_32, COL_DIM, ICON_SPORTS_ESPORTS);
+    lv_obj_center(pi);
+    s_gm_img = lv_image_create(c);
+    lv_obj_remove_flag(s_gm_img, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_size(s_gm_img, 128, 60);
+    lv_obj_set_style_radius(s_gm_img, 8, 0);
+    lv_obj_set_style_clip_corner(s_gm_img, true, 0);
+    s_gm_cap = ui_caption(c, "STEAM");
+    lv_label_set_long_mode(s_gm_cap, LV_LABEL_LONG_DOT);
+    lv_obj_set_height(s_gm_cap, 18);
+    lv_obj_set_pos(s_gm_cap, 140, 4);
+    s_gm_sub = ui_label(c, &lv_font_montserrat_14, COL_MUTED, "");
+    lv_label_set_long_mode(s_gm_sub, LV_LABEL_LONG_DOT);
+    lv_obj_set_height(s_gm_sub, 18);
+    lv_obj_set_pos(s_gm_sub, 140, 30);
+    s_gm_name = ui_label(c, &lv_font_montserrat_20, COL_TEXT, "");
+    lv_label_set_long_mode(s_gm_name, LV_LABEL_LONG_DOT);
+    lv_obj_set_height(s_gm_name, 24);
+    lv_obj_set_pos(s_gm_name, 0, 66);
+    s_gm_play = ui_round_button(c, 40, COL_ACCENT, g_icon_24, ICON_PLAY_ARROW, game_play_cb, NULL);
+    lv_obj_set_style_text_color(lv_obj_get_child(s_gm_play, 0), lv_color_hex(COL_BG), 0);
+    lv_obj_align(s_gm_play, LV_ALIGN_TOP_RIGHT, 0, 50);   // on the name row
+    s_w[W_GAME] = c;
+}
+
+static void layout_game(int w, int h)
+{
+    (void)h;
+    bool play = !lv_obj_has_flag(s_gm_play, LV_OBJ_FLAG_HIDDEN);
+    int text_w = w - 32 - 140;
+    lv_obj_set_width(s_gm_sub, text_w);
+    lv_obj_set_width(s_gm_cap, text_w);
+    lv_obj_set_width(s_gm_name, w - 32 - (play ? 48 : 0));
+}
+
 // Slim top bar: big time + AM/PM on the left, full date on the right, and a
 // hairline underneath. Used instead of the clock widget when the spec starts
 // with "header;".
@@ -457,6 +513,7 @@ static void layout_widget(int id, int w, int h)
     case W_MEDIA: layout_media(w, h); break;
     case W_STATS: layout_stats(w, h); break;
     case W_PRINTER: layout_printer(w, h); break;
+    case W_GAME: layout_game(w, h); break;
     default: break;
     }
 }
@@ -573,6 +630,7 @@ void home_create(lv_obj_t *page)
     create_media(page);
     create_stats(page);
     create_printer(page);
+    create_game(page);
     home_apply_layout();
 
     home_refresh_events();
@@ -580,6 +638,7 @@ void home_create(lv_obj_t *page)
     home_refresh_stats();
     home_refresh_claude();
     home_refresh_printer();
+    home_refresh_game();
 }
 
 // ---- refresh --------------------------------------------------------------
@@ -900,4 +959,53 @@ void home_refresh_printer(void)
         buf[0] = 0;
     }
     lv_label_set_text(s_pr_info, buf);
+}
+
+void home_refresh_game(void)
+{
+    if (!s_gm_name) return;
+    const hub_steam_t *s = &g_steam;
+    const hub_game_t *g = s->playing ? &s->now : s->recent_count ? &s->recent[0] : NULL;
+    char buf[48], tot[16];
+    s_gm_appid = (!s->playing && g) ? g->appid : 0;
+    if (s_gm_appid) lv_obj_remove_flag(s_gm_play, LV_OBJ_FLAG_HIDDEN);
+    else lv_obj_add_flag(s_gm_play, LV_OBJ_FLAG_HIDDEN);
+
+    uint32_t thumb_id = 0;
+    const lv_image_dsc_t *thumb = games_thumb(&thumb_id);
+    if (g && thumb && thumb_id == g->appid) {
+        lv_image_set_src(s_gm_img, thumb);
+        lv_obj_remove_flag(s_gm_img, LV_OBJ_FLAG_HIDDEN);
+    } else {
+        lv_obj_add_flag(s_gm_img, LV_OBJ_FLAG_HIDDEN);
+    }
+
+    if (!g) {
+        lv_label_set_text(s_gm_cap, "STEAM");
+        lv_obj_set_style_text_color(s_gm_cap, lv_color_hex(COL_MUTED), 0);
+        lv_label_set_text(s_gm_sub, !s->valid ? (g_pc_online ? "Waiting for the PC" : "PC offline")
+                                    : s->found ? "No games played yet" : "Steam not found");
+        lv_label_set_text(s_gm_name, "");
+    } else if (s->playing) {
+        lv_label_set_text(s_gm_cap, "PLAYING");
+        lv_obj_set_style_text_color(s_gm_cap, lv_color_hex(COL_GOOD), 0);
+        int t = games_session_s();
+        if (t >= 3600) snprintf(buf, sizeof(buf), "%dh %02dm", t / 3600, (t / 60) % 60);
+        else snprintf(buf, sizeof(buf), "%dm", t / 60);
+        if (g->total_min > 0) {
+            ui_fmt_playtime(tot, sizeof(tot), g->total_min);
+            strlcat(buf, "  " LV_SYMBOL_BULLET "  ", sizeof(buf));
+            strlcat(buf, tot, sizeof(buf));
+        }
+        if (strcmp(lv_label_get_text(s_gm_sub), buf) != 0) lv_label_set_text(s_gm_sub, buf);
+        lv_label_set_text(s_gm_name, g->name);
+    } else {
+        lv_label_set_text(s_gm_cap, "RECENT");
+        lv_obj_set_style_text_color(s_gm_cap, lv_color_hex(COL_MUTED), 0);
+        games_fmt_ago(buf, sizeof(buf), g->last);
+        lv_label_set_text(s_gm_sub, buf);
+        lv_label_set_text(s_gm_name, g->name);
+    }
+    lv_obj_t *card = s_w[W_GAME];
+    if (card && !lv_obj_has_flag(card, LV_OBJ_FLAG_HIDDEN)) layout_game(lv_obj_get_width(card), 0);
 }

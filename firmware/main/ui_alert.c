@@ -20,6 +20,7 @@ typedef struct {
 
 static panel_t s_home, s_ai;
 static char s_id[64];
+static hub_alert_t s_last;   // the alert on screen, to lay out again after Home moves
 static bool s_active;
 
 static void send_action(const char *action)
@@ -191,6 +192,7 @@ static void fill(panel_t *p, const hub_alert_t *a, bool compact)
     const char *kind = perm ? "NEEDS PERMISSION" : "WAITING FOR YOU";
     lv_image_set_src(p->logo, ui_agent_logo(compact ? 24 : 32));
     fit(p->root);
+    lv_obj_update_layout(p->root);   // so the width below is the new one
     int inner = lv_obj_get_width(p->root) - 2 * lv_obj_get_style_pad_left(p->root, 0) - 4;
 
     if (compact) {
@@ -226,6 +228,7 @@ void ui_set_alert(const hub_alert_t *a)
 
     bool is_new = !s_active || strcmp(s_id, a->id) != 0;
     strlcpy(s_id, a->id, sizeof(s_id));
+    if (a != &s_last) s_last = *a;
     s_active = true;
     fill(&s_home, a, true);
     fill(&s_ai, a, false);
@@ -237,5 +240,5 @@ void ui_set_alert(const hub_alert_t *a)
 // strip the same size as the card under it.
 void ui_alert_relayout(void)
 {
-    if (s_active && s_home.root) fit(s_home.root);
+    if (s_active && s_home.root) fill(&s_home, &s_last, true);
 }

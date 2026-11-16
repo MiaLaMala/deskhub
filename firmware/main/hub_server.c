@@ -250,7 +250,7 @@ static void on_printer(const cJSON *m)
 // Which pages to show: {"type":"layout","pages":["home","stats",...]}.
 static void on_layout(const cJSON *m)
 {
-    static const char *names[] = {"home", "stats", "ai", "calendar", "weather", "media", "printer", "shortcuts", "timer"};
+    static const char *names[] = {"home", "stats", "ai", "calendar", "weather", "media", "printer", "shortcuts", "timer", "games"};
     uint32_t mask = 1; // Home is always shown
     const cJSON *it;
     cJSON_ArrayForEach(it, cJSON_GetObjectItemCaseSensitive(m, "pages")) {
@@ -283,6 +283,37 @@ static void on_home(const cJSON *m)
     }
     display_lock();
     ui_set_home(spec);
+    display_unlock();
+}
+
+static void copy_game(hub_game_t *g, const cJSON *o)
+{
+    g->appid = (uint32_t)get_num(o, "appid", 0);
+    copy_str(g->name, sizeof(g->name), o, "name");
+    g->last = (time_t)get_num(o, "last", 0);
+    g->total_min = (int)get_num(o, "total_min", 0);
+}
+
+// Steam: {"type":"steam","found":true,"playing":{...}|null,"recent":[{...}]}.
+static void on_steam(const cJSON *m)
+{
+    static hub_steam_t s;
+    memset(&s, 0, sizeof(s));
+    s.valid = true;
+    s.found = get_bool(m, "found");
+    const cJSON *p = cJSON_GetObjectItemCaseSensitive(m, "playing");
+    if (cJSON_IsObject(p)) {
+        s.playing = true;
+        copy_game(&s.now, p);
+        s.session_s = (int)get_num(p, "session_s", 0);
+    }
+    const cJSON *it;
+    cJSON_ArrayForEach(it, cJSON_GetObjectItemCaseSensitive(m, "recent")) {
+        if (s.recent_count >= HUB_STEAM_RECENT) break;
+        copy_game(&s.recent[s.recent_count++], it);
+    }
+    display_lock();
+    ui_set_steam(&s);
     display_unlock();
 }
 
@@ -361,6 +392,7 @@ static void on_text(int fd, char *text)
         else if (strcmp(type, "home") == 0) on_home(m);
         else if (strcmp(type, "alert") == 0) on_alert(m);
         else if (strcmp(type, "tile_state") == 0) on_tile_state(m);
+        else if (strcmp(type, "steam") == 0) on_steam(m);
         else if (strcmp(type, "ping") == 0) { /* keeps the link marked online */ }
         else ESP_LOGD(TAG, "unknown type %s", type);
     }
@@ -368,8 +400,30 @@ static void on_text(int fd, char *text)
 }
 
 // Cover art: "ART1" | u32 art_id | u16 w | u16 h | w*h RGB565 little endian.
+// Steam cover: "STM1" | u32 appid | u16 w | u16 h | u16 kind | u16 0 | w*h RGB565.
+static void on_steam_art(const uint8_t *buf, size_t len)
+{
+    if (len < 16) return;
+    uint32_t id = buf[4] | buf[5] << 8 | buf[6] << 16 | (uint32_t)buf[7] << 24;
+    uint16_t w = buf[8] | buf[9] << 8;
+    uint16_t h = buf[10] | buf[11] << 8;
+    uint16_t kind = buf[12] | buf[13] << 8;
+    if (kind > 2 || w == 0 || h == 0 || w > 400 || h > 240 || len != 16 + (size_t)w * h * 2) {
+        ESP_LOGW(TAG, "bad steam art %ux%u kind %u len %u", w, h, kind, (unsigned)len);
+        return;
+    }
+    s_last_rx_ms = now_ms();
+    display_lock();
+    ui_set_steam_art(id, kind, w, h, buf + 16);
+    display_unlock();
+}
+
 static void on_binary(const uint8_t *buf, size_t len)
 {
+    if (len >= 4 && memcmp(buf, "STM1", 4) == 0) {
+        on_steam_art(buf, len);
+        return;
+    }
     if (len < 12 || memcmp(buf, ART_MAGIC, 4) != 0) return;
     uint32_t id = buf[4] | buf[5] << 8 | buf[6] << 16 | (uint32_t)buf[7] << 24;
     uint16_t w = buf[8] | buf[9] << 8;

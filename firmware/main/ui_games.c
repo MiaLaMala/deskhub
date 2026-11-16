@@ -1,0 +1,291 @@
+// Games page: the Steam game being played (cover, session time, total
+// playtime) and the last few games played, which start on the PC when tapped.
+#include <stdio.h>
+#include <string.h>
+
+#include "esp_heap_caps.h"
+#include "hub_server.h"
+#include "icons.h"
+#include "ui.h"
+#include "ui_internal.h"
+
+#define HDR_W 340
+#define HDR_H 159
+#define THUMB_W 128
+#define THUMB_H 60
+#define PORT_W 96
+#define PORT_H 144
+#define TOP_H (HDR_H + 32)
+
+hub_steam_t g_steam;
+
+// One cover image in PSRAM, tagged with the game it belongs to.
+typedef struct {
+    uint32_t appid;
+    uint8_t *px;
+    size_t cap;
+    lv_image_dsc_t dsc;
+} cover_t;
+
+static cover_t s_hdr, s_thumb, s_port[HUB_STEAM_RECENT];
+static uint32_t s_rx_tick;   // lv_tick when the last steam message arrived
+
+static lv_obj_t *s_now_img, *s_now_name, *s_now_time, *s_now_total, *s_now_cap;
+static lv_obj_t *s_idle, *s_idle_sub, *s_now_box;
+static lv_obj_t *s_tile[HUB_STEAM_RECENT], *s_tile_img[HUB_STEAM_RECENT], *s_tile_ph[HUB_STEAM_RECENT];
+static lv_obj_t *s_tile_name[HUB_STEAM_RECENT];
+static lv_obj_t *s_recent_empty;
+
+void ui_fmt_playtime(char *buf, size_t n, int minutes)
+{
+    if (minutes >= 600) snprintf(buf, n, "%d h", minutes / 60);
+    else if (minutes >= 60) snprintf(buf, n, "%.1f h", minutes / 60.0);
+    else snprintf(buf, n, "%d min", minutes);
+}
+
+static void fmt_session(char *buf, size_t n, int s)
+{
+    if (s >= 3600) snprintf(buf, n, "Playing for %dh %02dm", s / 3600, (s / 60) % 60);
+    else snprintf(buf, n, "Playing for %dm", s / 60);
+}
+
+static void fmt_ago(char *buf, size_t n, time_t t)
+{
+    long d = (long)(time(NULL) - t);
+    if (t <= 0) buf[0] = 0;
+    else if (d < 3600) snprintf(buf, n, "Just now");
+    else if (d < 86400) snprintf(buf, n, "%ldh ago", d / 3600);
+    else if (d < 2 * 86400) snprintf(buf, n, "Yesterday");
+    else if (d < 60 * 86400) snprintf(buf, n, "%ld days ago", d / 86400);
+    else snprintf(buf, n, "%ld months ago", d / (30 * 86400));
+}
+
+int games_session_s(void)
+{
+    if (!g_steam.playing) return 0;
+    return g_steam.session_s + (int)(lv_tick_elaps(s_rx_tick) / 1000);
+}
+
+void games_launch(uint32_t appid)
+{
+    char buf[64];
+    snprintf(buf, sizeof(buf), "{\"type\":\"steam_launch\",\"appid\":%lu}", (unsigned long)appid);
+    hub_server_send(buf);
+}
+
+static void tile_cb(lv_event_t *e)
+{
+    int i = (int)(intptr_t)lv_event_get_user_data(e);
+    if (i < g_steam.recent_count) games_launch(g_steam.recent[i].appid);
+}
+
+static bool cover_set(cover_t *c, uint32_t appid, uint16_t w, uint16_t h, const uint8_t *px)
+{
+    size_t bytes = (size_t)w * h * 2;
+    if (bytes > c->cap) {
+        uint8_t *p = heap_caps_realloc(c->px, bytes, MALLOC_CAP_SPIRAM);
+        if (!p) return false;
+        c->px = p;
+        c->cap = bytes;
+    }
+    lv_image_cache_drop(&c->dsc);
+    memcpy(c->px, px, bytes);
+    memset(&c->dsc, 0, sizeof(c->dsc));
+    c->dsc.header.magic = LV_IMAGE_HEADER_MAGIC;
+    c->dsc.header.cf = LV_COLOR_FORMAT_RGB565;
+    c->dsc.header.w = w;
+    c->dsc.header.h = h;
+    c->dsc.header.stride = w * 2;
+    c->dsc.data_size = bytes;
+    c->dsc.data = c->px;
+    c->appid = appid;
+    return true;
+}
+
+const lv_image_dsc_t *games_thumb(uint32_t *appid)
+{
+    if (!s_thumb.appid) return NULL;
+    if (appid) *appid = s_thumb.appid;
+    return &s_thumb.dsc;
+}
+
+static const cover_t *portrait_for(uint32_t appid)
+{
+    for (int i = 0; i < HUB_STEAM_RECENT; i++)
+        if (s_port[i].appid == appid) return &s_port[i];
+    return NULL;
+}
+
+void ui_set_steam_art(uint32_t appid, int kind, uint16_t w, uint16_t h, const uint8_t *px)
+{
+    if (kind == 0) {
+        cover_set(&s_hdr, appid, w, h, px);
+    } else if (kind == 1) {
+        cover_set(&s_thumb, appid, w, h, px);
+        home_refresh_game();
+    } else if (kind == 2) {
+        // Reuse this game's slot, else one no recent game uses any more.
+        cover_t *slot = (cover_t *)portrait_for(appid);
+        for (int i = 0; !slot && i < HUB_STEAM_RECENT; i++) {
+            bool used = false;
+            for (int j = 0; j < g_steam.recent_count; j++) used |= g_steam.recent[j].appid == s_port[i].appid;
+            if (!used || !s_port[i].appid) slot = &s_port[i];
+        }
+        if (slot) cover_set(slot, appid, w, h, px);
+    }
+    games_refresh();
+}
+
+void ui_set_steam(const hub_steam_t *s)
+{
+    g_steam = *s;
+    s_rx_tick = lv_tick_get();
+    games_refresh();
+    home_refresh_game();
+}
+
+void games_page_create(lv_obj_t *page)
+{
+    // Now playing.
+    lv_obj_t *top = ui_card(page);
+    lv_obj_set_size(top, CONTENT_W, TOP_H);
+    lv_obj_set_pos(top, 0, 0);
+
+    s_now_box = lv_obj_create(top);
+    lv_obj_remove_style_all(s_now_box);
+    lv_obj_set_size(s_now_box, LV_PCT(100), LV_PCT(100));
+    lv_obj_remove_flag(s_now_box, LV_OBJ_FLAG_SCROLLABLE);
+    s_now_img = lv_image_create(s_now_box);
+    lv_obj_set_size(s_now_img, HDR_W, HDR_H);
+    lv_obj_set_style_radius(s_now_img, 12, 0);
+    lv_obj_set_style_clip_corner(s_now_img, true, 0);
+    lv_obj_set_style_bg_color(s_now_img, lv_color_hex(COL_CARD_HI), 0);
+    lv_obj_set_style_bg_opa(s_now_img, LV_OPA_COVER, 0);
+    lv_obj_set_pos(s_now_img, 0, 0);
+    const int tx = HDR_W + 20, tw = CONTENT_W - 32 - tx;
+    s_now_cap = ui_caption(s_now_box, "NOW PLAYING");
+    lv_obj_set_style_text_color(s_now_cap, lv_color_hex(COL_GOOD), 0);
+    lv_obj_set_pos(s_now_cap, tx, 4);
+    s_now_name = ui_label(s_now_box, &lv_font_montserrat_24, COL_TEXT, "");
+    lv_label_set_long_mode(s_now_name, LV_LABEL_LONG_DOT);
+    lv_obj_set_size(s_now_name, tw, 62);
+    lv_obj_set_pos(s_now_name, tx, 30);
+    s_now_time = ui_label(s_now_box, &lv_font_montserrat_20, COL_TEXT, "");
+    lv_obj_set_pos(s_now_time, tx, HDR_H - 54);
+    s_now_total = ui_label(s_now_box, &lv_font_montserrat_16, COL_MUTED, "");
+    lv_obj_set_pos(s_now_total, tx, HDR_H - 24);
+
+    s_idle = lv_obj_create(top);
+    lv_obj_remove_style_all(s_idle);
+    lv_obj_set_size(s_idle, LV_PCT(100), LV_PCT(100));
+    lv_obj_remove_flag(s_idle, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_t *ic = ui_label(s_idle, g_icon_80, COL_DIM, ICON_SPORTS_ESPORTS);
+    lv_obj_align(ic, LV_ALIGN_LEFT_MID, 24, 0);
+    lv_obj_t *t = ui_label(s_idle, &lv_font_montserrat_24, COL_TEXT, "No game running");
+    lv_obj_align(t, LV_ALIGN_LEFT_MID, 136, -16);
+    s_idle_sub = ui_label(s_idle, &lv_font_montserrat_16, COL_MUTED, "");
+    lv_obj_align(s_idle_sub, LV_ALIGN_LEFT_MID, 136, 18);
+
+    // Recent games: covers that start the game on the PC.
+    lv_obj_t *bot = ui_card(page);
+    lv_obj_set_size(bot, CONTENT_W, CONTENT_H - TOP_H - 12);
+    lv_obj_set_pos(bot, 0, TOP_H + 12);
+    lv_obj_t *cap = ui_caption(bot, "RECENT  " LV_SYMBOL_BULLET "  TAP TO PLAY");
+    lv_obj_set_pos(cap, 0, 0);
+    const int step = (CONTENT_W - 32 - PORT_W) / (HUB_STEAM_RECENT - 1);
+    for (int i = 0; i < HUB_STEAM_RECENT; i++) {
+        lv_obj_t *b = lv_button_create(bot);
+        lv_obj_remove_style_all(b);
+        lv_obj_set_size(b, step - 8, PORT_H + 26);
+        lv_obj_set_pos(b, i * step - (step - 8 - PORT_W) / 2, 24);
+        lv_obj_set_style_transform_scale(b, 240, LV_STATE_PRESSED);
+        lv_obj_set_style_transform_pivot_x(b, (step - 8) / 2, 0);
+        lv_obj_set_style_transform_pivot_y(b, PORT_H / 2, 0);
+        lv_obj_add_event_cb(b, tile_cb, LV_EVENT_CLICKED, (void *)(intptr_t)i);
+        lv_obj_t *ph = lv_obj_create(b);   // placeholder until the cover arrives
+        lv_obj_remove_style_all(ph);
+        lv_obj_remove_flag(ph, LV_OBJ_FLAG_CLICKABLE);
+        lv_obj_set_size(ph, PORT_W, PORT_H);
+        lv_obj_align(ph, LV_ALIGN_TOP_MID, 0, 0);
+        lv_obj_set_style_radius(ph, 10, 0);
+        lv_obj_set_style_bg_color(ph, lv_color_hex(COL_CARD_HI), 0);
+        lv_obj_set_style_bg_opa(ph, LV_OPA_COVER, 0);
+        lv_obj_t *pi = ui_label(ph, g_icon_48, COL_DIM, ICON_SPORTS_ESPORTS);
+        lv_obj_center(pi);
+        lv_obj_t *img = lv_image_create(b);
+        lv_obj_remove_flag(img, LV_OBJ_FLAG_CLICKABLE);
+        lv_obj_set_size(img, PORT_W, PORT_H);
+        lv_obj_set_style_radius(img, 10, 0);
+        lv_obj_set_style_clip_corner(img, true, 0);
+        lv_obj_align(img, LV_ALIGN_TOP_MID, 0, 0);
+        lv_obj_t *name = ui_label(b, &lv_font_montserrat_14, COL_MUTED, "");
+        lv_label_set_long_mode(name, LV_LABEL_LONG_DOT);
+        lv_obj_set_size(name, step - 8, 18);
+        lv_obj_set_style_text_align(name, LV_TEXT_ALIGN_CENTER, 0);
+        lv_obj_align(name, LV_ALIGN_BOTTOM_MID, 0, 0);
+        s_tile[i] = b;
+        s_tile_img[i] = img;
+        s_tile_ph[i] = ph;
+        s_tile_name[i] = name;
+    }
+    s_recent_empty = ui_label(bot, &lv_font_montserrat_16, COL_DIM, "");
+    lv_obj_align(s_recent_empty, LV_ALIGN_CENTER, 0, 10);
+    games_refresh();
+}
+
+void games_refresh(void)
+{
+    if (!s_now_box) return;
+    char buf[48], tot[16];
+    const hub_steam_t *s = &g_steam;
+    if (s->playing) {
+        lv_obj_remove_flag(s_now_box, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(s_idle, LV_OBJ_FLAG_HIDDEN);
+        lv_label_set_text(s_now_name, s->now.name);
+        if (s_hdr.appid == s->now.appid) lv_image_set_src(s_now_img, &s_hdr.dsc);
+        else lv_image_set_src(s_now_img, NULL);
+        ui_fmt_playtime(tot, sizeof(tot), s->now.total_min);
+        snprintf(buf, sizeof(buf), "%s played in total", tot);
+        lv_label_set_text(s_now_total, s->now.total_min > 0 ? buf : "");
+        games_tick();
+    } else {
+        lv_obj_add_flag(s_now_box, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_flag(s_idle, LV_OBJ_FLAG_HIDDEN);
+        lv_label_set_text(s_idle_sub, !s->valid ? (g_pc_online ? "Waiting for the PC" : "PC offline")
+                                      : !s->found ? "Steam isn't installed on the PC"
+                                      : "Start a game, or pick one below");
+    }
+
+    for (int i = 0; i < HUB_STEAM_RECENT; i++) {
+        bool on = i < s->recent_count;
+        if (!on) {
+            lv_obj_add_flag(s_tile[i], LV_OBJ_FLAG_HIDDEN);
+            continue;
+        }
+        lv_obj_remove_flag(s_tile[i], LV_OBJ_FLAG_HIDDEN);
+        lv_label_set_text(s_tile_name[i], s->recent[i].name);
+        const cover_t *c = portrait_for(s->recent[i].appid);
+        if (c) {
+            lv_image_set_src(s_tile_img[i], &c->dsc);
+            lv_obj_remove_flag(s_tile_img[i], LV_OBJ_FLAG_HIDDEN);
+        } else {
+            lv_obj_add_flag(s_tile_img[i], LV_OBJ_FLAG_HIDDEN);
+        }
+    }
+    lv_label_set_text(s_recent_empty, s->recent_count ? "" : s->found ? "No recent games" : "");
+}
+
+void games_tick(void)
+{
+    if (g_steam.playing) home_refresh_game();   // its session time
+    if (!s_now_time || !g_steam.playing) return;
+    char buf[40];
+    fmt_session(buf, sizeof(buf), games_session_s());
+    if (strcmp(lv_label_get_text(s_now_time), buf) != 0) lv_label_set_text(s_now_time, buf);
+}
+
+// Used by the Home widget's "last played" line.
+void games_fmt_ago(char *buf, size_t n, time_t t)
+{
+    fmt_ago(buf, n, t);
+}

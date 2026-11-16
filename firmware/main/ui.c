@@ -354,7 +354,7 @@ void ui_set_printers(const hub_printer_t *p, int n)
 
 static const char *const s_glyphs[PAGE_COUNT] = {
     ICON_HOME, ICON_INSIGHTS, ICON_AUTO_AWESOME, ICON_EVENT, ICON_WB_SUNNY, ICON_MUSIC_NOTE,
-    ICON_VIEW_IN_AR, ICON_GRID_VIEW, ICON_TIMER,
+    ICON_VIEW_IN_AR, ICON_GRID_VIEW, ICON_TIMER, ICON_SPORTS_ESPORTS,
 };
 
 void ui_rail_set_text(int page, const char *text)
@@ -406,13 +406,13 @@ static void build_rail(lv_obj_t *scr)
     lv_obj_set_style_pad_ver(rail, 10, 0);
     lv_obj_set_flex_flow(rail, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(rail, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_set_style_pad_row(rail, 3, 0);
+    lv_obj_set_style_pad_row(rail, 2, 0);
     lv_obj_remove_flag(rail, LV_OBJ_FLAG_SCROLLABLE);
 
     for (int i = 0; i < PAGE_COUNT; i++) {
         lv_obj_t *b = lv_button_create(rail);
         lv_obj_remove_style_all(b);
-        lv_obj_set_size(b, 60, 42);  // nine tabs plus status icons fit in 480 px
+        lv_obj_set_size(b, 60, 38);  // ten tabs plus status icons fit in 480 px
         lv_obj_set_style_radius(b, 18, 0);
         // Selected page: an indigo-to-violet pill with a soft edge.
         lv_obj_set_style_bg_color(b, lv_color_hex(COL_ACCENT), 0);
@@ -522,12 +522,14 @@ static void tick_cb(lv_timer_t *t)
         stats_refresh();
         claude_refresh();
         calendar_refresh(true);
+        games_refresh();
     }
     lv_obj_set_style_text_color(s_pc_icon, lv_color_hex(pc ? COL_GOOD : COL_DIM), 0);
 
     home_tick();
     media_tick();
     claude_tick();
+    games_tick();
     home_refresh_claude();
     if (++seconds % 60 == 0) {
         // Drop events that have ended.
@@ -570,7 +572,7 @@ void ui_init(void)
 
     void (*creators[PAGE_COUNT])(lv_obj_t *) = {
         home_create, stats_create, claude_create, calendar_create, weather_page_create, media_create,
-        printer_create, shortcuts_create, timer_page_create,
+        printer_create, shortcuts_create, timer_page_create, games_page_create,
     };
     for (int i = 0; i < PAGE_COUNT; i++) {
         lv_obj_t *p = lv_obj_create(scr);

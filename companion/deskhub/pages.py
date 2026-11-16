@@ -1,21 +1,25 @@
 """Which board pages are shown. Home is always on."""
+from .steam import steam_installed
 
-ALL_PAGES = ["home", "stats", "ai", "calendar", "weather", "media", "printer", "shortcuts", "timer"]
+ALL_PAGES = ["home", "stats", "ai", "calendar", "weather", "media", "printer", "shortcuts", "timer", "games"]
 PAGE_LABELS = {
     "stats": "PC stats", "ai": "AI agent usage", "calendar": "Calendar", "weather": "Weather",
     "media": "Now playing", "printer": "3D printer", "shortcuts": "Shortcuts",
-    "timer": "Timer",
+    "timer": "Timer", "games": "Games",
 }
 
 
 def enabled_pages(cfg: dict) -> list[str]:
     """Page names to show, in board order. Without a [pages] block everything is on except
-    the printer page, which turns on by itself once a printer is configured."""
+    the printer page (on once a printer is configured) and the games page (on when Steam
+    is installed)."""
     pages = cfg.get("pages")
     if not isinstance(pages, dict) or not isinstance(pages.get("enabled"), list):
-        want = {p for p in ALL_PAGES if p != "printer"}
+        want = {p for p in ALL_PAGES if p not in ("printer", "games")}
         if cfg.get("printers"):
             want.add("printer")
+        if steam_installed():
+            want.add("games")
     else:
         want = {str(p).lower() for p in pages["enabled"]}
     return [p for p in ALL_PAGES if p == "home" or p in want]
@@ -35,6 +39,7 @@ HOME_WIDGETS = {
     "media": "Now playing",
     "stats": "PC stats",
     "printer": "3D print progress",
+    "game": "Steam game",
 }
 # Defaults with the slim top bar (the default): the clock widget isn't needed.
 DEFAULT_LEFT = ["claude", "events"]

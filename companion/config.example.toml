@@ -48,11 +48,17 @@ color = "#7c9cff"
 # Set header = false and add "clock" to a column for the big clock widget instead.
 header = true
 # Home screen widgets, top to bottom, in two columns. Available: clock, claude,
-# events, weather, media, stats, printer. The left column is wider (the big clock
+# events, weather, media, stats, printer, game. The left column is wider (the big clock
 # fits there); "events" stretches to fill its column. Widgets for hidden pages
 # are skipped, and widgets that don't fit are left out.
 left = ["claude", "events"]
 right = ["weather", "media", "stats"]
+
+[steam]
+# Show the game you are playing and your recent Steam games, and launch them from the
+# board. Reads Steam's local files; needs Steam installed. The "games" page turns on by
+# itself when Steam is found.
+enabled = true
 
 [ai]
 # Which coding agent the AI page shows: "auto", "claude" or "codex". "auto" picks
@@ -150,8 +156,9 @@ target = ""
 
 [pages]
 # Home is always shown. Remove names to hide pages. Without this block every page
-# except "printer" is shown; "printer" is added by itself once a printer is configured.
-enabled = ["home", "stats", "ai", "calendar", "weather", "media", "printer", "shortcuts", "timer"]
+# except "printer" and "games" is shown; "printer" is added by itself once a printer is
+# configured and "games" when Steam is installed.
+enabled = ["home", "stats", "ai", "calendar", "weather", "media", "printer", "shortcuts", "timer", "games"]
 
 # Bambu Lab 3D printers (A1, A1 mini, P1P, P1S, X1C, X1E, H2D). Easiest: run
 # `uv run deskhub-printers`. Access codes and cloud tokens live in the OS credential

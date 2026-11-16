@@ -23,12 +23,15 @@ from .pages import enabled_pages, home_message, layout_message
 from .printer import PrinterService
 from .shortcuts import hub_view, lit_message, load_tiles, run_tile
 from .stats import Stats
+from .steam import Steam, steam_installed
 
 log = logging.getLogger("deskhub")
 
 CALENDAR_REFRESH_S = 600
 PRINTER_TICK_S = 2
 PRINTER_KEEPALIVE_S = 30
+STEAM_TICK_S = 2
+STEAM_KEEPALIVE_S = 60
 
 
 def find_config(arg: str | None) -> pathlib.Path:
@@ -55,6 +58,12 @@ def pick_ai(agent: str, claude: dict | None, codex: dict | None) -> dict:
         provider = "codex"
     snap = codex if provider == "codex" else claude
     return {**snap, "type": "ai", "provider": provider}
+
+
+def _steam_key(msg: dict) -> dict:
+    """The Steam message without the session clock, which the board counts itself."""
+    playing = msg.get("playing")
+    return {**msg, "playing": {k: v for k, v in playing.items() if k != "session_s"} if playing else None}
 
 
 class Companion:
@@ -87,6 +96,8 @@ class Companion:
         self.alerts = (ClaudeAlerts(idle_after=float(ccfg.get("idle_alert_seconds", 30)))
                        if ccfg.get("alerts", True) else None)
         self.printer_msg = None
+        self.steam = Steam() if cfg.get("steam", {}).get("enabled", True) else None
+        self.steam_msg = None
         self.connected_once = False
         self.ws = None
 
@@ -184,6 +195,26 @@ class Companion:
                 await self.send(msg)
             await asyncio.sleep(PRINTER_TICK_S)
 
+    async def steam_loop(self):
+        if not steam_installed():
+            return
+        sent_at = 0.0
+        last = None
+        while True:
+            try:
+                msg = await asyncio.to_thread(self.steam.snapshot)
+                self.steam_msg = msg
+                key = _steam_key(msg)
+                now = asyncio.get_running_loop().time()
+                if key != last or now - sent_at >= STEAM_KEEPALIVE_S:
+                    last, sent_at = key, now
+                    await self.send(msg)
+                for frame in await asyncio.to_thread(self.steam.frames):
+                    await self.send(frame)
+            except Exception as e:
+                log.warning("steam poll failed: %s", e)
+            await asyncio.sleep(STEAM_TICK_S)
+
     # ---- hub commands -----------------------------------------------------
 
     async def handle(self, raw):
@@ -199,6 +230,8 @@ class Companion:
                 self.alerts.dismiss(sid)
             elif action == "focus":
                 await asyncio.to_thread(self.alerts.focus, sid)
+        elif kind == "steam_launch" and self.steam:
+            await asyncio.to_thread(self.steam.launch, int(msg.get("appid", 0)))
         elif kind == "shortcut":
             i = int(msg.get("id", -1))
             if 0 <= i < len(self.tiles):
@@ -237,6 +270,10 @@ class Companion:
                 await self.send(self.alerts.msg)
             if self.printer_msg:
                 await self.send(self.printer_msg)
+            if self.steam_msg and self.steam:
+                await self.send(self.steam_msg)
+                for frame in await asyncio.to_thread(self.steam.all_frames):
+                    await self.send(frame)
             art = self.media.current_art()
             if art:
                 await self.send(art)
@@ -257,6 +294,8 @@ class Companion:
             asyncio.create_task(self.alerts_loop())
         if "printer" in enabled_pages(self.cfg):
             asyncio.create_task(self.printer_loop())
+        if self.steam:
+            asyncio.create_task(self.steam_loop())
         delay = 2
         while True:
             try:
