@@ -71,7 +71,7 @@ class ClaudeAlerts:
 
     def _mark_seen(self):
         """Opening a session in the desktop app (or its terminal) fires no hook, so
-        treat a waiting session as seen while the window that runs it is in front.
+        treat a finished session as seen while the window that runs it is in front.
         It alerts again only once its state changes."""
         try:
             fg = self.foreground_pid()
@@ -80,7 +80,8 @@ class ClaudeAlerts:
         if not fg:
             return
         for sid, d in self.sessions.items():
-            if d.get("state") in ("permission", "input", "idle") and fg in (d.get("pids") or []):
+            # Only finished sessions: questions and permissions clear when answered.
+            if d.get("state") == "idle" and fg in (d.get("pids") or []):
                 self.dismissed[sid] = d["updated"]
 
     def poll(self) -> dict | None:

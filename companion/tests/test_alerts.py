@@ -192,7 +192,9 @@ put("v", "permission", age=0, project="viewed", pids=[1, 4242, 9])
 m = a.poll()
 check(m and m["id"] == "v", f"new state after switching away alerts again: {m}")
 fg["pid"] = 4242
-check(a.poll() == {"type": "alert", "clear": True}, "looking at it clears the board")
+check(a.poll() is None and a.msg and a.msg["id"] == "v", "permission stays while its window is in front")
+put("v", "idle", age=40, project="viewed", pids=[1, 4242, 9])
+check(a.poll() == {"type": "alert", "clear": True}, "a finished session clears once its window is in front")
 fg["pid"] = 0
 put("v", "working")
 a.poll()
