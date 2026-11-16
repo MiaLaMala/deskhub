@@ -34,7 +34,7 @@ static lv_obj_t *s_now_img, *s_now_name, *s_now_time, *s_now_total, *s_now_cap;
 static lv_obj_t *s_idle, *s_idle_sub, *s_now_box;
 static lv_obj_t *s_fr_cap, *s_fr_name[HUB_STEAM_FRIENDS], *s_fr_game[HUB_STEAM_FRIENDS];
 static lv_obj_t *s_tile[HUB_STEAM_RECENT], *s_tile_img[HUB_STEAM_RECENT], *s_tile_ph[HUB_STEAM_RECENT];
-static lv_obj_t *s_tile_name[HUB_STEAM_RECENT];
+static lv_obj_t *s_tile_name[HUB_STEAM_RECENT], *s_tile_hours[HUB_STEAM_RECENT];
 static lv_obj_t *s_recent_empty;
 
 void ui_fmt_playtime(char *buf, size_t n, int minutes)
@@ -59,6 +59,13 @@ static void fmt_ago(char *buf, size_t n, time_t t)
     else if (d < 2 * 86400) snprintf(buf, n, "Yesterday");
     else if (d < 60 * 86400) snprintf(buf, n, "%ld days ago", d / 86400);
     else snprintf(buf, n, "%ld months ago", d / (30 * 86400));
+}
+
+// A total only adds something once it is clearly more than this session
+// (during a first session the two are the same).
+bool games_total_worth_showing(int total_min, int session_s)
+{
+    return total_min > 0 && total_min * 60 >= session_s + 600;
 }
 
 int games_session_s(void)
@@ -240,6 +247,16 @@ void games_page_create(lv_obj_t *page)
         lv_obj_set_size(name, step - 8, 18);
         lv_obj_set_style_text_align(name, LV_TEXT_ALIGN_CENTER, 0);
         lv_obj_align(name, LV_ALIGN_BOTTOM_MID, 0, 0);
+        // Total playtime, as a small badge on the cover.
+        lv_obj_t *hrs = ui_label(b, &lv_font_montserrat_14, COL_TEXT, "");
+        lv_obj_remove_flag(hrs, LV_OBJ_FLAG_CLICKABLE);
+        lv_obj_set_style_bg_color(hrs, lv_color_hex(0x000000), 0);
+        lv_obj_set_style_bg_opa(hrs, LV_OPA_70, 0);
+        lv_obj_set_style_radius(hrs, 8, 0);
+        lv_obj_set_style_pad_hor(hrs, 6, 0);
+        lv_obj_set_style_pad_ver(hrs, 2, 0);
+        lv_obj_align_to(hrs, ph, LV_ALIGN_BOTTOM_RIGHT, -4, -4);
+        s_tile_hours[i] = hrs;
         s_tile[i] = b;
         s_tile_img[i] = img;
         s_tile_ph[i] = ph;
@@ -263,7 +280,7 @@ void games_refresh(void)
         else lv_image_set_src(s_now_img, NULL);
         ui_fmt_playtime(tot, sizeof(tot), s->now.total_min);
         buf[0] = 0;
-        if (s->now.total_min > 0) snprintf(buf, sizeof(buf), "%s played", tot);
+        if (games_total_worth_showing(s->now.total_min, games_session_s())) snprintf(buf, sizeof(buf), "%s played", tot);
         if (s->friend_count) {
             char fr[32];
             snprintf(fr, sizeof(fr), "%s%d friend%s in game", buf[0] ? "  " LV_SYMBOL_BULLET "  " : "",
@@ -294,6 +311,14 @@ void games_refresh(void)
         }
         lv_obj_remove_flag(s_tile[i], LV_OBJ_FLAG_HIDDEN);
         lv_label_set_text(s_tile_name[i], s->recent[i].name);
+        if (s->recent[i].total_min > 0) {
+            ui_fmt_playtime(tot, sizeof(tot), s->recent[i].total_min);
+            lv_label_set_text(s_tile_hours[i], tot);
+            lv_obj_remove_flag(s_tile_hours[i], LV_OBJ_FLAG_HIDDEN);
+            lv_obj_align_to(s_tile_hours[i], s_tile_ph[i], LV_ALIGN_BOTTOM_RIGHT, -4, -4);
+        } else {
+            lv_obj_add_flag(s_tile_hours[i], LV_OBJ_FLAG_HIDDEN);
+        }
         const cover_t *c = portrait_for(s->recent[i].appid);
         if (c) {
             lv_image_set_src(s_tile_img[i], &c->dsc);

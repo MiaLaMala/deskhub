@@ -142,3 +142,4 @@ void games_launch(uint32_t appid);
 void ui_fmt_playtime(char *buf, size_t n, int minutes);  // "312 h" / "45 min"
 void home_refresh_game(void);
 void games_fmt_ago(char *buf, size_t n, time_t t);    // "Yesterday", "3 days ago"
+bool games_total_worth_showing(int total_min, int session_s);

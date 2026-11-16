@@ -992,7 +992,7 @@ void home_refresh_game(void)
         int t = games_session_s();
         if (t >= 3600) snprintf(buf, sizeof(buf), "%dh %02dm", t / 3600, (t / 60) % 60);
         else snprintf(buf, sizeof(buf), "%dm", t / 60);
-        if (g->total_min > 0) {
+        if (games_total_worth_showing(g->total_min, t)) {
             ui_fmt_playtime(tot, sizeof(tot), g->total_min);
             strlcat(buf, "  " LV_SYMBOL_BULLET "  ", sizeof(buf));
             strlcat(buf, tot, sizeof(buf));
@@ -1003,6 +1003,11 @@ void home_refresh_game(void)
         lv_label_set_text(s_gm_cap, "RECENT");
         lv_obj_set_style_text_color(s_gm_cap, lv_color_hex(COL_MUTED), 0);
         games_fmt_ago(buf, sizeof(buf), g->last);
+        if (g->total_min > 0) {
+            ui_fmt_playtime(tot, sizeof(tot), g->total_min);
+            strlcat(buf, "  " LV_SYMBOL_BULLET "  ", sizeof(buf));
+            strlcat(buf, tot, sizeof(buf));
+        }
         lv_label_set_text(s_gm_sub, buf);
         lv_label_set_text(s_gm_name, g->name);
     }

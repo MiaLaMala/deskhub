@@ -69,7 +69,19 @@ check(wf.friends_in_game(1) == [] and wf.playtimes(1) == {}, "errors give empty 
 attempts = []
 wf._get = lambda url, params: attempts.append(url) or {}
 wf.friends_in_game(1)
+wf.playtimes(1)
 check(attempts == [], "backs off after an error")
+
+# A private friends list must not stop playtime.
+def friends_private(url, params):
+    if "GetFriendList" in url:
+        import httpx
+        raise httpx.HTTPStatusError("401", request=httpx.Request("GET", url), response=httpx.Response(401))
+    return fake_get(url, params)
+
+
+wp = sw.SteamWeb("k", get=friends_private, clock=lambda: now[0])
+check(wp.friends_in_game(1) == [] and wp.playtimes(1).get(1363080) == 2950, "playtime still works with a private friends list")
 
 # Merged into the Steam snapshot.
 s = Steam(web=w)

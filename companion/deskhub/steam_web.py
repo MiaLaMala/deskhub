@@ -66,17 +66,23 @@ class SteamWeb:
         self._friends_at = -1e9
         self._playtime: dict[int, int] = {}
         self._playtime_at = -1e9
-        self._fail_until = 0.0
+        self._fail_until: dict[str, float] = {}   # per API method
 
     def _call(self, path: str, **params):
-        if self._clock() < self._fail_until:
+        method = path.split("/")[1]
+        if self._clock() < self._fail_until.get(method, 0):
             return None
         try:
             return self._get(f"{API}/{path}", {"key": self.key, **params})
-        except Exception as e:  # bad key (403), private profile (401), network
-            log.warning("Steam Web API %s failed: %s; trying again in 10 minutes",
-                        path.split("/")[1], getattr(getattr(e, "response", None), "status_code", e))
-            self._fail_until = self._clock() + BACKOFF_S
+        except Exception as e:  # bad key (403), private data (401), network
+            status = getattr(getattr(e, "response", None), "status_code", None)
+            if status == 401 and method == "GetFriendList":
+                log.warning("Steam won't share your friends list: set Friends List to Public in "
+                            "Steam > Profile > Edit Profile > Privacy Settings. Trying again in 30 minutes")
+                self._fail_until[method] = self._clock() + 3 * BACKOFF_S
+            else:
+                log.warning("Steam Web API %s failed: %s; trying again in 10 minutes", method, status or e)
+                self._fail_until[method] = self._clock() + BACKOFF_S
             return None
 
     def friends_in_game(self, sid: int) -> list[dict]:
