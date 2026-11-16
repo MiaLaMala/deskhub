@@ -250,7 +250,7 @@ static void on_printer(const cJSON *m)
 // Which pages to show: {"type":"layout","pages":["home","stats",...]}.
 static void on_layout(const cJSON *m)
 {
-    static const char *names[] = {"home", "stats", "ai", "calendar", "weather", "media", "printer", "shortcuts", "timer", "games"};
+    static const char *names[] = {"home", "stats", "ai", "calendar", "weather", "media", "printer", "shortcuts", "timer", "games", "network"};
     uint32_t mask = 1; // Home is always shown
     const cJSON *it;
     cJSON_ArrayForEach(it, cJSON_GetObjectItemCaseSensitive(m, "pages")) {
@@ -320,6 +320,40 @@ static void on_steam(const cJSON *m)
     }
     display_lock();
     ui_set_steam(&s);
+    display_unlock();
+}
+
+// Internet: {"type":"net","online":true,"latency_ms":14.2,"hist":[...],"speed":{...},...}.
+static void on_net(const cJSON *m)
+{
+    static hub_net_t n;
+    memset(&n, 0, sizeof(n));
+    n.valid = true;
+    n.online = get_bool(m, "online");
+    n.latency_ms = (float)get_num(m, "latency_ms", -1);
+    n.jitter_ms = (float)get_num(m, "jitter_ms", 0);
+    n.loss_pct = (int)get_num(m, "loss_pct", 0);
+    const cJSON *it;
+    cJSON_ArrayForEach(it, cJSON_GetObjectItemCaseSensitive(m, "hist")) {
+        if (n.hist_count >= HUB_NET_HIST) break;
+        n.hist[n.hist_count++] = cJSON_IsNumber(it) ? (int16_t)it->valueint : -1;
+    }
+    n.up_since = (time_t)get_num(m, "up_since", 0);
+    const cJSON *drop = cJSON_GetObjectItemCaseSensitive(m, "last_drop");
+    n.drop_at = (time_t)get_num(drop, "at", 0);
+    n.drop_dur_s = (int)get_num(drop, "dur_s", 0);
+    n.today_bytes = get_num(m, "today_bytes", 0);
+    n.month_bytes = get_num(m, "month_bytes", 0);
+    const cJSON *sp = cJSON_GetObjectItemCaseSensitive(m, "speed");
+    n.has_speed = cJSON_IsObject(sp);
+    n.down_mbps = (float)get_num(sp, "down_mbps", 0);
+    n.up_mbps = (float)get_num(sp, "up_mbps", 0);
+    n.speed_ping_ms = (float)get_num(sp, "ping_ms", 0);
+    n.speed_at = (time_t)get_num(sp, "at", 0);
+    n.testing = get_bool(m, "testing");
+    copy_str(n.ip, sizeof(n.ip), m, "ip");
+    display_lock();
+    ui_set_net(&n);
     display_unlock();
 }
 
@@ -399,6 +433,7 @@ static void on_text(int fd, char *text)
         else if (strcmp(type, "alert") == 0) on_alert(m);
         else if (strcmp(type, "tile_state") == 0) on_tile_state(m);
         else if (strcmp(type, "steam") == 0) on_steam(m);
+        else if (strcmp(type, "net") == 0) on_net(m);
         else if (strcmp(type, "ping") == 0) { /* keeps the link marked online */ }
         else ESP_LOGD(TAG, "unknown type %s", type);
     }

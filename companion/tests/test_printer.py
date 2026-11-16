@@ -141,9 +141,9 @@ check(pr.model_of({"serial": "01P00A1"}) == "P1S" and pr.model_of({"serial": "09
 # ---- pages ----------------------------------------------------------------------
 import deskhub.pages as _pg  # noqa: E402
 _pg.steam_installed = lambda: False
-check(enabled_pages({}) == ["home", "stats", "ai", "calendar", "weather", "media", "shortcuts", "timer"], "default pages")
+check(enabled_pages({}) == ["home", "stats", "ai", "calendar", "weather", "media", "shortcuts", "timer", "network"], "default pages")
 _pg.steam_installed = lambda: True
-check(enabled_pages({}) == ["home", "stats", "ai", "calendar", "weather", "media", "shortcuts", "timer", "games"], "games auto-added")
+check(enabled_pages({}) == ["home", "stats", "ai", "calendar", "weather", "media", "shortcuts", "timer", "games", "network"], "games auto-added")
 _pg.steam_installed = lambda: False
 check("printer" in enabled_pages({"printers": [{"serial": "x"}]}), "printer auto-added")
 check(enabled_pages({"pages": {"enabled": ["stats"]}, "printers": [{"serial": "x"}]}) == ["home", "stats"],

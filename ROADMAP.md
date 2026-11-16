@@ -11,14 +11,6 @@ Ideas for Desk Hub, roughly in order of value. Each item notes how it would work
   - **Limits:** replying from the board isn't possible with this approach. Phone Link has no supported way for other apps to send messages, so replies stay on the phone or in Phone Link. iPhone support in Phone Link is more limited than Android.
   - **Alternative for Android:** the open KDE Connect protocol could give the companion texts, battery level and "find my phone" directly, without Phone Link. It's more work and Android-only.
 
-- [ ] **Internet stats.** How the connection is doing, at a glance.
-  - **Live:** ping to a nearby server (for example 1.1.1.1) every few seconds, with jitter and packet loss, and a small latency chart. Download and upload speed right now comes from the PC's network counters, which the Stats page already reads.
-  - **Speed test:** a scheduled test (for example every few hours, plus a button on the board) for real download and upload speed. Runs in the companion, e.g. with Ookla's `speedtest` CLI or Cloudflare's speed test, opt-in because it uses data.
-  - **Status:** online or offline, how long the connection has been up, and a note when it drops, so outages show on the board even when the PC is busy.
-  - **Data used:** totals for today and this month from the PC's network counters, kept by the companion across restarts.
-  - **On the board:** a section on the Stats page or its own Network page, plus an optional Home widget (ping and the last speed test).
-  - **Privacy:** the public IP and provider name stay off unless turned on.
-
 ## Design
 
 - [ ] **A new, modern design language.** A deliberate visual system to replace today's midnight theme, which grew one screen at a time.
@@ -82,3 +74,4 @@ Ideas for Desk Hub, roughly in order of value. Each item notes how it would work
 - [x] Shortcut tiles that light up for mic and speaker mute, plus a `mic` action that mutes the microphone in Windows
 - [x] Steam: a Games page and Home widget with the game being played, its cover and session time, and the last 5 games to launch with a tap
 - [x] Steam extras with your own Web API key: friends in game and total playtime for every game
+- [x] Internet stats: a Network page and Home widget with latency, jitter, loss, outages, data used and a Cloudflare speed test

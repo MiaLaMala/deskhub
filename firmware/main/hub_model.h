@@ -152,3 +152,23 @@ typedef struct {
     char friend_game[HUB_STEAM_FRIENDS][32];
     int friend_count;
 } hub_steam_t;
+
+// Internet connection: latency, outages, data used and the last speed test.
+#define HUB_NET_HIST 60
+typedef struct {
+    bool valid;
+    bool online;
+    float latency_ms;        // < 0: unknown
+    float jitter_ms;
+    int loss_pct;
+    int16_t hist[HUB_NET_HIST];   // latency per probe, oldest first; -1 = lost
+    int hist_count;
+    time_t up_since;
+    time_t drop_at;          // last outage (0 = none seen)
+    int drop_dur_s;
+    double today_bytes, month_bytes;
+    bool has_speed, testing;
+    float down_mbps, up_mbps, speed_ping_ms;
+    time_t speed_at;
+    char ip[48];
+} hub_net_t;

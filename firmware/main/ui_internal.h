@@ -62,7 +62,7 @@ const char *ui_icon_by_name(const char *name, char out[5]);
 bool ui_media_has_art(void);
 void ui_show_page(int page);
 
-enum { PAGE_HOME, PAGE_STATS, PAGE_CLAUDE, PAGE_CALENDAR, PAGE_WEATHER, PAGE_MEDIA, PAGE_PRINTER, PAGE_SHORTCUTS, PAGE_TIMER, PAGE_GAMES,
+enum { PAGE_HOME, PAGE_STATS, PAGE_CLAUDE, PAGE_CALENDAR, PAGE_WEATHER, PAGE_MEDIA, PAGE_PRINTER, PAGE_SHORTCUTS, PAGE_TIMER, PAGE_GAMES, PAGE_NETWORK,
        PAGE_COUNT };
 
 // Pages shown in the rail (bit per PAGE_*). Home is always on.
@@ -143,3 +143,11 @@ void ui_fmt_playtime(char *buf, size_t n, int minutes);  // "312 h" / "45 min"
 void home_refresh_game(void);
 void games_fmt_ago(char *buf, size_t n, time_t t);    // "Yesterday", "3 days ago"
 bool games_total_worth_showing(int total_min, int session_s);
+
+extern hub_net_t g_net;
+void net_page_create(lv_obj_t *page);
+void net_refresh(void);
+void ui_fmt_bytes(char *buf, size_t n, double bytes);   // "3.2 GB"
+void ui_fmt_ago(char *buf, size_t n, time_t t);         // "5m ago", "2h ago"
+void home_refresh_net(void);
+void net_refresh_live(void);   // the "Now" line, on each stats message

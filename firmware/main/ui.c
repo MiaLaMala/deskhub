@@ -367,7 +367,7 @@ void ui_set_printers(const hub_printer_t *p, int n)
 
 static const char *const s_glyphs[PAGE_COUNT] = {
     ICON_HOME, ICON_INSIGHTS, ICON_AUTO_AWESOME, ICON_EVENT, ICON_WB_SUNNY, ICON_MUSIC_NOTE,
-    ICON_VIEW_IN_AR, ICON_GRID_VIEW, ICON_TIMER, ICON_SPORTS_ESPORTS,
+    ICON_VIEW_IN_AR, ICON_GRID_VIEW, ICON_TIMER, ICON_SPORTS_ESPORTS, ICON_PUBLIC,
 };
 
 void ui_rail_set_text(int page, const char *text)
@@ -585,7 +585,7 @@ void ui_init(void)
 
     void (*creators[PAGE_COUNT])(lv_obj_t *) = {
         home_create, stats_create, claude_create, calendar_create, weather_page_create, media_create,
-        printer_create, shortcuts_create, timer_page_create, games_page_create,
+        printer_create, shortcuts_create, timer_page_create, games_page_create, net_page_create,
     };
     for (int i = 0; i < PAGE_COUNT; i++) {
         lv_obj_t *p = lv_obj_create(scr);
@@ -610,6 +610,7 @@ void ui_set_stats(const hub_stats_t *s)
     g_stats = *s;
     stats_refresh();
     home_refresh_stats();
+    net_refresh_live();
 }
 
 void ui_set_media(const hub_media_t *m)

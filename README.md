@@ -12,7 +12,7 @@ The board runs custom firmware (ESP-IDF + LVGL). A small Python app on your Wind
 | ![Calendar](docs/screenshots/calendar.png) | ![Now playing](docs/screenshots/media.png) |
 | ![3D printer](docs/screenshots/printer.png) | ![Shortcuts](docs/screenshots/shortcuts.png) |
 | ![Timer](docs/screenshots/timer.png) | ![Waiting alert](docs/screenshots/alert.png) |
-| ![Games](docs/screenshots/games.png) | |
+| ![Games](docs/screenshots/games.png) | ![Internet](docs/screenshots/network.png) |
 
 ## Features
 
@@ -27,6 +27,7 @@ The board runs custom firmware (ESP-IDF + LVGL). A small Python app on your Wind
 | Shortcuts | Up to 16 buttons: key combos, apps, folders, URLs, volume, media, lock PC | companion |
 | 3D printer | Bambu Lab print state, progress, temperatures and AMS colours for up to 4 printers (optional) | companion, over MQTT |
 | Games | The Steam game you're playing with its cover and session time, your five most recent games, and a tap to launch one (optional) | companion, from Steam's local files |
+| Internet | Online status, latency, jitter and packet loss with a one-minute chart, uptime and the last drop, data used today and this month, and an on-demand speed test | companion |
 | Timer | Countdown with presets from 1 to 45 minutes, pause and reset, and a full-screen "Time's up" card. The time left shows on its sidebar tab | the board itself, works without the PC |
 
 ## What you need
@@ -145,7 +146,7 @@ Home is always shown. To hide other pages, list the ones you want in `companion/
 
 ```toml
 [pages]
-enabled = ["home", "stats", "ai", "calendar", "weather", "media", "printer", "shortcuts", "timer", "games"]
+enabled = ["home", "stats", "ai", "calendar", "weather", "media", "printer", "shortcuts", "timer", "games", "network"]
 ```
 
 Remove a name to hide that page. Without a `[pages]` block everything is shown except the 3D printer page, which turns on by itself once you add a printer, and the Games page, which turns on when Steam is installed. Setup asks about each page too (the *Pages* step). The companion sends the list to the board every time it connects, so restart the companion after editing.
@@ -191,6 +192,25 @@ process = ["java.exe", "javaw.exe"]
 ```
  Images can be any shape: they're cropped to fit. Without one the board shows a placeholder. A Steam game that's running takes priority, and custom games work with `[steam] enabled = false` or without Steam installed. Restart the companion after editing.
 
+## Internet
+
+The Internet page (and the `net` Home widget) shows how your connection is doing:
+
+- **Status, latency, jitter and loss.** The companion probes every 2 seconds and keeps the last 60 samples for the chart. Latency is the median of the last five; jitter is how much it varies between probes; loss is the share of failed probes. The latency is a TCP connect to `1.1.1.1:443` (falling back to `8.8.8.8:443`), not an ICMP ping, so it needs no special rights and can read a few milliseconds higher than `ping`. You count as online while at least one of the last three probes succeeded.
+- **Uptime and the last drop.** How long the connection has been up, and when it last went down and for how long.
+- **Data used** today and this month, counted from your network adapters (all traffic on this PC, not only the internet). Totals are kept in `~/.deskhub/net_usage.json`.
+- **Speed test.** Tap the button on the page to test download, upload and ping against `speed.cloudflare.com`. A test moves about 35 MB (25 MB down, 10 MB up), so it only runs when you tap it, or on a schedule if you set `speedtest_hours`. The last result is kept across restarts.
+- **Public IP** is off by default. With `show_ip = true` it is asked from `speed.cloudflare.com` every 30 minutes and shown on the page.
+
+```toml
+[internet]
+enabled = true
+speedtest_hours = 0   # 0 = only when you tap the button; 6 = every 6 hours
+show_ip = false
+```
+
+Live download and upload speeds come from the same numbers as the PC stats page.
+
 ## Customizing Home
 
 Home has the time and date in a slim bar across the top, and widgets in two columns below it. List the widgets top to bottom in `companion/config.toml`, or use setup's *Home screen* step:
@@ -210,6 +230,7 @@ right = ["weather", "media", "stats"]
 | `stats` | CPU, GPU and RAM bars | 120 px |
 | `printer` | 3D print progress, time left and status | 120 px |
 | `game` | the Steam game you're playing (or your latest one), with its cover | 120 px |
+| `net` | Internet status, latency and loss (not in the default layout) | 120 px |
 | `clock` | the big clock and date, for use without the top bar (see below) | about 124 px |
 
 How the columns behave:
@@ -367,6 +388,7 @@ The board runs a WebSocket server at `ws://deskhub.local/ws`. The companion conn
 | `layout` | `pages`, the page names to show. Sent right after `hello_ok`. |
 | `home` | `left` and `right`, the Home widget names per column, top to bottom, and `header` (time and date in a top bar). Sent right after `layout`. |
 | `printer` | `printers` (up to 4) with `name`, `model`, `online`, `state`, `pct`, `remaining_min`, `layer`/`layers`, `file`, temperatures, `speed`, `error` and `ams`. Sent when something changes, and at least every 30 seconds. |
+| `net` | `online`, `latency_ms`, `jitter_ms`, `loss_pct`, `hist` (last 60 probes in ms, -1 = lost), `up_since`, `last_drop`, `today_bytes`, `month_bytes`, `speed`, `testing` and `ip`. Sent every 2 seconds. |
 | `steam` | `found`, `playing` (`appid`, `name`, `session_s`, `total_min`) and `recent` (up to 5 with `appid`, `name`, `last`, `total_min`). Sent when something changes, and at least every 60 seconds. |
 | binary | `STM1`, then `u32 appid`, `u16 width`, `u16 height`, `u16 kind`, `u16 0` and RGB565 little-endian pixels. Kind 0 is the playing game's header (340x159), 1 a thumbnail (128x60), 2 a portrait cover (96x144). |
 | `claude` | `limits`, the current 5-hour `block`, `today`, `last_hour`, `days` (7 values) and `models`. Sent every 5 seconds. |
@@ -374,6 +396,7 @@ The board runs a WebSocket server at `ws://deskhub.local/ws`. The companion conn
 | From the board | Contents |
 | --- | --- |
 | `media` | `cmd` (`toggle`, `next`, `prev` or `seek`) and `value` (seconds, for `seek`) |
+| `speedtest` | no fields; runs a speed test now (at most one per 2 minutes) |
 | `steam_launch` | `appid`, a recent or running game to launch |
 | `shortcut` | `id`, the button's index. The PC looks up what the button does, so the board never holds commands. |
 

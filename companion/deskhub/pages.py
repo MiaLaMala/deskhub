@@ -1,11 +1,11 @@
 """Which board pages are shown. Home is always on."""
 from .steam import steam_installed
 
-ALL_PAGES = ["home", "stats", "ai", "calendar", "weather", "media", "printer", "shortcuts", "timer", "games"]
+ALL_PAGES = ["home", "stats", "ai", "calendar", "weather", "media", "printer", "shortcuts", "timer", "games", "network"]
 PAGE_LABELS = {
     "stats": "PC stats", "ai": "AI agent usage", "calendar": "Calendar", "weather": "Weather",
     "media": "Now playing", "printer": "3D printer", "shortcuts": "Shortcuts",
-    "timer": "Timer", "games": "Games",
+    "timer": "Timer", "games": "Games", "network": "Internet",
 }
 
 
@@ -40,6 +40,7 @@ HOME_WIDGETS = {
     "stats": "PC stats",
     "printer": "3D print progress",
     "game": "Steam game",
+    "net": "Internet",
 }
 # Defaults with the slim top bar (the default): the clock widget isn't needed.
 DEFAULT_LEFT = ["claude", "events"]

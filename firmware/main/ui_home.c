@@ -22,10 +22,10 @@
 #define GAP 12
 #define EVENT_ROWS_MAX 3
 
-enum { W_CLOCK, W_CLAUDE, W_EVENTS, W_WEATHER, W_MEDIA, W_STATS, W_PRINTER, W_GAME, W_COUNT };
-static const char *const W_NAMES[W_COUNT] = {"clock", "claude", "events", "weather", "media", "stats", "printer", "game"};
-static const int W_HEIGHT[W_COUNT] = {152, 88, 176, 120, 120, 120, 120, 120};
-static const int W_PAGE[W_COUNT] = {-1, PAGE_CLAUDE, PAGE_CALENDAR, PAGE_WEATHER, PAGE_MEDIA, PAGE_STATS, PAGE_PRINTER, PAGE_GAMES};
+enum { W_CLOCK, W_CLAUDE, W_EVENTS, W_WEATHER, W_MEDIA, W_STATS, W_PRINTER, W_GAME, W_NET, W_COUNT };
+static const char *const W_NAMES[W_COUNT] = {"clock", "claude", "events", "weather", "media", "stats", "printer", "game", "net"};
+static const int W_HEIGHT[W_COUNT] = {152, 88, 176, 120, 120, 120, 120, 120, 120};
+static const int W_PAGE[W_COUNT] = {-1, PAGE_CLAUDE, PAGE_CALENDAR, PAGE_WEATHER, PAGE_MEDIA, PAGE_STATS, PAGE_PRINTER, PAGE_GAMES, PAGE_NETWORK};
 #define W_MIN_EVENTS 120
 
 static lv_obj_t *s_w[W_COUNT];
@@ -461,6 +461,32 @@ static void layout_game(int w, int h)
     lv_obj_set_width(s_gm_name, w - 32 - (play ? 48 : 0));
 }
 
+// ---- internet ---------------------------------------------------------------
+// Latency in big type, online status, and the last speed test.
+static lv_obj_t *s_nt_state, *s_nt_lat, *s_nt_sub;
+
+static void create_net(lv_obj_t *page)
+{
+    lv_obj_t *c = widget_card(page, PAGE_NETWORK);
+    lv_obj_t *cap = ui_caption(c, "INTERNET");
+    lv_obj_set_pos(cap, 0, 0);
+    s_nt_state = ui_label(c, &lv_font_montserrat_14, COL_GOOD, "");
+    lv_obj_align(s_nt_state, LV_ALIGN_TOP_RIGHT, 0, 0);
+    s_nt_lat = ui_label(c, &lv_font_montserrat_32, COL_TEXT, "--");
+    lv_obj_set_pos(s_nt_lat, 0, 22);
+    s_nt_sub = ui_label(c, &lv_font_montserrat_14, COL_MUTED, "");
+    lv_label_set_long_mode(s_nt_sub, LV_LABEL_LONG_DOT);
+    lv_obj_set_height(s_nt_sub, 18);
+    lv_obj_set_pos(s_nt_sub, 0, 66);
+    s_w[W_NET] = c;
+}
+
+static void layout_net(int w, int h)
+{
+    (void)h;
+    lv_obj_set_width(s_nt_sub, w - 32);
+}
+
 // Slim top bar: big time + AM/PM on the left, full date on the right, and a
 // hairline underneath. Used instead of the clock widget when the spec starts
 // with "header;".
@@ -514,6 +540,7 @@ static void layout_widget(int id, int w, int h)
     case W_STATS: layout_stats(w, h); break;
     case W_PRINTER: layout_printer(w, h); break;
     case W_GAME: layout_game(w, h); break;
+    case W_NET: layout_net(w, h); break;
     default: break;
     }
 }
@@ -631,6 +658,7 @@ void home_create(lv_obj_t *page)
     create_stats(page);
     create_printer(page);
     create_game(page);
+    create_net(page);
     home_apply_layout();
 
     home_refresh_events();
@@ -639,6 +667,7 @@ void home_create(lv_obj_t *page)
     home_refresh_claude();
     home_refresh_printer();
     home_refresh_game();
+    home_refresh_net();
 }
 
 // ---- refresh --------------------------------------------------------------
@@ -1013,4 +1042,34 @@ void home_refresh_game(void)
     }
     lv_obj_t *card = s_w[W_GAME];
     if (card && !lv_obj_has_flag(card, LV_OBJ_FLAG_HIDDEN)) layout_game(lv_obj_get_width(card), 0);
+}
+
+void home_refresh_net(void)
+{
+    if (!s_nt_lat) return;
+    const hub_net_t *n = &g_net;
+    char buf[64], t[24];
+    if (!n->valid) {
+        lv_label_set_text(s_nt_state, "");
+        lv_label_set_text(s_nt_lat, "--");
+        lv_label_set_text(s_nt_sub, g_pc_online ? "Waiting for the PC" : "PC offline");
+        return;
+    }
+    lv_label_set_text(s_nt_state, n->online ? "Online" : "Offline");
+    lv_obj_set_style_text_color(s_nt_state, lv_color_hex(n->online ? COL_GOOD : COL_BAD), 0);
+    if (n->latency_ms >= 0) snprintf(buf, sizeof(buf), "%d ms", (int)(n->latency_ms + 0.5f));
+    else strlcpy(buf, "--", sizeof(buf));
+    lv_label_set_text(s_nt_lat, buf);
+    lv_obj_set_style_text_color(s_nt_lat, lv_color_hex(n->latency_ms < 0 ? COL_DIM : n->latency_ms < 40 ? COL_TEXT
+                                                       : n->latency_ms < 100 ? COL_WARN : COL_BAD), 0);
+    if (n->testing) {
+        strlcpy(buf, "Speed test running...", sizeof(buf));
+    } else if (n->has_speed) {
+        ui_fmt_ago(t, sizeof(t), n->speed_at);
+        snprintf(buf, sizeof(buf), LV_SYMBOL_DOWN " %.0f  " LV_SYMBOL_UP " %.0f Mbps  " LV_SYMBOL_BULLET "  %s",
+                 n->down_mbps, n->up_mbps, t);
+    } else {
+        snprintf(buf, sizeof(buf), "Jitter %.1f ms  " LV_SYMBOL_BULLET "  Loss %d%%", n->jitter_ms, n->loss_pct);
+    }
+    lv_label_set_text(s_nt_sub, buf);
 }

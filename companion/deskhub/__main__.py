@@ -8,6 +8,7 @@ import json
 import logging
 import pathlib
 import sys
+import time
 import tomllib
 from concurrent.futures import ThreadPoolExecutor
 
@@ -19,6 +20,7 @@ from .claude_alerts import ClaudeAlerts
 from .claude_usage import ClaudeUsage
 from .codex_usage import CodexUsage, codex_home
 from .media import Media
+from .netstats import NetStats
 from .pages import enabled_pages, home_message, layout_message
 from .printer import PrinterService
 from .shortcuts import hub_view, lit_message, load_tiles, run_tile
@@ -33,6 +35,8 @@ PRINTER_TICK_S = 2
 PRINTER_KEEPALIVE_S = 30
 STEAM_TICK_S = 2
 STEAM_KEEPALIVE_S = 60
+NET_TICK_S = 2
+SPEEDTEST_MIN_GAP_S = 120
 
 
 def find_config(arg: str | None) -> pathlib.Path:
@@ -110,6 +114,11 @@ class Companion:
         self.steam = (Steam(custom=custom, use_steam=use_steam, web=web)
                       if use_steam or custom.games else None)
         self.steam_msg = None
+        icfg = cfg.get("internet", {})
+        self.net = (NetStats(show_ip=bool(icfg.get("show_ip", False)))
+                    if icfg.get("enabled", True) else None)
+        self.net_msg = None
+        self.speedtest_at = -SPEEDTEST_MIN_GAP_S
         self.connected_once = False
         self.ws = None
 
@@ -227,6 +236,37 @@ class Companion:
                 log.warning("steam poll failed: %s", e)
             await asyncio.sleep(STEAM_TICK_S)
 
+    async def net_loop(self):
+        while True:
+            try:
+                await asyncio.to_thread(self.net.tick)
+                self.net_msg = self.net.message()
+                await self.send(self.net_msg)
+            except Exception as e:
+                log.warning("net stats failed: %s", e)
+            await asyncio.sleep(NET_TICK_S)
+
+    async def speedtest(self):
+        """Run a speed test now (at most one at a time, one per two minutes)."""
+        now = time.monotonic()
+        if not self.net or self.net.testing or now - self.speedtest_at < SPEEDTEST_MIN_GAP_S:
+            return
+        self.speedtest_at = now
+        task = asyncio.create_task(asyncio.to_thread(self.net.run_speedtest))
+        await asyncio.sleep(0)  # let the thread flag testing = True
+        while not self.net.testing and not task.done():
+            await asyncio.sleep(0.05)
+        self.net_msg = self.net.message()
+        await self.send(self.net_msg)
+        await task
+        self.net_msg = self.net.message()
+        await self.send(self.net_msg)
+
+    async def speedtest_schedule(self, hours: float):
+        while True:
+            await asyncio.sleep(hours * 3600)
+            await self.speedtest()
+
     # ---- hub commands -----------------------------------------------------
 
     async def handle(self, raw):
@@ -242,6 +282,8 @@ class Companion:
                 self.alerts.dismiss(sid)
             elif action == "focus":
                 await asyncio.to_thread(self.alerts.focus, sid)
+        elif kind == "speedtest" and self.net:
+            asyncio.create_task(self.speedtest())
         elif kind == "steam_launch" and self.steam:
             await asyncio.to_thread(self.steam.launch, int(msg.get("appid", 0)))
         elif kind == "shortcut":
@@ -282,6 +324,8 @@ class Companion:
                 await self.send(self.alerts.msg)
             if self.printer_msg:
                 await self.send(self.printer_msg)
+            if self.net_msg:
+                await self.send(self.net_msg)
             if self.steam_msg and self.steam:
                 await self.send(self.steam_msg)
                 for frame in await asyncio.to_thread(self.steam.all_frames):
@@ -308,6 +352,11 @@ class Companion:
             asyncio.create_task(self.printer_loop())
         if self.steam:
             asyncio.create_task(self.steam_loop())
+        if self.net:
+            asyncio.create_task(self.net_loop())
+            hours = float(self.cfg.get("internet", {}).get("speedtest_hours", 0))
+            if hours > 0:
+                asyncio.create_task(self.speedtest_schedule(hours))
         delay = 2
         while True:
             try:
