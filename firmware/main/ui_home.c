@@ -19,12 +19,14 @@
 #define LEFT_W 384
 #define RIGHT_X (LEFT_W + 16)
 #define RIGHT_W (CONTENT_W - RIGHT_X)
-#define GAP 12
+#define GAP (UI_COMPACT ? 8 : 12)
 #define EVENT_ROWS_MAX 3
 
 enum { W_CLOCK, W_CLAUDE, W_EVENTS, W_WEATHER, W_MEDIA, W_STATS, W_PRINTER, W_GAME, W_NET, W_COUNT };
 static const char *const W_NAMES[W_COUNT] = {"clock", "claude", "events", "weather", "media", "stats", "printer", "game", "net"};
 static const int W_HEIGHT[W_COUNT] = {152, 88, 176, 120, 120, 120, 120, 120, 120};
+// Above the bottom dock: three widgets still fit in a column under the top bar.
+static const int W_HEIGHT_COMPACT[W_COUNT] = {152, 80, 176, 100, 100, 100, 100, 100, 100};
 static const int W_PAGE[W_COUNT] = {-1, PAGE_CLAUDE, PAGE_CALENDAR, PAGE_WEATHER, PAGE_MEDIA, PAGE_STATS, PAGE_PRINTER, PAGE_GAMES, PAGE_NETWORK};
 #define W_MIN_EVENTS 120
 
@@ -66,6 +68,7 @@ static void open_page_cb(lv_event_t *e)
 static lv_obj_t *widget_card(lv_obj_t *parent, int page)
 {
     lv_obj_t *c = ui_card(parent);
+    if (UI_COMPACT) lv_obj_set_style_pad_ver(c, 9, 0);
     lv_obj_add_flag(c, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_style_bg_color(c, lv_color_hex(COL_CARD_HI), LV_STATE_PRESSED);
     lv_obj_add_event_cb(c, open_page_cb, LV_EVENT_CLICKED, (void *)(intptr_t)page);
@@ -201,14 +204,14 @@ static void layout_clock(int w, int h)
 
 static int widget_height(int id, int w)
 {
-    return id == W_CLOCK ? clock_geo(w).height : W_HEIGHT[id];
+    return id == W_CLOCK ? clock_geo(w).height : (UI_COMPACT ? W_HEIGHT_COMPACT : W_HEIGHT)[id];
 }
 
 static void create_claude(lv_obj_t *page)
 {
     lv_obj_t *c = widget_card(page, PAGE_CLAUDE);
     s_cl_card = c;
-    lv_obj_set_style_pad_ver(c, 10, 0);
+    lv_obj_set_style_pad_ver(c, UI_COMPACT ? 6 : 10, 0);
     // AI badge: the agent's logo on a tile tinted in its brand colour.
     s_cl_badge = lv_obj_create(c);
     lv_obj_remove_style_all(s_cl_badge);
@@ -308,9 +311,9 @@ static void create_weather(lv_obj_t *page)
     s_wx_temp = ui_label(wx, &lv_font_montserrat_48, COL_TEXT, "--");
     lv_obj_set_pos(s_wx_temp, 96, -8);
     s_wx_text = ui_label(wx, &lv_font_montserrat_16, COL_MUTED, "Loading weather");
-    lv_obj_set_pos(s_wx_text, 98, 46);
+    lv_obj_set_pos(s_wx_text, 98, UI_COMPACT ? 42 : 46);
     s_wx_range = ui_label(wx, &lv_font_montserrat_16, COL_MUTED, "");
-    lv_obj_set_pos(s_wx_range, 98, 66);
+    lv_obj_set_pos(s_wx_range, 98, UI_COMPACT ? 61 : 66);
     s_w[W_WEATHER] = wx;
 }
 
@@ -389,9 +392,9 @@ static void create_printer(lv_obj_t *page)
     lv_obj_set_pos(s_pr_file, 0, 22);
     s_pr_bar = ui_bar(c, COL_ACCENT);
     lv_obj_set_height(s_pr_bar, 10);
-    lv_obj_set_pos(s_pr_bar, 0, 54);
+    lv_obj_set_pos(s_pr_bar, 0, UI_COMPACT ? 50 : 54);
     s_pr_info = ui_label(c, &lv_font_montserrat_14, COL_MUTED, "");
-    lv_obj_set_pos(s_pr_info, 0, 70);
+    lv_obj_set_pos(s_pr_info, 0, UI_COMPACT ? 64 : 70);
     s_w[W_PRINTER] = c;
 }
 
@@ -443,11 +446,11 @@ static void create_game(lv_obj_t *page)
     lv_obj_set_pos(s_gm_sub, 140, 30);
     s_gm_name = ui_label(c, &lv_font_montserrat_20, COL_TEXT, "");
     lv_label_set_long_mode(s_gm_name, LV_LABEL_LONG_DOT);
-    lv_obj_set_height(s_gm_name, 24);
-    lv_obj_set_pos(s_gm_name, 0, 66);
+    lv_obj_set_height(s_gm_name, UI_COMPACT ? 22 : 24);
+    lv_obj_set_pos(s_gm_name, 0, UI_COMPACT ? 61 : 66);
     s_gm_play = ui_round_button(c, 40, COL_ACCENT, g_icon_24, ICON_PLAY_ARROW, game_play_cb, NULL);
     lv_obj_set_style_text_color(lv_obj_get_child(s_gm_play, 0), lv_color_hex(COL_BG), 0);
-    lv_obj_align(s_gm_play, LV_ALIGN_TOP_RIGHT, 0, 50);   // on the name row
+    lv_obj_align(s_gm_play, LV_ALIGN_TOP_RIGHT, 0, UI_COMPACT ? 42 : 50);   // on the name row
     s_w[W_GAME] = c;
 }
 
@@ -477,7 +480,7 @@ static void create_net(lv_obj_t *page)
     s_nt_sub = ui_label(c, &lv_font_montserrat_14, COL_MUTED, "");
     lv_label_set_long_mode(s_nt_sub, LV_LABEL_LONG_DOT);
     lv_obj_set_height(s_nt_sub, 18);
-    lv_obj_set_pos(s_nt_sub, 0, 66);
+    lv_obj_set_pos(s_nt_sub, 0, UI_COMPACT ? 62 : 66);
     s_w[W_NET] = c;
 }
 
