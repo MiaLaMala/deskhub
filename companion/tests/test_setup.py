@@ -13,6 +13,7 @@ import tempfile
 from deskhub import setup_cli as s
 import deskhub.pages as _pg
 _pg.steam_installed = lambda: False
+s.step_steam_key = lambda: None  # never touch the real credential store
 
 problems = []
 

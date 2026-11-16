@@ -4,8 +4,6 @@ Ideas for Desk Hub, roughly in order of value. Each item notes how it would work
 
 ## Integrations
 
-- [ ] **Steam extras (opt-in, your own Steam Web API key).** Which friends are in game, and total playtime for every game (Steam's local files only have it for some).
-
 - [ ] **Phone notifications and text messages.**
   - **Approach:** read phone notifications through Windows rather than talking to the phone directly. Windows' Phone Link already mirrors texts and app notifications from Android phones and iPhones into Windows notifications. The companion reads them with the `UserNotificationListener` API (Windows asks the user for permission once), and could show other PC notifications too, such as Discord or Teams.
   - **On the board:** a Messages page plus a small Home widget with the latest few texts (sender, a preview and the time), and a brief pop-up when a new one arrives.
@@ -77,3 +75,4 @@ Ideas for Desk Hub, roughly in order of value. Each item notes how it would work
 - [x] Timer page: presets, countdown ring, pause and reset, a "Time's up" card, and the time left on its sidebar tab
 - [x] Shortcut tiles that light up for mic and speaker mute, plus a `mic` action that mutes the microphone in Windows
 - [x] Steam: a Games page and Home widget with the game being played, its cover and session time, and the last 5 games to launch with a tap
+- [x] Steam extras with your own Web API key: friends in game and total playtime for every game

@@ -312,6 +312,12 @@ static void on_steam(const cJSON *m)
         if (s.recent_count >= HUB_STEAM_RECENT) break;
         copy_game(&s.recent[s.recent_count++], it);
     }
+    cJSON_ArrayForEach(it, cJSON_GetObjectItemCaseSensitive(m, "friends")) {
+        if (s.friend_count >= HUB_STEAM_FRIENDS) break;
+        copy_str(s.friend_name[s.friend_count], sizeof(s.friend_name[0]), it, "name");
+        copy_str(s.friend_game[s.friend_count], sizeof(s.friend_game[0]), it, "game");
+        s.friend_count++;
+    }
     display_lock();
     ui_set_steam(&s);
     display_unlock();

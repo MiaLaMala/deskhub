@@ -32,6 +32,7 @@ static uint32_t s_rx_tick;   // lv_tick when the last steam message arrived
 
 static lv_obj_t *s_now_img, *s_now_name, *s_now_time, *s_now_total, *s_now_cap;
 static lv_obj_t *s_idle, *s_idle_sub, *s_now_box;
+static lv_obj_t *s_fr_cap, *s_fr_name[HUB_STEAM_FRIENDS], *s_fr_game[HUB_STEAM_FRIENDS];
 static lv_obj_t *s_tile[HUB_STEAM_RECENT], *s_tile_img[HUB_STEAM_RECENT], *s_tile_ph[HUB_STEAM_RECENT];
 static lv_obj_t *s_tile_name[HUB_STEAM_RECENT];
 static lv_obj_t *s_recent_empty;
@@ -182,9 +183,25 @@ void games_page_create(lv_obj_t *page)
     lv_obj_t *ic = ui_label(s_idle, g_icon_80, COL_DIM, ICON_SPORTS_ESPORTS);
     lv_obj_align(ic, LV_ALIGN_LEFT_MID, 24, 0);
     lv_obj_t *t = ui_label(s_idle, &lv_font_montserrat_24, COL_TEXT, "No game running");
-    lv_obj_align(t, LV_ALIGN_LEFT_MID, 136, -16);
+    lv_obj_align(t, LV_ALIGN_LEFT_MID, 136, -22);
     s_idle_sub = ui_label(s_idle, &lv_font_montserrat_16, COL_MUTED, "");
-    lv_obj_align(s_idle_sub, LV_ALIGN_LEFT_MID, 136, 18);
+    lv_obj_set_width(s_idle_sub, 372 - 136 - 16);   // wraps clear of the friends list
+    lv_obj_align(s_idle_sub, LV_ALIGN_LEFT_MID, 136, 22);
+
+    // Friends in a game (only with a Steam Web API key), on the right.
+    const int fx = 372, fw = CONTENT_W - 32 - fx;
+    s_fr_cap = ui_caption(s_idle, "FRIENDS IN GAME");
+    lv_obj_set_pos(s_fr_cap, fx, 0);
+    for (int i = 0; i < HUB_STEAM_FRIENDS; i++) {
+        s_fr_name[i] = ui_label(s_idle, &lv_font_montserrat_16, COL_TEXT, "");
+        lv_label_set_long_mode(s_fr_name[i], LV_LABEL_LONG_DOT);
+        lv_obj_set_size(s_fr_name[i], fw * 2 / 5, 20);
+        lv_obj_set_pos(s_fr_name[i], fx, 24 + i * 27);
+        s_fr_game[i] = ui_label(s_idle, &lv_font_montserrat_14, COL_GOOD, "");
+        lv_label_set_long_mode(s_fr_game[i], LV_LABEL_LONG_DOT);
+        lv_obj_set_size(s_fr_game[i], fw * 3 / 5 - 8, 18);
+        lv_obj_set_pos(s_fr_game[i], fx + fw * 2 / 5 + 8, 26 + i * 27);
+    }
 
     // Recent games: covers that start the game on the PC.
     lv_obj_t *bot = ui_card(page);
@@ -245,8 +262,15 @@ void games_refresh(void)
         if (s_hdr.appid == s->now.appid) lv_image_set_src(s_now_img, &s_hdr.dsc);
         else lv_image_set_src(s_now_img, NULL);
         ui_fmt_playtime(tot, sizeof(tot), s->now.total_min);
-        snprintf(buf, sizeof(buf), "%s played in total", tot);
-        lv_label_set_text(s_now_total, s->now.total_min > 0 ? buf : "");
+        buf[0] = 0;
+        if (s->now.total_min > 0) snprintf(buf, sizeof(buf), "%s played", tot);
+        if (s->friend_count) {
+            char fr[32];
+            snprintf(fr, sizeof(fr), "%s%d friend%s in game", buf[0] ? "  " LV_SYMBOL_BULLET "  " : "",
+                     s->friend_count, s->friend_count == 1 ? "" : "s");
+            strlcat(buf, fr, sizeof(buf));
+        }
+        lv_label_set_text(s_now_total, buf);
         games_tick();
     } else {
         lv_obj_add_flag(s_now_box, LV_OBJ_FLAG_HIDDEN);
@@ -255,6 +279,12 @@ void games_refresh(void)
                                       : !s->found ? "Steam isn't installed on the PC"
                                       : "Start a game, or pick one below");
     }
+    for (int i = 0; i < HUB_STEAM_FRIENDS; i++) {
+        lv_label_set_text(s_fr_name[i], i < s->friend_count ? s->friend_name[i] : "");
+        lv_label_set_text(s_fr_game[i], i < s->friend_count ? s->friend_game[i] : "");
+    }
+    if (s->friend_count) lv_obj_remove_flag(s_fr_cap, LV_OBJ_FLAG_HIDDEN);
+    else lv_obj_add_flag(s_fr_cap, LV_OBJ_FLAG_HIDDEN);
 
     for (int i = 0; i < HUB_STEAM_RECENT; i++) {
         bool on = i < s->recent_count;

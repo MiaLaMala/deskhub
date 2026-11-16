@@ -99,7 +99,16 @@ class Companion:
         self.printer_msg = None
         custom = CustomGames(load_games(cfg))
         use_steam = bool(cfg.get("steam", {}).get("enabled", True))
-        self.steam = Steam(custom=custom, use_steam=use_steam) if use_steam or custom.games else None
+        web = None
+        if use_steam:
+            from .steam_web import SteamWeb, get_key
+
+            key = get_key()  # optional, from `deskhub-setup` (Games step)
+            if key:
+                web = SteamWeb(key)
+                log.info("Steam Web API: friends and playtime on")
+        self.steam = (Steam(custom=custom, use_steam=use_steam, web=web)
+                      if use_steam or custom.games else None)
         self.steam_msg = None
         self.connected_once = False
         self.ws = None

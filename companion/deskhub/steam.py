@@ -190,8 +190,10 @@ def build_frame(appid: int, kind: int, header: bytes | None, portrait: bytes | N
 # ---- the service ---------------------------------------------------------------
 
 class Steam:
-    def __init__(self, clock=time.time, custom=None, use_steam=True):
+    def __init__(self, clock=time.time, custom=None, use_steam=True, web=None):
         self._clock = clock
+        self.web = web            # steam_web.SteamWeb with your API key, or None
+        self.account_id = 0       # Steam account of the newest userdata folder
         self.use_steam = use_steam  # False: only the custom games
         self.custom = custom  # custom_games.CustomGames, or None
         self._run_appid = 0
@@ -258,6 +260,8 @@ class Steam:
                 pass
         if configs:
             newest = max(configs, key=lambda t: t[0])[1]
+            folder = newest.parent.parent.name
+            self.account_id = int(folder) if folder.isdigit() else 0
             try:
                 cfg = parse_vdf(newest.read_text(encoding="utf-8", errors="replace"))
                 raw = _get(cfg, "UserLocalConfigStore", "Software", "Valve", "Steam", "apps")
@@ -327,7 +331,18 @@ class Steam:
             recent += [g for g in self.custom.recent() if g["appid"] != skip]
             recent = sorted(recent, key=lambda g: -g["last"])[:RECENT_MAX]
         found = steam_ok or bool(self.custom and self.custom.games)
-        self._snap = {"type": "steam", "found": found, "playing": playing, "recent": recent}
+        friends = []
+        if self.web and steam_ok and self.account_id:
+            from .steam_web import steamid64
+
+            sid = steamid64(self.account_id)
+            minutes = self.web.playtimes(sid)
+            for g in ([playing] if playing else []) + recent:
+                if g["appid"] in minutes:  # the Web API knows every game's total
+                    g["total_min"] = max(g["total_min"], minutes[g["appid"]])
+            friends = self.web.friends_in_game(sid)
+        self._snap = {"type": "steam", "found": found, "playing": playing, "recent": recent,
+                      "friends": friends}
         return self._snap
 
     def _steam_part(self, root: pathlib.Path, running: int) -> tuple[dict | None, list[dict]]:

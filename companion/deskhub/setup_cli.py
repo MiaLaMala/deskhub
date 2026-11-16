@@ -288,6 +288,40 @@ def step_games(config_path: pathlib.Path):
     if yes("Add or change games that aren't on Steam", False):
         from .games_cli import menu
         menu(config_path)
+    step_steam_key()
+
+
+def step_steam_key():
+    """Optional Steam Web API key: friends in game and total playtime for every game."""
+    from .steam import steam_installed
+    from . import steam_web
+
+    if not steam_installed():
+        return
+    have = bool(steam_web.get_key())
+    print("\nWith your own Steam Web API key the Games page also shows which friends are in a\n"
+          "game, and total playtime for every game. Get one at\n"
+          "https://steamcommunity.com/dev/apikey (any domain name works). It's kept in the\n"
+          "Windows credential store, not in config.toml.")
+    if have:
+        if yes("A Steam key is saved. Keep using it", True):
+            return
+        steam_web.set_key(None)
+        print("Removed the Steam key.")
+        return
+    if not yes("Add a Steam Web API key", False):
+        return
+    key = getpass.getpass("Steam Web API key (hidden): ").strip()
+    if not re.fullmatch(r"[0-9A-Fa-f]{32}", key):
+        print("That doesn't look like a Steam key (32 letters and digits); not saved.")
+        return
+    try:
+        steam_web._http_get(f"{steam_web.API}/ISteamWebAPIUtil/GetSupportedAPIList/v1/", {"key": key})
+    except Exception as e:
+        print(f"Steam didn't accept the key ({getattr(getattr(e, 'response', None), 'status_code', e)}); not saved.")
+        return
+    steam_web.set_key(key)
+    print("Saved. Restart the companion to show friends and playtime.")
 
 
 def step_pages(config_path: pathlib.Path):

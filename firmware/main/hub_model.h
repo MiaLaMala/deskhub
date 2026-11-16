@@ -132,6 +132,7 @@ typedef struct {
 
 // Steam: the game being played and recently played games.
 #define HUB_STEAM_RECENT 5
+#define HUB_STEAM_FRIENDS 5
 typedef struct {
     uint32_t appid;
     char name[48];
@@ -147,4 +148,7 @@ typedef struct {
     int session_s;      // seconds into this session when the message was sent
     hub_game_t recent[HUB_STEAM_RECENT];
     int recent_count;
+    char friend_name[HUB_STEAM_FRIENDS][24];   // friends in a game (Steam Web API, opt-in)
+    char friend_game[HUB_STEAM_FRIENDS][32];
+    int friend_count;
 } hub_steam_t;
