@@ -280,6 +280,16 @@ def step_printers(config_path: pathlib.Path):
         menu(config_path)
 
 
+def step_games(config_path: pathlib.Path):
+    heading("Games")
+    print("The Games page shows your Steam games by itself. Games from elsewhere, like\n"
+          "Minecraft, emulators or other launchers, can show there too. Start the game\n"
+          "first, then pick its window from the list.")
+    if yes("Add or change games that aren't on Steam", False):
+        from .games_cli import menu
+        menu(config_path)
+
+
 def step_pages(config_path: pathlib.Path):
     heading("Pages")
     print("Choose which pages the board shows. Home is always shown.")
@@ -438,6 +448,7 @@ def main():
         menu(config_path)
 
     step_printers(config_path)
+    step_games(config_path)
     step_pages(config_path)
     step_home(config_path)
     step_live_limits(config_path)

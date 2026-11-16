@@ -47,8 +47,8 @@ fw = root / "firmware"; fw.mkdir()
                               'CONFIG_HUB_FAHRENHEIT=y\n# CONFIG_HUB_24H is not set\n')
 conf = root / "config.toml"
 shutil.copy(pathlib.Path(__file__).parent.parent / "config.example.toml", conf)
-# Wi-Fi, city, pick, F, 24h, calendars, printers, 9 pages (hide Weather and Games), top bar, home left+right, live limits, flash
-answers = iter(["", "Charlotte, NC", "1", "", "", "n", "n",
+# Wi-Fi, city, pick, F, 24h, calendars, printers, games, 9 pages (hide Weather and Games), top bar, home left+right, live limits, flash
+answers = iter(["", "Charlotte, NC", "1", "", "", "n", "n", "n",
                 "", "", "", "n", "", "", "", "", "n", "y", "clock, events", "media, bogus", "printer", "y", "", "", "codex", "n"])
 builtins.input = lambda prompt="": next(answers)
 # Never touch the real Claude Code settings: point the alerts step at a temp file.
