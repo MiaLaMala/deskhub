@@ -25,6 +25,12 @@ Ideas for Desk Hub, roughly in order of value. Each item notes how it would work
 
 ## Day-to-day polish
 
+- [ ] **Calendar dot on the sidebar.** When the calendar widget isn't on Home, a small dot on the sidebar's Calendar tab shows that there's an event coming up, like the dot the AI tab gets for waiting alerts.
+  - **When:** an event today that hasn't ended yet (all-day events included). The dot goes away once the day's events are over.
+  - **Colour:** the colour of that event's calendar. With more than one, use the first upcoming event (the one the Calendar page lists first).
+  - **Only when Home doesn't show it:** if the Up next widget is on Home, no dot. Toggling the widget in the Home layout turns the dot on or off.
+  - **Implementation:** board-only. `ui_rail_set_badge(PAGE_CALENDAR, color)`, recomputed when events arrive, when the Home layout changes, and each minute (when events end).
+
 - [ ] **Readable scrolling for any text that doesn't fit.** Today long song and video titles scroll endlessly: they slide left, jump straight back to the start and never rest. Other long text is cut off with "…": event titles, file names, calendar locations, reset times, the printer's file name, shortcut labels.
   - **One shared behaviour** for every label that overflows its space:
     - rest on the start of the text for a few seconds;
