@@ -52,6 +52,12 @@ Ideas for Desk Hub, roughly in order of value. Each item notes how it would work
   - It creates the Startup-folder shortcut, and `--remove` undoes it.
   - Setup offers it as its last step.
 
+- [ ] **Tray icon for the companion.** Show the companion running in the Windows taskbar's notification area instead of a terminal window, so it can run hidden and still be easy to control.
+  - The icon shows whether the board is connected (for example, coloured when connected and grey when it isn't), with a tooltip naming the board and its IP.
+  - Right-click menu: **Edit config** (opens `config.toml` in the default editor), **Run setup**, **Restart** (reloads config.toml and reconnects), **Open log**, and **Quit**.
+  - Built with `pystray` (plus Pillow for the icon) on its own thread next to the asyncio loop. Restart re-reads the config in place, without a new process.
+  - Pairs with **Start with Windows**: the login shortcut starts the tray version hidden (`pythonw -m deskhub --tray`).
+
 - [ ] **Firmware updates over Wi-Fi.** Flash new builds without the USB cable.
   - Add OTA partitions (a one-time USB flash to change the partition table) and an authenticated `/firmware` upload endpoint, with an on-screen Allow/Deny prompt.
   - Setup and a `deskhub-flash` command use it when the board is reachable, and fall back to USB.
