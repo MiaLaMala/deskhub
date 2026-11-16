@@ -11,6 +11,7 @@ The board runs custom firmware (ESP-IDF + LVGL). A small Python app on your Wind
 | ![PC stats](docs/screenshots/stats.png) | ![Claude Code usage](docs/screenshots/ai.png) |
 | ![Calendar](docs/screenshots/calendar.png) | ![Now playing](docs/screenshots/media.png) |
 | ![3D printer](docs/screenshots/printer.png) | ![Shortcuts](docs/screenshots/shortcuts.png) |
+| ![Timer](docs/screenshots/timer.png) | ![Waiting alert](docs/screenshots/alert.png) |
 
 ## Features
 
@@ -18,12 +19,13 @@ The board runs custom firmware (ESP-IDF + LVGL). A small Python app on your Wind
 | --- | --- | --- |
 | Home | Clock, date, Claude limits, next events, weather, now playing, CPU/GPU/RAM | everything below |
 | PC stats | CPU, GPU, RAM and VRAM gauges, GPU temperature, a one-minute history chart, network and disk | companion |
-| AI | Claude Code 5-hour and weekly limits with reset times, tokens today, a 7-day chart, usage per model | companion, from Claude Code |
+| AI | Claude Code or Codex 5-hour and weekly limits with reset times, tokens today, a 7-day chart, usage per model | companion, from Claude Code or Codex |
 | Calendar | Up to 16 upcoming events in the next 7 days, grouped by day | companion, from Google, Apple iCloud, Outlook or any ICS feed |
 | Weather | Current conditions, the next 24 hours and 6 days | the board itself, from [Open-Meteo](https://open-meteo.com) |
 | Media | Whatever Windows lists as playing (Spotify, YouTube in a browser, VLC…) with the cover, a seek bar and controls | companion |
 | Shortcuts | Up to 16 buttons: key combos, apps, folders, URLs, volume, media, lock PC | companion |
 | 3D printer | Bambu Lab print state, progress, temperatures and AMS colours for up to 4 printers (optional) | companion, over MQTT |
+| Timer | Countdown with presets from 1 to 45 minutes, pause and reset, and a full-screen "Time's up" card. The time left shows on its sidebar tab | the board itself, works without the PC |
 
 ## What you need
 

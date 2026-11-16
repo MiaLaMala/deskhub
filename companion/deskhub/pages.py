@@ -1,9 +1,10 @@
 """Which board pages are shown. Home is always on."""
 
-ALL_PAGES = ["home", "stats", "ai", "calendar", "weather", "media", "printer", "shortcuts"]
+ALL_PAGES = ["home", "stats", "ai", "calendar", "weather", "media", "printer", "shortcuts", "timer"]
 PAGE_LABELS = {
-    "stats": "PC stats", "ai": "Claude Code usage", "calendar": "Calendar", "weather": "Weather",
+    "stats": "PC stats", "ai": "AI agent usage", "calendar": "Calendar", "weather": "Weather",
     "media": "Now playing", "printer": "3D printer", "shortcuts": "Shortcuts",
+    "timer": "Timer",
 }
 
 

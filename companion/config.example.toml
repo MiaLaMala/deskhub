@@ -144,7 +144,7 @@ target = ""
 [pages]
 # Home is always shown. Remove names to hide pages. Without this block every page
 # except "printer" is shown; "printer" is added by itself once a printer is configured.
-enabled = ["home", "stats", "ai", "calendar", "weather", "media", "printer", "shortcuts"]
+enabled = ["home", "stats", "ai", "calendar", "weather", "media", "printer", "shortcuts", "timer"]
 
 # Bambu Lab 3D printers (A1, A1 mini, P1P, P1S, X1C, X1E, H2D). Easiest: run
 # `uv run deskhub-printers`. Access codes and cloud tokens live in the OS credential

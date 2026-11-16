@@ -4,10 +4,6 @@ Ideas for Desk Hub, roughly in order of value. Each item notes how it would work
 
 ## Usefulness
 
-- [ ] **Timer / Pomodoro page.** It runs on the board alone and works without the PC.
-  - Quick presets (5, 15, 25 minutes), a big countdown ring, pause and reset, and a full-screen "done" alert.
-  - It could also show on Home as a small widget while running.
-
 - [ ] **Shortcut tiles that light up.** Toggle tiles reflect the real state.
   - The companion reads mic mute and speaker mute from Windows every second (pycaw) and sends which tiles are "on".
   - The board highlights those tiles.
@@ -83,3 +79,4 @@ Ideas for Desk Hub, roughly in order of value. Each item notes how it would work
 - [x] One-command setup (`deskhub-setup`), public README with screenshots, MIT license
 - [x] Claude Code "waiting for you" alert: full-screen on the board, with Show on PC and Not now
 - [x] Codex usage on the AI page and Home, with the agent picked automatically and its own logo
+- [x] Timer page: presets, countdown ring, pause and reset, a "Time's up" card, and the time left on its sidebar tab

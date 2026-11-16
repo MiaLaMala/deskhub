@@ -66,3 +66,5 @@ static const hub_icon_t HUB_ICONS[] = {
     {"headphones", 0xf01f}, {"videocam", 0xe04b}, {"movie", 0xe02c},
     {"developer_board", 0xe30d}, {"lan", 0xeb2f}, {"shuffle", 0xe043}, {"repeat", 0xe040},
 };
+#define ICON_TIMER             "\xEE\x90\xA5" /* e425 */
+#define ICON_REPLAY            "\xEE\x81\x82" /* e042 */

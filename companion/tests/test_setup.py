@@ -47,7 +47,7 @@ conf = root / "config.toml"
 shutil.copy(pathlib.Path(__file__).parent.parent / "config.example.toml", conf)
 # Wi-Fi, city, pick, F, 24h, calendars, printers, 7 pages (hide Weather), top bar, home left+right, live limits, flash
 answers = iter(["", "Charlotte, NC", "1", "", "", "n", "n",
-                "", "", "", "n", "", "", "", "y", "clock, events", "media, bogus", "printer", "y", "codex", "n"])
+                "", "", "", "n", "", "", "", "", "y", "clock, events", "media, bogus", "printer", "y", "codex", "n"])
 builtins.input = lambda prompt="": next(answers)
 getpass.getpass = lambda prompt="": ""
 sys.argv = ["deskhub-setup", "--config", str(conf), "--firmware", str(fw)]
@@ -67,7 +67,7 @@ check("live_limits = true" in conf.read_text(), "live limits turned on")
 check('agent = "codex"' in conf.read_text(), "AI agent saved")
 import tomllib
 pages = tomllib.loads(conf.read_text())["pages"]["enabled"]
-check(pages == ["home", "stats", "ai", "calendar", "media", "printer", "shortcuts"], f"pages saved: {pages}")
+check(pages == ["home", "stats", "ai", "calendar", "media", "printer", "shortcuts", "timer"], f"pages saved: {pages}")
 check("# Home is always shown" in conf.read_text(), "pages comment kept")
 shutil.rmtree(root)
 

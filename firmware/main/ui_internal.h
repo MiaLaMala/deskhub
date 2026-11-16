@@ -62,7 +62,7 @@ const char *ui_icon_by_name(const char *name, char out[5]);
 bool ui_media_has_art(void);
 void ui_show_page(int page);
 
-enum { PAGE_HOME, PAGE_STATS, PAGE_CLAUDE, PAGE_CALENDAR, PAGE_WEATHER, PAGE_MEDIA, PAGE_PRINTER, PAGE_SHORTCUTS,
+enum { PAGE_HOME, PAGE_STATS, PAGE_CLAUDE, PAGE_CALENDAR, PAGE_WEATHER, PAGE_MEDIA, PAGE_PRINTER, PAGE_SHORTCUTS, PAGE_TIMER,
        PAGE_COUNT };
 
 // Pages shown in the rail (bit per PAGE_*). Home is always on.
@@ -118,3 +118,8 @@ void shortcuts_set_online(bool online);
 
 // Send a media command ("toggle", "next", "prev", "seek") to the PC.
 void ui_send_media(const char *cmd, int value);
+
+void timer_page_create(lv_obj_t *page);
+lv_font_t *ui_timer_font(void);
+// Show text (e.g. a countdown) on a rail tab instead of its icon; NULL restores the icon.
+void ui_rail_set_text(int page, const char *text);

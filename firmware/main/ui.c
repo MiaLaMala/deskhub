@@ -70,6 +70,14 @@ lv_font_t *ui_header_font(void)
     return s_font ? s_font : (lv_font_t *)&lv_font_montserrat_32;
 }
 
+// The clock's TTF at 72 px, for the timer's countdown. Created once on first use.
+lv_font_t *ui_timer_font(void)
+{
+    static lv_font_t *s_font;
+    if (!s_font) s_font = lv_tiny_ttf_create_data(clock_ttf_start, clock_ttf_end - clock_ttf_start, 72);
+    return s_font ? s_font : (lv_font_t *)&lv_font_montserrat_48;
+}
+
 // Same TTF as the clock, for the date line (its own cached size).
 lv_font_t *ui_date_font(int px, lv_font_t **old)
 {
@@ -344,12 +352,23 @@ void ui_set_printers(const hub_printer_t *p, int n)
     home_refresh_printer();
 }
 
+static const char *const s_glyphs[PAGE_COUNT] = {
+    ICON_HOME, ICON_INSIGHTS, ICON_AUTO_AWESOME, ICON_EVENT, ICON_WB_SUNNY, ICON_MUSIC_NOTE,
+    ICON_VIEW_IN_AR, ICON_GRID_VIEW, ICON_TIMER,
+};
+
+void ui_rail_set_text(int page, const char *text)
+{
+    if (page == PAGE_CLAUDE || page < 0 || page >= PAGE_COUNT || !s_nav[page]) return;
+    lv_obj_t *l = lv_obj_get_child(s_nav[page], 0);
+    const lv_font_t *font = text ? &lv_font_montserrat_16 : g_icon_32;
+    if (!text) text = s_glyphs[page];
+    if (lv_obj_get_style_text_font(l, 0) != font) lv_obj_set_style_text_font(l, font, 0);
+    if (strcmp(lv_label_get_text(l), text) != 0) lv_label_set_text(l, text);
+}
+
 static void build_rail(lv_obj_t *scr)
 {
-    static const char *glyphs[PAGE_COUNT] = {
-        ICON_HOME, ICON_INSIGHTS, ICON_AUTO_AWESOME, ICON_EVENT, ICON_WB_SUNNY, ICON_MUSIC_NOTE,
-        ICON_VIEW_IN_AR, ICON_GRID_VIEW,
-    };
     lv_obj_t *rail = lv_obj_create(scr);
     lv_obj_remove_style_all(rail);
     lv_obj_set_size(rail, RAIL_W, PAGE_H);
@@ -361,13 +380,13 @@ static void build_rail(lv_obj_t *scr)
     lv_obj_set_style_pad_ver(rail, 10, 0);
     lv_obj_set_flex_flow(rail, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(rail, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_set_style_pad_row(rail, 4, 0);
+    lv_obj_set_style_pad_row(rail, 3, 0);
     lv_obj_remove_flag(rail, LV_OBJ_FLAG_SCROLLABLE);
 
     for (int i = 0; i < PAGE_COUNT; i++) {
         lv_obj_t *b = lv_button_create(rail);
         lv_obj_remove_style_all(b);
-        lv_obj_set_size(b, 60, 44);  // eight tabs plus status icons fit in 480 px
+        lv_obj_set_size(b, 60, 42);  // nine tabs plus status icons fit in 480 px
         lv_obj_set_style_radius(b, 18, 0);
         // Selected page: an indigo-to-violet pill with a soft edge.
         lv_obj_set_style_bg_color(b, lv_color_hex(COL_ACCENT), 0);
@@ -385,7 +404,7 @@ static void build_rail(lv_obj_t *scr)
             lv_image_set_src(l, ui_agent_logo(32));
             s_nav_logo = l;
         } else {
-            l = ui_label(b, g_icon_32, COL_DIM, glyphs[i]);
+            l = ui_label(b, g_icon_32, COL_DIM, s_glyphs[i]);
         }
         lv_obj_center(l);
         lv_obj_add_event_cb(b, nav_cb, LV_EVENT_CLICKED, (void *)(intptr_t)i);
@@ -525,7 +544,7 @@ void ui_init(void)
 
     void (*creators[PAGE_COUNT])(lv_obj_t *) = {
         home_create, stats_create, claude_create, calendar_create, weather_page_create, media_create,
-        printer_create, shortcuts_create,
+        printer_create, shortcuts_create, timer_page_create,
     };
     for (int i = 0; i < PAGE_COUNT; i++) {
         lv_obj_t *p = lv_obj_create(scr);

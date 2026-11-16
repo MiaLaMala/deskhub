@@ -250,7 +250,7 @@ static void on_printer(const cJSON *m)
 // Which pages to show: {"type":"layout","pages":["home","stats",...]}.
 static void on_layout(const cJSON *m)
 {
-    static const char *names[] = {"home", "stats", "ai", "calendar", "weather", "media", "printer", "shortcuts"};
+    static const char *names[] = {"home", "stats", "ai", "calendar", "weather", "media", "printer", "shortcuts", "timer"};
     uint32_t mask = 1; // Home is always shown
     const cJSON *it;
     cJSON_ArrayForEach(it, cJSON_GetObjectItemCaseSensitive(m, "pages")) {
