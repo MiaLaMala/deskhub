@@ -429,7 +429,10 @@ static void build_rail(lv_obj_t *scr)
     lv_obj_set_style_pad_row(rail, RAIL_GAP, 0);
     lv_obj_remove_flag(rail, LV_OBJ_FLAG_SCROLLABLE);
 
-    for (int i = 0; i < PAGE_COUNT; i++) {
+    // Tabs top to bottom: every page in PAGE_* order, except Shortcuts, which
+    // always sits last, just above the status icons.
+    for (int n = 0; n < PAGE_COUNT; n++) {
+        int i = n < PAGE_SHORTCUTS ? n : n == PAGE_COUNT - 1 ? PAGE_SHORTCUTS : n + 1;
         lv_obj_t *b = lv_button_create(rail);
         lv_obj_remove_style_all(b);
         lv_obj_set_size(b, 60, RAIL_TAB_MAX);  // height set by apply_layout()
