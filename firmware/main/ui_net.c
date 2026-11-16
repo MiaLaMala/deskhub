@@ -10,9 +10,11 @@
 #include "ui_internal.h"
 
 #define CARD_W ((CONTENT_W - 2 * 12) / 3)
-#define TOP_H 150
-#define CHART_H 130
-#define BOT_H (CONTENT_H - TOP_H - CHART_H - 24)
+// Sizes for the Internet view inside the Stats page (388 px tall).
+#define VIEW_H 388
+#define TOP_H 130
+#define CHART_H 110
+#define BOT_H (VIEW_H - TOP_H - CHART_H - 24)
 
 hub_net_t g_net;
 
@@ -77,21 +79,24 @@ static lv_obj_t *line(lv_obj_t *parent, const lv_font_t *font, uint32_t color, i
 void net_page_create(lv_obj_t *page)
 {
     lv_obj_t *c = top_card(page, 0, "LATENCY");
-    s_lat = line(c, &lv_font_montserrat_48, COL_TEXT, 26);
-    s_lat_sub = line(c, &lv_font_montserrat_14, COL_MUTED, 92);
+    s_lat = line(c, &lv_font_montserrat_48, COL_TEXT, 20);
+    s_lat_sub = line(c, &lv_font_montserrat_14, COL_MUTED, 78);
 
     c = top_card(page, 1, "STATUS");
-    s_status = line(c, &lv_font_montserrat_32, COL_GOOD, 30);
-    s_up = line(c, &lv_font_montserrat_16, COL_TEXT, 74);
-    s_drop = line(c, &lv_font_montserrat_14, COL_MUTED, 98);
+    s_status = line(c, &lv_font_montserrat_32, COL_GOOD, 22);
+    s_up = line(c, &lv_font_montserrat_16, COL_TEXT, 60);
+    s_drop = line(c, &lv_font_montserrat_14, COL_MUTED, 80);
 
     c = top_card(page, 2, "DATA USED");
-    lv_obj_t *l = line(c, &lv_font_montserrat_14, COL_MUTED, 28);
+    // Label on the left, amount on the right, one row each.
+    lv_obj_t *l = line(c, &lv_font_montserrat_16, COL_MUTED, 34);
     lv_label_set_text(l, "Today");
-    s_today = line(c, &lv_font_montserrat_24, COL_TEXT, 44);
-    l = line(c, &lv_font_montserrat_14, COL_MUTED, 78);
+    s_today = line(c, &lv_font_montserrat_24, COL_TEXT, 28);
+    lv_obj_set_style_text_align(s_today, LV_TEXT_ALIGN_RIGHT, 0);
+    l = line(c, &lv_font_montserrat_16, COL_MUTED, 72);
     lv_label_set_text(l, "This month");
-    s_month = line(c, &lv_font_montserrat_24, COL_TEXT, 94);
+    s_month = line(c, &lv_font_montserrat_24, COL_TEXT, 66);
+    lv_obj_set_style_text_align(s_month, LV_TEXT_ALIGN_RIGHT, 0);
 
     // Latency over the last two minutes.
     lv_obj_t *ch = ui_card(page);
@@ -122,15 +127,15 @@ void net_page_create(lv_obj_t *page)
     cap = ui_caption(b, "SPEED TEST");
     lv_obj_set_pos(cap, 0, 0);
     lv_obj_t *dl = ui_label(b, g_icon_32, COL_CYAN, ICON_ARROW_DOWNWARD);
-    lv_obj_set_pos(dl, 0, 30);
+    lv_obj_set_pos(dl, 0, 26);
     s_down = ui_label(b, &lv_font_montserrat_32, COL_TEXT, "");
-    lv_obj_set_pos(s_down, 36, 28);
+    lv_obj_set_pos(s_down, 36, 24);
     lv_obj_t *ul = ui_label(b, g_icon_32, COL_ACCENT2, ICON_ARROW_UPWARD);
-    lv_obj_set_pos(ul, 230, 30);
+    lv_obj_set_pos(ul, 230, 26);
     s_upl = ui_label(b, &lv_font_montserrat_32, COL_TEXT, "");
-    lv_obj_set_pos(s_upl, 266, 28);
+    lv_obj_set_pos(s_upl, 266, 24);
     s_sp_sub = ui_label(b, &lv_font_montserrat_14, COL_MUTED, "");
-    lv_obj_set_pos(s_sp_sub, 0, 72);
+    lv_obj_set_pos(s_sp_sub, 0, 66);
     s_now = ui_label(b, &lv_font_montserrat_14, COL_DIM, "");
     lv_obj_align(s_now, LV_ALIGN_TOP_RIGHT, 0, 0);
 
@@ -148,8 +153,8 @@ void net_page_create(lv_obj_t *page)
     s_run_lbl = ui_label(s_run, &lv_font_montserrat_16, COL_BG, "Run test");
     lv_obj_center(s_run_lbl);
 
-    s_offline = ui_label(page, &lv_font_montserrat_16, COL_DIM, "Start the companion app on your PC");
-    lv_obj_align(s_offline, LV_ALIGN_BOTTOM_MID, 0, -6);
+    s_offline = ui_label(ch, &lv_font_montserrat_16, COL_DIM, "Start the companion app on your PC");
+    lv_obj_align(s_offline, LV_ALIGN_CENTER, 0, 10);
     net_refresh();
 }
 

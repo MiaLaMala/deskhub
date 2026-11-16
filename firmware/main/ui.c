@@ -278,6 +278,12 @@ void ui_send_media(const char *cmd, int value)
 
 void ui_show_page(int page)
 {
+    // Internet is a view inside the Stats page, not a page of its own.
+    if (page == PAGE_NETWORK) {
+        if (!(g_pages_mask & (1u << PAGE_NETWORK))) return;
+        stats_set_view(1);
+        page = PAGE_STATS;
+    }
     if (page < 0 || page >= PAGE_COUNT || page == s_page) return;
     if (!(g_pages_mask & (1u << page))) page = PAGE_HOME;  // turned off in config
     // Instant switch: hiding/showing redraws only the page area once.
@@ -305,7 +311,7 @@ static void apply_layout(void)
 {
     int shown = 0;
     for (int i = 0; i < PAGE_COUNT; i++) {
-        bool on = g_pages_mask & (1u << i);
+        bool on = (g_pages_mask & (1u << i)) && i != PAGE_NETWORK;   // Internet lives in Stats
         if (on) lv_obj_remove_flag(s_nav[i], LV_OBJ_FLAG_HIDDEN);
         else lv_obj_add_flag(s_nav[i], LV_OBJ_FLAG_HIDDEN);
         shown += on;
@@ -317,6 +323,7 @@ static void apply_layout(void)
     int tab_h = shown ? avail / shown : RAIL_TAB_MAX;
     if (tab_h > RAIL_TAB_MAX) tab_h = RAIL_TAB_MAX;
     for (int i = 0; i < PAGE_COUNT; i++) lv_obj_set_height(s_nav[i], tab_h);
+    stats_set_net_enabled(g_pages_mask & (1u << PAGE_NETWORK));
     home_apply_layout();
     if (s_page >= 0 && !(g_pages_mask & (1u << s_page))) {
         int old = s_page;
@@ -553,6 +560,11 @@ static void tick_cb(lv_timer_t *t)
 
 // ---- public API ------------------------------------------------------------
 
+static void page_none(lv_obj_t *page)
+{
+    (void)page;   // the Internet view is built by stats_create()
+}
+
 void ui_init(void)
 {
     size_t icon_len = icons_ttf_end - icons_ttf_start;
@@ -585,7 +597,7 @@ void ui_init(void)
 
     void (*creators[PAGE_COUNT])(lv_obj_t *) = {
         home_create, stats_create, claude_create, calendar_create, weather_page_create, media_create,
-        printer_create, shortcuts_create, timer_page_create, games_page_create, net_page_create,
+        printer_create, shortcuts_create, timer_page_create, games_page_create, page_none,
     };
     for (int i = 0; i < PAGE_COUNT; i++) {
         lv_obj_t *p = lv_obj_create(scr);

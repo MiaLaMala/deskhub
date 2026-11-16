@@ -27,7 +27,7 @@ The board runs custom firmware (ESP-IDF + LVGL). A small Python app on your Wind
 | Shortcuts | Up to 16 buttons: key combos, apps, folders, URLs, volume, media, lock PC | companion |
 | 3D printer | Bambu Lab print state, progress, temperatures and AMS colours for up to 4 printers (optional) | companion, over MQTT |
 | Games | The Steam game you're playing with its cover and session time, your five most recent games, and a tap to launch one (optional) | companion, from Steam's local files |
-| Internet | Online status, latency, jitter and packet loss with a one-minute chart, uptime and the last drop, data used today and this month, and an on-demand speed test | companion |
+| Stats: Internet view | Online status, latency, jitter and packet loss with a one-minute chart, uptime and the last drop, data used today and this month, and an on-demand speed test | companion |
 | Timer | Countdown with presets from 1 to 45 minutes, pause and reset, and a full-screen "Time's up" card. The time left shows on its sidebar tab | the board itself, works without the PC |
 
 ## What you need
@@ -194,7 +194,7 @@ process = ["java.exe", "javaw.exe"]
 
 ## Internet
 
-The Internet page (and the `net` Home widget) shows how your connection is doing:
+The Stats page has two views, switched with **PC | Internet** at the top. The Internet view (and the `net` Home widget, which opens it) shows how your connection is doing. Turning off the `network` page in `[pages]` removes the Internet view and the switcher.
 
 - **Status, latency, jitter and loss.** The companion probes every 2 seconds and keeps the last 60 samples for the chart. Latency is the median of the last five; jitter is how much it varies between probes; loss is the share of failed probes. The latency is a TCP connect to `1.1.1.1:443` (falling back to `8.8.8.8:443`), not an ICMP ping, so it needs no special rights and can read a few milliseconds higher than `ping`. You count as online while at least one of the last three probes succeeded.
 - **Uptime and the last drop.** How long the connection has been up, and when it last went down and for how long.

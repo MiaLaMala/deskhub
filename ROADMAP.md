@@ -50,6 +50,12 @@ Ideas for Desk Hub, roughly in order of value. Each item notes how it would work
   - It creates the Startup-folder shortcut, and `--remove` undoes it.
   - Setup offers it as its last step.
 
+- [ ] **Configurator UI on the PC.** A settings window instead of editing `config.toml` and answering setup questions in a terminal.
+  - **Sections:** Wi-Fi and city, pages (toggles and order), a drag-and-drop Home layout with a live preview at 800 × 480, calendars, printers, shortcut tiles (icon picker, colour, action), custom games (pick from open windows), Claude/Codex options, internet, and Steam key.
+  - **How:** a small local web app served by the companion on `127.0.0.1` (no new install; opens in the default browser), editing `config.toml` with tomlkit so comments survive. Secrets still go to the Windows credential store.
+  - **Apply live:** saving pushes layout, Home and tile changes to the board at once; settings that need firmware (Wi-Fi, city, units) offer **Build and flash**.
+  - Opened from the tray icon's **Edit config** and by `uv run deskhub-config`.
+
 - [ ] **Tray icon for the companion.** Show the companion running in the Windows taskbar's notification area instead of a terminal window, so it can run hidden and still be easy to control.
   - The icon shows whether the board is connected (for example, coloured when connected and grey when it isn't), with a tooltip naming the board and its IP.
   - Right-click menu: **Edit config** (opens `config.toml` in the default editor), **Run setup**, **Restart** (reloads config.toml and reconnects), **Open log**, and **Quit**.

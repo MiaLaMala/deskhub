@@ -5,7 +5,7 @@ ALL_PAGES = ["home", "stats", "ai", "calendar", "weather", "media", "printer", "
 PAGE_LABELS = {
     "stats": "PC stats", "ai": "AI agent usage", "calendar": "Calendar", "weather": "Weather",
     "media": "Now playing", "printer": "3D printer", "shortcuts": "Shortcuts",
-    "timer": "Timer", "games": "Games", "network": "Internet",
+    "timer": "Timer", "games": "Games", "network": "Internet (a view on the Stats page)",
 }
 
 

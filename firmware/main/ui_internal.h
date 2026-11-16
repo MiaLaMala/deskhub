@@ -151,3 +151,5 @@ void ui_fmt_bytes(char *buf, size_t n, double bytes);   // "3.2 GB"
 void ui_fmt_ago(char *buf, size_t n, time_t t);         // "5m ago", "2h ago"
 void home_refresh_net(void);
 void net_refresh_live(void);   // the "Now" line, on each stats message
+void stats_set_view(int view);          // 0 = PC, 1 = Internet
+void stats_set_net_enabled(bool on);
