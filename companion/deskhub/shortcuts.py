@@ -10,7 +10,26 @@ from .text import ascii_fold
 log = logging.getLogger(__name__)
 
 MAX_TILES = 16
-ACTIONS = {"keys", "run", "open", "media", "volume", "lock"}
+ACTIONS = {"keys", "run", "open", "media", "volume", "lock", "mic"}
+# Toggle tiles that light up on the board while their Windows state is on.
+STATES = {"mic_mute", "speaker_mute"}
+
+
+def tile_state(t: dict) -> str:
+    """Which Windows state a tile shows: set with `state`, else guessed from what
+    the tile does (the system mute tile, the mic action, a microphone icon).
+    `state = ""` turns it off."""
+    if "state" in t:
+        st = str(t["state"])
+        if st and st not in STATES:
+            log.warning("tile %r: unknown state %r", t.get("label"), st)
+        return st if st in STATES else ""
+    action, target, icon = t.get("action", ""), str(t.get("target", "")), str(t.get("icon", ""))
+    if action == "volume" and target == "mute":
+        return "speaker_mute"
+    if action == "mic" or icon in ("mic", "mic_off", "mic_none"):
+        return "mic_mute"
+    return ""
 
 
 def load_tiles(cfg: dict) -> list[dict]:
@@ -25,6 +44,7 @@ def load_tiles(cfg: dict) -> list[dict]:
             "color": t.get("color", "#2b2f3a"),
             "action": action,
             "target": str(t.get("target", "")),
+            "state": tile_state(t),
         })
     return tiles
 
@@ -32,6 +52,12 @@ def load_tiles(cfg: dict) -> list[dict]:
 def hub_view(tiles: list[dict]) -> dict:
     return {"type": "tiles",
             "tiles": [{k: t[k] for k in ("label", "icon", "color")} for t in tiles]}
+
+
+def lit_message(tiles: list[dict], states: dict[str, bool]) -> dict:
+    """Which tiles are on, for the board: {"type": "tile_state", "on": [index, ...]}."""
+    return {"type": "tile_state",
+            "on": [i for i, t in enumerate(tiles) if t.get("state") and states.get(t["state"])]}
 
 
 def _keyboard():
@@ -82,6 +108,8 @@ def run_tile(tile: dict, media=None):
     elif action == "volume":
         _tap({"up": "media_volume_up", "down": "media_volume_down",
               "mute": "media_volume_mute"}[target])
+    elif action == "mic":
+        raise RuntimeError("mic tiles run on the audio thread")  # see Companion.handle
     elif action == "lock":
         ctypes.windll.user32.LockWorkStation()
     elif action == "media" and media is not None:

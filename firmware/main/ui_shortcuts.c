@@ -11,6 +11,27 @@
 
 static lv_obj_t *s_grid, *s_empty;
 static int s_count;
+static uint32_t s_lit;                       // tiles that are on (bit per tile)
+static lv_obj_t *s_btn[HUB_MAX_TILES], *s_icon[HUB_MAX_TILES];
+static lv_color_t s_tint[HUB_MAX_TILES];
+
+// A lit tile is filled with its colour and gets a bright edge and a white icon.
+static void apply_lit(void)
+{
+    for (int i = 0; i < s_count; i++) {
+        bool on = s_lit & (1u << i);
+        if (on) lv_obj_add_state(s_btn[i], LV_STATE_CHECKED);
+        else lv_obj_remove_state(s_btn[i], LV_STATE_CHECKED);
+        lv_obj_set_style_text_color(s_icon[i], on ? lv_color_white() : lv_color_lighten(s_tint[i], 140), 0);
+    }
+}
+
+void shortcuts_set_lit(uint32_t mask)
+{
+    if (mask == s_lit) return;
+    s_lit = mask;
+    apply_lit();
+}
 
 static void tile_cb(lv_event_t *e)
 {
@@ -75,6 +96,11 @@ void shortcuts_refresh(const hub_tile_t *tiles, int n)
         lv_obj_set_style_border_opa(b, LV_OPA_50, 0);
         lv_obj_set_style_bg_color(b, tint, LV_STATE_PRESSED);
         lv_obj_set_style_bg_grad_color(b, lv_color_mix(tint, lv_color_hex(COL_CARD), 160), LV_STATE_PRESSED);
+        lv_obj_set_style_bg_color(b, lv_color_lighten(tint, 30), LV_STATE_CHECKED);
+        lv_obj_set_style_bg_grad_color(b, lv_color_darken(tint, 60), LV_STATE_CHECKED);
+        lv_obj_set_style_border_color(b, lv_color_lighten(tint, 150), LV_STATE_CHECKED);
+        lv_obj_set_style_border_width(b, 2, LV_STATE_CHECKED);
+        lv_obj_set_style_border_opa(b, LV_OPA_COVER, LV_STATE_CHECKED);
         lv_obj_set_style_opa(b, LV_OPA_40, LV_STATE_DISABLED);
         lv_obj_set_style_transform_scale(b, 240, LV_STATE_PRESSED);
         lv_obj_set_style_transform_pivot_x(b, tw / 2, 0);
@@ -91,7 +117,11 @@ void shortcuts_refresh(const hub_tile_t *tiles, int n)
         lv_obj_set_style_text_align(lb, LV_TEXT_ALIGN_CENTER, 0);
         lv_obj_align(lb, LV_ALIGN_BOTTOM_MID, 0, -14);
         if (!g_pc_online) lv_obj_add_state(b, LV_STATE_DISABLED);
+        s_btn[i] = b;
+        s_icon[i] = ic;
+        s_tint[i] = tint;
     }
+    apply_lit();
 }
 
 void shortcuts_set_online(bool online)

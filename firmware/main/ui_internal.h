@@ -130,3 +130,4 @@ lv_obj_t *claude_history_card(void);
 // A small coloured dot on a rail tab; color 0 removes it.
 void ui_rail_set_badge(int page, uint32_t color);
 void ui_alert_relayout(void);   // after Home re-lays out its widgets
+void shortcuts_set_lit(uint32_t mask);

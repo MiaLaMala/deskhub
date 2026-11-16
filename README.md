@@ -275,8 +275,7 @@ Each `[[tiles]]` block in `companion/config.toml` is one button, in order. Up to
 label = "Mute mic"
 icon = "mic_off"
 color = "#b4413c"
-action = "keys"
-target = "ctrl+shift+m"
+action = "mic"
 ```
 
 | `action` | `target` |
@@ -287,6 +286,9 @@ target = "ctrl+shift+m"
 | `media` | `toggle`, `next` or `prev` |
 | `volume` | `up`, `down` or `mute` |
 | `lock` | locks the PC; leave `target` empty |
+| `mic` | mutes or unmutes your default microphone in Windows; leave `target` empty |
+
+Toggle tiles light up on the board while they're on: the mic tile while your microphone is muted, and the `volume` `mute` tile while your speakers are muted. The companion reads both from Windows every second, so they stay right when you mute from the taskbar or a headset button. A tile with a mic icon lights up for the microphone too, so an app's own mute hotkey (like `keys` `ctrl+shift+m`) only matches if that app also mutes the mic in Windows; use `action = "mic"` to be sure. Set `state = "mic_mute"` or `"speaker_mute"` to choose, or `state = ""` to keep a tile unlit.
 
 `config.example.toml` lists every icon name. Restart the companion after editing.
 

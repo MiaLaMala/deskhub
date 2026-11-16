@@ -286,6 +286,19 @@ static void on_home(const cJSON *m)
     display_unlock();
 }
 
+// Toggle tiles that are on: {"type":"tile_state","on":[0,1]}.
+static void on_tile_state(const cJSON *m)
+{
+    uint32_t mask = 0;
+    const cJSON *it;
+    cJSON_ArrayForEach(it, cJSON_GetObjectItemCaseSensitive(m, "on")) {
+        if (cJSON_IsNumber(it) && it->valueint >= 0 && it->valueint < 32) mask |= 1u << it->valueint;
+    }
+    display_lock();
+    ui_set_tile_state(mask);
+    display_unlock();
+}
+
 // Agent waiting for the user: {"type":"alert","id":..,"kind":..,"title":..} or {"type":"alert","clear":true}.
 static void on_alert(const cJSON *m)
 {
@@ -347,6 +360,7 @@ static void on_text(int fd, char *text)
         else if (strcmp(type, "layout") == 0) on_layout(m);
         else if (strcmp(type, "home") == 0) on_home(m);
         else if (strcmp(type, "alert") == 0) on_alert(m);
+        else if (strcmp(type, "tile_state") == 0) on_tile_state(m);
         else if (strcmp(type, "ping") == 0) { /* keeps the link marked online */ }
         else ESP_LOGD(TAG, "unknown type %s", type);
     }

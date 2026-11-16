@@ -79,6 +79,11 @@ idle_alert_seconds = 30
 #   media  - "toggle", "next", "prev"
 #   volume - "up", "down", "mute"
 #   lock   - lock the PC
+#   mic    - mute or unmute the default microphone in Windows (no target)
+#
+# state (optional): light the tile up on the board while it is on. "mic_mute" or
+#   "speaker_mute". Guessed when left out: the volume "mute" tile shows speaker_mute,
+#   mic tiles and tiles with a mic icon show mic_mute. state = "" turns it off.
 #
 # icon: one of home insights memory speed music_note event calendar_today wb_sunny cloud
 #   grid_view apps wifi computer desktop_windows play_arrow pause skip_next skip_previous
@@ -91,8 +96,8 @@ idle_alert_seconds = 30
 label = "Mute mic"
 icon = "mic_off"
 color = "#b4413c"
-action = "keys"
-target = "ctrl+shift+m"
+action = "mic"
+target = ""
 
 [[tiles]]
 label = "Mute sound"

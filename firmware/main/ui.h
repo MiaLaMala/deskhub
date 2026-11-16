@@ -20,3 +20,5 @@ void ui_set_layout(uint32_t pages_mask);
 void ui_set_home(const char *spec);
 // Full-screen "agent waiting" alert; a->active false hides it.
 void ui_set_alert(const hub_alert_t *a);
+// Shortcut tiles that are "on" (bit i = tile i), e.g. mic or speaker muted.
+void ui_set_tile_state(uint32_t on_mask);

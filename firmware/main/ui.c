@@ -645,6 +645,11 @@ void ui_set_tiles(const hub_tile_t *tiles, int n)
     shortcuts_refresh(tiles, n);
 }
 
+void ui_set_tile_state(uint32_t on_mask)
+{
+    shortcuts_set_lit(on_mask);
+}
+
 void ui_set_claude(const hub_claude_t *c)
 {
     bool agent_changed = strcmp(g_claude.provider, c->provider) != 0;

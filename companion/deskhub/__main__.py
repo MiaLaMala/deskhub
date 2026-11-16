@@ -9,9 +9,11 @@ import logging
 import pathlib
 import sys
 import tomllib
+from concurrent.futures import ThreadPoolExecutor
 
 import websockets
 
+from . import audio_state
 from .calendar_feed import fetch_events
 from .claude_alerts import ClaudeAlerts
 from .claude_usage import ClaudeUsage
@@ -19,7 +21,7 @@ from .codex_usage import CodexUsage, codex_home
 from .media import Media
 from .pages import enabled_pages, home_message, layout_message
 from .printer import PrinterService
-from .shortcuts import hub_view, load_tiles, run_tile
+from .shortcuts import hub_view, lit_message, load_tiles, run_tile
 from .stats import Stats
 
 log = logging.getLogger("deskhub")
@@ -64,6 +66,9 @@ class Companion:
         self.stats = Stats()
         self.media = Media()
         self.tiles = load_tiles(cfg)
+        # Core Audio calls need COM, so they run on one dedicated thread.
+        self.audio_pool = ThreadPoolExecutor(1, thread_name_prefix="audio", initializer=audio_state.com_thread)
+        self.lit_msg = None
         self.events: list[dict] = []
         live = None
         if cfg.get("claude", {}).get("live_limits"):
@@ -117,6 +122,23 @@ class Companion:
         claude = self.claude.snapshot() if self.claude else None
         codex = self.codex.snapshot() if self.codex else None
         return pick_ai(self.agent, claude, codex)
+
+    async def tiles_loop(self):
+        """Light up toggle tiles (mic and speaker mute) to match Windows."""
+        while True:
+            await self.refresh_lit()
+            await asyncio.sleep(1)
+
+    async def refresh_lit(self):
+        try:
+            states = await asyncio.get_running_loop().run_in_executor(self.audio_pool, audio_state.read_states)
+        except Exception as e:
+            log.warning("tile states failed: %s", e)
+            return
+        msg = lit_message(self.tiles, states)
+        if msg != self.lit_msg:
+            self.lit_msg = msg
+            await self.send(msg)
 
     async def claude_loop(self):
         while True:
@@ -181,6 +203,11 @@ class Companion:
             i = int(msg.get("id", -1))
             if 0 <= i < len(self.tiles):
                 try:
+                    if self.tiles[i]["action"] == "mic":
+                        log.info("shortcut %r: mic", self.tiles[i]["label"])
+                        await asyncio.get_running_loop().run_in_executor(self.audio_pool, audio_state.toggle_mic)
+                        await self.refresh_lit()
+                        return
                     pending = run_tile(self.tiles[i], self.media)
                     if pending is not None:
                         await pending
@@ -201,6 +228,8 @@ class Companion:
             await self.send(layout_message(self.cfg))
             await self.send(home_message(self.cfg))
             await self.send(hub_view(self.tiles))
+            if self.lit_msg:
+                await self.send(self.lit_msg)
             await self.send({"type": "events", "events": self.events})
             if self.claude_msg:
                 await self.send(self.claude_msg)
@@ -222,6 +251,8 @@ class Companion:
         asyncio.create_task(self.media_loop())
         asyncio.create_task(self.calendar_loop())
         asyncio.create_task(self.claude_loop())
+        if any(t["state"] for t in self.tiles):
+            asyncio.create_task(self.tiles_loop())
         if self.alerts:
             asyncio.create_task(self.alerts_loop())
         if "printer" in enabled_pages(self.cfg):

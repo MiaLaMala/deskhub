@@ -2,12 +2,6 @@
 
 Ideas for Desk Hub, roughly in order of value. Each item notes how it would work.
 
-## Usefulness
-
-- [ ] **Shortcut tiles that light up.** Toggle tiles reflect the real state.
-  - The companion reads mic mute and speaker mute from Windows every second (pycaw) and sends which tiles are "on".
-  - The board highlights those tiles.
-
 ## Integrations
 
 - [ ] **Steam: the current game and quick launch.**
@@ -80,3 +74,4 @@ Ideas for Desk Hub, roughly in order of value. Each item notes how it would work
 - [x] Claude Code "waiting for you" alert on the Home usage card and the AI page, with Show on PC and Not now
 - [x] Codex usage on the AI page and Home, with the agent picked automatically and its own logo
 - [x] Timer page: presets, countdown ring, pause and reset, a "Time's up" card, and the time left on its sidebar tab
+- [x] Shortcut tiles that light up for mic and speaker mute, plus a `mic` action that mutes the microphone in Windows
