@@ -1,7 +1,10 @@
-// Full-screen "an agent is waiting for you" alert, drawn on the top layer so it
-// covers whatever page is showing. The companion sends {"type":"alert",...} when
-// a Claude Code session needs a permission approval or a reply, and
+// "An agent is waiting for you" alert. The companion sends {"type":"alert",...}
+// when a Claude Code session needs a permission approval or a reply, and
 // {"type":"alert","clear":true} once nothing is waiting.
+//
+// It doesn't take over the screen: it covers the usage card on Home and the
+// history card on the AI page, and puts a dot on the AI tab so it can be seen
+// from any page.
 #include <stdio.h>
 #include <string.h>
 
@@ -11,8 +14,13 @@
 #include "ui.h"
 #include "ui_internal.h"
 
-static lv_obj_t *s_root, *s_logo, *s_kind, *s_title, *s_detail, *s_project;
+typedef struct {
+    lv_obj_t *root, *logo, *kind, *project, *title, *detail;
+} panel_t;
+
+static panel_t s_home, s_ai;
 static char s_id[64];
+static bool s_active;
 
 static void send_action(const char *action)
 {
@@ -23,8 +31,11 @@ static void send_action(const char *action)
 
 static void hide(void)
 {
-    if (s_root) lv_obj_add_flag(s_root, LV_OBJ_FLAG_HIDDEN);
+    s_active = false;
     s_id[0] = 0;
+    if (s_home.root) lv_obj_add_flag(s_home.root, LV_OBJ_FLAG_HIDDEN);
+    if (s_ai.root) lv_obj_add_flag(s_ai.root, LV_OBJ_FLAG_HIDDEN);
+    ui_rail_set_badge(PAGE_CLAUDE, 0);
 }
 
 static void on_focus(lv_event_t *e)
@@ -41,76 +52,167 @@ static void on_dismiss(lv_event_t *e)
     hide();
 }
 
-static lv_obj_t *pill_button(lv_obj_t *parent, const char *text, uint32_t bg, uint32_t fg, lv_event_cb_t cb)
+static lv_obj_t *round_btn(lv_obj_t *parent, int size, bool primary, const char *glyph, lv_event_cb_t cb)
+{
+    lv_obj_t *b = ui_round_button(parent, size, primary ? COL_ACCENT : COL_CARD_HI, g_icon_24, glyph, cb, NULL);
+    if (primary) lv_obj_set_style_text_color(lv_obj_get_child(b, 0), lv_color_hex(COL_BG), 0);
+    return b;
+}
+
+static lv_obj_t *pill(lv_obj_t *parent, const char *text, bool primary, lv_event_cb_t cb)
 {
     lv_obj_t *b = lv_button_create(parent);
     lv_obj_remove_style_all(b);
-    lv_obj_set_size(b, 236, 64);
-    lv_obj_set_style_radius(b, 32, 0);
-    lv_obj_set_style_bg_color(b, lv_color_hex(bg), 0);
+    lv_obj_set_size(b, 180, 52);
+    lv_obj_set_style_radius(b, 26, 0);
+    lv_obj_set_style_bg_color(b, lv_color_hex(primary ? COL_ACCENT : COL_CARD_HI), 0);
     lv_obj_set_style_bg_opa(b, LV_OPA_COVER, 0);
     lv_obj_set_style_border_color(b, lv_color_hex(COL_BORDER), 0);
-    lv_obj_set_style_border_width(b, bg == COL_CARD_HI ? 1 : 0, 0);
+    lv_obj_set_style_border_width(b, primary ? 0 : 1, 0);
     lv_obj_set_style_bg_color(b, lv_color_hex(COL_ACCENT2), LV_STATE_PRESSED);
-    lv_obj_set_ext_click_area(b, 8);
-    lv_obj_t *l = ui_label(b, &lv_font_montserrat_24, fg, text);
+    lv_obj_set_ext_click_area(b, 6);
+    lv_obj_t *l = ui_label(b, &lv_font_montserrat_20, primary ? COL_BG : COL_TEXT, text);
     lv_obj_center(l);
     lv_obj_add_event_cb(b, cb, LV_EVENT_CLICKED, NULL);
     return b;
 }
 
-static void build(void)
+// An opaque layer over the whole host card, border and padding included.
+static lv_obj_t *cover(lv_obj_t *host)
 {
-    // Opaque backdrop: cheaper to redraw than a translucent dim over the page.
-    s_root = lv_obj_create(lv_layer_top());
-    lv_obj_remove_style_all(s_root);
-    lv_obj_set_size(s_root, 800, 480);
-    lv_obj_set_style_bg_color(s_root, lv_color_hex(COL_BG), 0);
-    lv_obj_set_style_bg_opa(s_root, LV_OPA_COVER, 0);
-    lv_obj_add_flag(s_root, LV_OBJ_FLAG_CLICKABLE);   // swallow taps meant for the page below
-    lv_obj_remove_flag(s_root, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_t *p = lv_obj_create(host);
+    lv_obj_remove_style_all(p);
+    lv_obj_add_flag(p, LV_OBJ_FLAG_IGNORE_LAYOUT | LV_OBJ_FLAG_CLICKABLE);   // taps stop here
+    lv_obj_remove_flag(p, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_style_bg_color(p, lv_color_hex(COL_CARD), 0);
+    lv_obj_set_style_bg_opa(p, LV_OPA_COVER, 0);
+    lv_obj_set_style_radius(p, lv_obj_get_style_radius(host, 0), 0);
+    lv_obj_set_style_border_color(p, lv_color_hex(COL_WARN), 0);
+    lv_obj_set_style_border_width(p, 2, 0);
+    return p;
+}
 
-    lv_obj_t *card = ui_card(s_root);
-    lv_obj_set_size(card, 680, 400);
-    lv_obj_center(card);
-    lv_obj_set_style_border_color(card, lv_color_hex(COL_ACCENT), 0);
-    lv_obj_set_style_border_width(card, 2, 0);
-    lv_obj_set_style_pad_all(card, 32, 0);
+// Match the host's current size (Home widgets are re-laid out as columns change).
+static void fit(lv_obj_t *p)
+{
+    lv_obj_t *host = lv_obj_get_parent(p);
+    lv_obj_update_layout(host);
+    lv_obj_set_size(p, lv_obj_get_width(host), lv_obj_get_height(host));
+    lv_obj_set_pos(p, -lv_obj_get_style_pad_left(host, 0) - lv_obj_get_style_border_width(host, 0),
+                   -lv_obj_get_style_pad_top(host, 0) - lv_obj_get_style_border_width(host, 0));
+}
 
-    // Logo badge and a small "needs permission" / "waiting" caption.
-    lv_obj_t *badge = lv_obj_create(card);
+// Home: a compact strip in the usage card's place.
+static void build_home(lv_obj_t *host)
+{
+    panel_t *p = &s_home;
+    p->root = cover(host);
+    lv_obj_set_style_pad_hor(p->root, 14, 0);
+
+    lv_obj_t *badge = lv_obj_create(p->root);
     lv_obj_remove_style_all(badge);
-    lv_obj_set_size(badge, 64, 64);
+    lv_obj_set_size(badge, 40, 40);
+    lv_obj_set_style_radius(badge, 12, 0);
+    lv_obj_set_style_bg_color(badge, lv_color_hex(COL_CARD_HI), 0);
+    lv_obj_set_style_bg_opa(badge, LV_OPA_COVER, 0);
+    lv_obj_align(badge, LV_ALIGN_LEFT_MID, 0, 0);
+    p->logo = lv_image_create(badge);
+    lv_obj_center(p->logo);
+
+    p->kind = ui_label(p->root, &lv_font_montserrat_14, COL_WARN, "");
+    lv_label_set_long_mode(p->kind, LV_LABEL_LONG_DOT);
+    lv_obj_set_height(p->kind, 18);   // one line, cut with "..."
+    lv_obj_align(p->kind, LV_ALIGN_LEFT_MID, 52, -12);
+    p->detail = ui_label(p->root, &lv_font_montserrat_16, COL_TEXT, "");
+    lv_label_set_long_mode(p->detail, LV_LABEL_LONG_DOT);
+    lv_obj_set_height(p->detail, 20);
+    lv_obj_align(p->detail, LV_ALIGN_LEFT_MID, 52, 12);
+
+    lv_obj_t *show = round_btn(p->root, 40, true, ICON_OPEN_IN_NEW, on_focus);
+    lv_obj_align(show, LV_ALIGN_RIGHT_MID, 0, 0);
+    lv_obj_t *close = round_btn(p->root, 40, false, ICON_CLOSE, on_dismiss);
+    lv_obj_align(close, LV_ALIGN_RIGHT_MID, -48, 0);
+}
+
+// AI page: a roomier panel over the 7-day history card.
+static void build_ai(lv_obj_t *host)
+{
+    panel_t *p = &s_ai;
+    p->root = cover(host);
+    lv_obj_set_style_pad_all(p->root, 22, 0);
+
+    lv_obj_t *badge = lv_obj_create(p->root);
+    lv_obj_remove_style_all(badge);
+    lv_obj_set_size(badge, 56, 56);
     lv_obj_set_style_radius(badge, LV_RADIUS_CIRCLE, 0);
     lv_obj_set_style_bg_color(badge, lv_color_hex(COL_CARD_HI), 0);
     lv_obj_set_style_bg_opa(badge, LV_OPA_COVER, 0);
     lv_obj_align(badge, LV_ALIGN_TOP_LEFT, 0, 0);
-    s_logo = lv_image_create(badge);
-    lv_image_set_src(s_logo, ui_agent_logo(32));
-    lv_obj_center(s_logo);
+    p->logo = lv_image_create(badge);
+    lv_obj_center(p->logo);
 
-    s_kind = ui_caption(card, "");
-    lv_obj_align_to(s_kind, badge, LV_ALIGN_OUT_RIGHT_TOP, 20, 4);
-    s_project = ui_label(card, &lv_font_montserrat_20, COL_TEXT, "");
-    lv_obj_set_width(s_project, 520);
-    lv_label_set_long_mode(s_project, LV_LABEL_LONG_DOT);
-    lv_obj_align_to(s_project, badge, LV_ALIGN_OUT_RIGHT_BOTTOM, 20, -4);
+    p->kind = ui_caption(p->root, "");
+    lv_obj_align(p->kind, LV_ALIGN_TOP_LEFT, 72, 4);
+    p->project = ui_label(p->root, &lv_font_montserrat_16, COL_MUTED, "");
+    lv_label_set_long_mode(p->project, LV_LABEL_LONG_DOT);
+    lv_obj_align(p->project, LV_ALIGN_TOP_LEFT, 72, 28);
 
-    s_title = ui_label(card, &lv_font_montserrat_32, COL_TEXT, "");
-    lv_obj_set_width(s_title, 612);
-    lv_label_set_long_mode(s_title, LV_LABEL_LONG_DOT);
-    lv_obj_align(s_title, LV_ALIGN_TOP_LEFT, 0, 96);
+    p->title = ui_label(p->root, &lv_font_montserrat_24, COL_TEXT, "");
+    lv_label_set_long_mode(p->title, LV_LABEL_LONG_DOT);
+    lv_obj_align(p->title, LV_ALIGN_TOP_LEFT, 0, 68);
+    p->detail = ui_label(p->root, &lv_font_montserrat_16, COL_MUTED, "");
+    lv_label_set_long_mode(p->detail, LV_LABEL_LONG_DOT);
+    lv_obj_set_height(p->detail, 20);
+    lv_obj_align(p->detail, LV_ALIGN_TOP_LEFT, 0, 100);
 
-    s_detail = ui_label(card, &lv_font_montserrat_24, COL_MUTED, "");
-    lv_obj_set_width(s_detail, 612);
-    lv_obj_set_height(s_detail, 64);
-    lv_label_set_long_mode(s_detail, LV_LABEL_LONG_DOT);
-    lv_obj_align(s_detail, LV_ALIGN_TOP_LEFT, 0, 148);
-
-    lv_obj_t *show = pill_button(card, "Show on PC", COL_ACCENT, COL_BG, on_focus);
+    lv_obj_t *show = pill(p->root, "Show on PC", true, on_focus);
     lv_obj_align(show, LV_ALIGN_BOTTOM_RIGHT, 0, 0);
-    lv_obj_t *later = pill_button(card, "Not now", COL_CARD_HI, COL_TEXT, on_dismiss);
-    lv_obj_align(later, LV_ALIGN_BOTTOM_LEFT, 0, 0);
+    lv_obj_t *later = pill(p->root, "Not now", false, on_dismiss);
+    lv_obj_align(later, LV_ALIGN_BOTTOM_RIGHT, -192, 0);
+}
+
+// The Home strip has room for one short line: drop the leading "Claude " and
+// "Finished. " from the companion's text ("Claude wants to use Bash" -> "Wants to use Bash").
+static const char *short_detail(const hub_alert_t *a)
+{
+    static char buf[128];
+    const char *s = a->detail[0] ? a->detail : a->title;
+    if (strncmp(s, "Claude ", 7) == 0) s += 7;
+    if (strncmp(s, "Finished. ", 10) == 0) s += 10;
+    strlcpy(buf, s, sizeof(buf));
+    if (buf[0] >= 'a' && buf[0] <= 'z') buf[0] -= 'a' - 'A';
+    return buf;
+}
+
+static void fill(panel_t *p, const hub_alert_t *a, bool compact)
+{
+    if (!p->root) return;
+    bool perm = strcmp(a->kind, "permission") == 0;
+    const char *kind = perm ? "NEEDS PERMISSION" : "WAITING FOR YOU";
+    lv_image_set_src(p->logo, ui_agent_logo(compact ? 24 : 32));
+    fit(p->root);
+    int inner = lv_obj_get_width(p->root) - 2 * lv_obj_get_style_pad_left(p->root, 0) - 4;
+
+    if (compact) {
+        // The project on top; the colour (amber/periwinkle) says permission or reply.
+        lv_label_set_text(p->kind, a->project[0] ? a->project : kind);
+        lv_label_set_text(p->detail, short_detail(a));
+        int w = inner - 52 - 2 * 40 - 16;   // between the logo and the buttons
+        lv_obj_set_width(p->kind, w);
+        lv_obj_set_width(p->detail, w);
+    } else {
+        lv_label_set_text(p->kind, kind);
+        lv_label_set_text(p->project, a->project);
+        lv_label_set_text(p->title, a->title[0] ? a->title : "Claude is waiting for you");
+        lv_label_set_text(p->detail, a->detail);
+        lv_obj_set_width(p->project, inner - 72);
+        lv_obj_set_width(p->title, inner);
+        lv_obj_set_width(p->detail, inner);
+    }
+    lv_obj_set_style_text_color(p->kind, lv_color_hex(perm ? COL_WARN : COL_ACCENT), 0);
+    lv_obj_set_style_border_color(p->root, lv_color_hex(perm ? COL_WARN : COL_ACCENT), 0);
+    lv_obj_remove_flag(p->root, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_move_foreground(p->root);
 }
 
 void ui_set_alert(const hub_alert_t *a)
@@ -119,19 +221,21 @@ void ui_set_alert(const hub_alert_t *a)
         hide();
         return;
     }
-    if (!s_root) build();
-    bool is_new = strcmp(s_id, a->id) != 0 || lv_obj_has_flag(s_root, LV_OBJ_FLAG_HIDDEN);
+    if (!s_home.root && home_claude_card()) build_home(home_claude_card());
+    if (!s_ai.root && claude_history_card()) build_ai(claude_history_card());
+
+    bool is_new = !s_active || strcmp(s_id, a->id) != 0;
     strlcpy(s_id, a->id, sizeof(s_id));
-
-    bool perm = strcmp(a->kind, "permission") == 0;
-    lv_label_set_text(s_kind, perm ? "NEEDS PERMISSION" : "WAITING FOR YOU");
-    lv_obj_set_style_text_color(s_kind, lv_color_hex(perm ? COL_WARN : COL_ACCENT), 0);
-    lv_label_set_text(s_title, a->title[0] ? a->title : "Claude is waiting for you");
-    lv_label_set_text(s_detail, a->detail);
-    lv_label_set_text(s_project, a->project);
-    lv_image_set_src(s_logo, ui_agent_logo(32));
-
-    lv_obj_remove_flag(s_root, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_move_foreground(s_root);
+    s_active = true;
+    fill(&s_home, a, true);
+    fill(&s_ai, a, false);
+    ui_rail_set_badge(PAGE_CLAUDE, strcmp(a->kind, "permission") == 0 ? COL_WARN : COL_ACCENT);
     if (is_new) display_wake();
+}
+
+// Home re-lays out its widgets (e.g. when the clock width changes); keep the
+// strip the same size as the card under it.
+void ui_alert_relayout(void)
+{
+    if (s_active && s_home.root) fit(s_home.root);
 }

@@ -68,3 +68,5 @@ static const hub_icon_t HUB_ICONS[] = {
 };
 #define ICON_TIMER             "\xEE\x90\xA5" /* e425 */
 #define ICON_REPLAY            "\xEE\x81\x82" /* e042 */
+#define ICON_CLOSE             "\xEE\x97\x8D" /* e5cd */
+#define ICON_OPEN_IN_NEW       "\xEE\xA2\x9E" /* e89e */

@@ -123,3 +123,10 @@ void timer_page_create(lv_obj_t *page);
 lv_font_t *ui_timer_font(void);
 // Show text (e.g. a countdown) on a rail tab instead of its icon; NULL restores the icon.
 void ui_rail_set_text(int page, const char *text);
+
+// Cards the "agent waiting" alert is shown over (NULL until created).
+lv_obj_t *home_claude_card(void);
+lv_obj_t *claude_history_card(void);
+// A small coloured dot on a rail tab; color 0 removes it.
+void ui_rail_set_badge(int page, uint32_t color);
+void ui_alert_relayout(void);   // after Home re-lays out its widgets

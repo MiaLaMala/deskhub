@@ -21,7 +21,12 @@ static lv_obj_t *s_today_val[4];
 static lv_obj_t *s_chart, *s_day_lbl[HUB_CLAUDE_DAYS], *s_peak;
 static lv_chart_series_t *s_ser;
 static lv_obj_t *s_model_name[HUB_CLAUDE_MODELS], *s_model_bar[HUB_CLAUDE_MODELS], *s_model_val[HUB_CLAUDE_MODELS];
-static lv_obj_t *s_offline;
+static lv_obj_t *s_offline, *s_hist;
+
+lv_obj_t *claude_history_card(void)
+{
+    return s_hist;
+}
 
 void ui_fmt_tokens(char *buf, size_t n, double t)
 {
@@ -138,6 +143,7 @@ void claude_create(lv_obj_t *page)
     }
 
     lv_obj_t *hist = ui_card(page);
+    s_hist = hist;
     lv_obj_set_size(hist, CONTENT_W, CONTENT_H - TOP_H - 12);
     lv_obj_set_pos(hist, 0, TOP_H + 12);
     lv_obj_t *h = ui_caption(hist, "LAST 7 DAYS");

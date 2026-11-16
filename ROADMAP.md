@@ -77,6 +77,6 @@ Ideas for Desk Hub, roughly in order of value. Each item notes how it would work
 - [x] Claude Code usage with live limits, the Claude logo on Home and in the sidebar
 - [x] Bambu Lab printers (cloud and local), including dual-nozzle models
 - [x] One-command setup (`deskhub-setup`), public README with screenshots, MIT license
-- [x] Claude Code "waiting for you" alert: full-screen on the board, with Show on PC and Not now
+- [x] Claude Code "waiting for you" alert on the Home usage card and the AI page, with Show on PC and Not now
 - [x] Codex usage on the AI page and Home, with the agent picked automatically and its own logo
 - [x] Timer page: presets, countdown ring, pause and reset, a "Time's up" card, and the time left on its sidebar tab

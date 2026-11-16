@@ -367,6 +367,32 @@ void ui_rail_set_text(int page, const char *text)
     if (strcmp(lv_label_get_text(l), text) != 0) lv_label_set_text(l, text);
 }
 
+void ui_rail_set_badge(int page, uint32_t color)
+{
+    static lv_obj_t *s_badge[PAGE_COUNT];
+    if (page < 0 || page >= PAGE_COUNT || !s_nav[page]) return;
+    lv_obj_t *d = s_badge[page];
+    if (!color) {
+        if (d) lv_obj_add_flag(d, LV_OBJ_FLAG_HIDDEN);
+        return;
+    }
+    if (!d) {
+        d = lv_obj_create(s_nav[page]);
+        lv_obj_remove_style_all(d);
+        lv_obj_set_size(d, 12, 12);
+        lv_obj_set_style_radius(d, LV_RADIUS_CIRCLE, 0);
+        lv_obj_set_style_bg_opa(d, LV_OPA_COVER, 0);
+        lv_obj_set_style_border_color(d, lv_color_hex(COL_RAIL), 0);
+        lv_obj_set_style_border_width(d, 2, 0);
+        lv_obj_add_flag(d, LV_OBJ_FLAG_IGNORE_LAYOUT);
+        lv_obj_remove_flag(d, LV_OBJ_FLAG_CLICKABLE);
+        lv_obj_align(d, LV_ALIGN_TOP_RIGHT, -6, 3);
+        s_badge[page] = d;
+    }
+    lv_obj_set_style_bg_color(d, lv_color_hex(color), 0);
+    lv_obj_remove_flag(d, LV_OBJ_FLAG_HIDDEN);
+}
+
 static void build_rail(lv_obj_t *scr)
 {
     lv_obj_t *rail = lv_obj_create(scr);

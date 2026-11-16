@@ -45,6 +45,12 @@ static lv_obj_t *s_wx_icon, *s_wx_temp, *s_wx_text, *s_wx_range;
 static lv_obj_t *s_md_art, *s_md_frame, *s_md_ph, *s_md_title, *s_md_artist, *s_md_btn;
 static lv_obj_t *s_st_name[3], *s_st_bar[3], *s_st_val[3];
 static lv_obj_t *s_cl_cap[2], *s_cl_val[2], *s_cl_bar[2], *s_cl_sub[2], *s_cl_badge, *s_cl_icon;
+static lv_obj_t *s_cl_card;
+
+lv_obj_t *home_claude_card(void)
+{
+    return s_cl_card;
+}
 static lv_obj_t *s_pr_name, *s_pr_state, *s_pr_file, *s_pr_bar, *s_pr_info;
 
 static void play_cb(lv_event_t *e)
@@ -201,6 +207,7 @@ static int widget_height(int id, int w)
 static void create_claude(lv_obj_t *page)
 {
     lv_obj_t *c = widget_card(page, PAGE_CLAUDE);
+    s_cl_card = c;
     lv_obj_set_style_pad_ver(c, 10, 0);
     // AI badge: the agent's logo on a tile tinted in its brand colour.
     s_cl_badge = lv_obj_create(c);
@@ -533,6 +540,7 @@ void home_apply_layout(void)
     for (int i = 0; i < W_COUNT; i++) {
         if (!placed[i]) lv_obj_add_flag(s_w[i], LV_OBJ_FLAG_HIDDEN);
     }
+    ui_alert_relayout();
 }
 
 void home_set_layout(const char *spec)
