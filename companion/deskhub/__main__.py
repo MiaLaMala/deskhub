@@ -23,6 +23,7 @@ from .pages import enabled_pages, home_message, layout_message
 from .printer import PrinterService
 from .shortcuts import hub_view, lit_message, load_tiles, run_tile
 from .stats import Stats
+from .custom_games import CustomGames, load_games
 from .steam import Steam, steam_installed
 
 log = logging.getLogger("deskhub")
@@ -96,7 +97,9 @@ class Companion:
         self.alerts = (ClaudeAlerts(idle_after=float(ccfg.get("idle_alert_seconds", 30)))
                        if ccfg.get("alerts", True) else None)
         self.printer_msg = None
-        self.steam = Steam() if cfg.get("steam", {}).get("enabled", True) else None
+        custom = CustomGames(load_games(cfg))
+        use_steam = bool(cfg.get("steam", {}).get("enabled", True))
+        self.steam = Steam(custom=custom, use_steam=use_steam) if use_steam or custom.games else None
         self.steam_msg = None
         self.connected_once = False
         self.ws = None
@@ -196,7 +199,7 @@ class Companion:
             await asyncio.sleep(PRINTER_TICK_S)
 
     async def steam_loop(self):
-        if not steam_installed():
+        if not (self.steam.use_steam and steam_installed()) and not self.steam.custom.games:
             return
         sent_at = 0.0
         last = None

@@ -15,6 +15,7 @@ import time
 import httpx
 from PIL import Image
 
+from .custom_games import is_custom
 from .text import ascii_fold
 
 log = logging.getLogger(__name__)
@@ -159,6 +160,16 @@ def _pack565(im: Image.Image) -> bytes:
     return bytes(out)
 
 
+def _crop_to(im: Image.Image, aspect: float) -> Image.Image:
+    """Centre crop to width/height = aspect (custom game images can be any shape)."""
+    iw, ih = im.size
+    if iw / ih > aspect:
+        cw = round(ih * aspect)
+        return im.crop(((iw - cw) // 2, 0, (iw - cw) // 2 + cw, ih))
+    ch = round(iw / aspect)
+    return im.crop((0, (ih - ch) // 2, iw, (ih - ch) // 2 + ch))
+
+
 def build_frame(appid: int, kind: int, header: bytes | None, portrait: bytes | None) -> bytes:
     """STM1 frame for one (appid, kind) from the raw header / portrait JPEG bytes."""
     w, h = KIND_SIZES[kind]
@@ -171,6 +182,7 @@ def build_frame(appid: int, kind: int, header: bytes | None, portrait: bytes | N
         im = im.crop(((iw - cw) // 2, 0, (iw + cw) // 2, ih))
     else:
         im = Image.open(io.BytesIO(header)).convert("RGB")
+    im = _crop_to(im, w / h)
     im = im.resize((w, h), Image.LANCZOS)
     return b"STM1" + struct.pack("<IHHHH", appid, w, h, kind, 0) + _pack565(im)
 
@@ -178,8 +190,10 @@ def build_frame(appid: int, kind: int, header: bytes | None, portrait: bytes | N
 # ---- the service ---------------------------------------------------------------
 
 class Steam:
-    def __init__(self, clock=time.time):
+    def __init__(self, clock=time.time, custom=None, use_steam=True):
         self._clock = clock
+        self.use_steam = use_steam  # False: only the custom games
+        self.custom = custom  # custom_games.CustomGames, or None
         self._run_appid = 0
         self._run_start = 0.0
         self._cache_at = -1e9
@@ -298,11 +312,25 @@ class Steam:
     # -- snapshot
 
     def snapshot(self) -> dict:
+        """Steam's playing game and recent games, merged with the custom games from
+        config.toml (a running Steam game wins over a custom one)."""
         path, running = read_registry()
-        if not path or not pathlib.Path(path).is_dir():
-            self._snap = {"type": "steam", "found": False, "playing": None, "recent": []}
-            return self._snap
-        root = pathlib.Path(path)
+        steam_ok = self.use_steam and bool(path) and pathlib.Path(path).is_dir()
+        custom_now = self.custom.poll() if self.custom else None
+        playing, recent = None, []
+        if steam_ok:
+            playing, recent = self._steam_part(pathlib.Path(path), running)
+        if playing is None and custom_now:
+            playing = custom_now
+        if self.custom:
+            skip = playing["appid"] if playing else None
+            recent += [g for g in self.custom.recent() if g["appid"] != skip]
+            recent = sorted(recent, key=lambda g: -g["last"])[:RECENT_MAX]
+        found = steam_ok or bool(self.custom and self.custom.games)
+        self._snap = {"type": "steam", "found": found, "playing": playing, "recent": recent}
+        return self._snap
+
+    def _steam_part(self, root: pathlib.Path, running: int) -> tuple[dict | None, list[dict]]:
         self._refresh(root)
         now = self._clock()
         if running != self._run_appid:
@@ -331,8 +359,7 @@ class Steam:
                 continue
             recent.append({"appid": appid, "name": ascii_fold(name, 40),
                            "last": info["last"], "total_min": info["total_min"]})
-        self._snap = {"type": "steam", "found": True, "playing": playing, "recent": recent}
-        return self._snap
+        return playing, recent
 
     # -- art
 
@@ -393,7 +420,12 @@ class Steam:
 
     def _build(self, key: tuple[int, int]) -> bytes | None:
         appid, kind = key
-        if kind == KIND_PORTRAIT:
+        if is_custom(appid):
+            image = self.custom.image_bytes(appid) if self.custom else None
+            if not image:
+                return None  # the board shows its placeholder
+            header, portrait = image, None
+        elif kind == KIND_PORTRAIT:
             portrait = self._fetch_art(appid, True)
             header = None if portrait else self._fetch_art(appid, False)
             if not portrait and not header:
@@ -443,6 +475,8 @@ class Steam:
         if appid not in allowed:
             log.warning("steam launch refused for appid %s", appid)
             return False
+        if is_custom(appid):
+            return bool(self.custom) and self.custom.launch(appid)
         log.info("launching Steam game %s", appid)
         os.startfile(f"steam://rungameid/{appid}")
         return True

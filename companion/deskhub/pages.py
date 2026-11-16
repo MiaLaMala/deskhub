@@ -12,13 +12,13 @@ PAGE_LABELS = {
 def enabled_pages(cfg: dict) -> list[str]:
     """Page names to show, in board order. Without a [pages] block everything is on except
     the printer page (on once a printer is configured) and the games page (on when Steam
-    is installed)."""
+    is installed or [[games]] are configured)."""
     pages = cfg.get("pages")
     if not isinstance(pages, dict) or not isinstance(pages.get("enabled"), list):
         want = {p for p in ALL_PAGES if p not in ("printer", "games")}
         if cfg.get("printers"):
             want.add("printer")
-        if steam_installed():
+        if steam_installed() or cfg.get("games"):
             want.add("games")
     else:
         want = {str(p).lower() for p in pages["enabled"]}

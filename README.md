@@ -155,6 +155,21 @@ The Games page shows the game you're playing, with its cover and how long this s
 
 Everything comes from Steam's local files on your PC: the registry (which game is running), the library manifests and your `localconfig.vdf` (recent games and playtime). Cover art comes from Steam's public image CDN, and the names of recent games you've uninstalled from the public Store API. Only the game's appid is sent, and both are cached in `~/.deskhub`. Launching opens `steam://rungameid/<appid>`, and only for games in the recent list. Steam only keeps total playtime in that file for some games, so the total shows when it's there and is left out otherwise. To turn this off, set `enabled = false` under `[steam]` in `config.toml`.
 
+### Games that aren't on Steam
+
+Minecraft, emulators and games from other launchers can show on the Games page too. Add a `[[games]]` block to `config.toml` for each:
+
+```toml
+[[games]]
+name = "Minecraft"
+process = "javaw.exe"          # the program's file name; a list works too
+match = "net.minecraft"        # optional: text its command line must contain
+image = "C:/Users/you/Pictures/minecraft.png"   # optional: a file or https URL
+launch = "C:/XboxGames/Minecraft Launcher/Content/Minecraft.exe"   # optional
+```
+
+While that process runs, the board shows it as the game you're playing, with its session time. The companion remembers when you last played it and for how long (in `~/.deskhub/custom_games.json`), so it joins the recent games, and tapping it opens `launch`. Find the file name under **Details** in Task Manager. Java programs all run as `javaw.exe`, so use `match` to tell them apart; Minecraft Bedrock is `Minecraft.Windows.exe`. Images can be any shape: they're cropped to fit. Without one the board shows a placeholder. A Steam game that's running takes priority, and custom games work with `[steam] enabled = false` or without Steam installed. Restart the companion after editing.
+
 ## Customizing Home
 
 Home has the time and date in a slim bar across the top, and widgets in two columns below it. List the widgets top to bottom in `companion/config.toml`, or use setup's *Home screen* step:
