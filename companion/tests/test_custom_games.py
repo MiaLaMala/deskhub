@@ -106,6 +106,26 @@ check(all(f.startswith(b"STM1") and len(f) == 16 + 2 * struct.unpack("<HH", f[8:
           for f in frames), "frame sizes")
 check(not any(struct.unpack("<I", f[4:8])[0] == dol for f in frames), "no image -> no frame (board placeholder)")
 
+# Window title matching (a modpack that runs as a generic java.exe).
+tg = cg.load_games({"games": [
+    {"name": "GT: New Horizons", "title": "New Horizons", "process": ["java.exe", "javaw.exe"]},
+    {"name": "Any window", "title": "Some Emulator"},   # title alone is enough
+]})
+check(len(tg) == 2 and tg[1]["process"] == [] and tg[0]["title"] == "new horizons", f"title games load: {tg}")
+wins: list[tuple[int, str, str]] = []
+fake_windows = lambda: [(pid, t, (lambda n=n: n)) for pid, t, n in wins]
+ct = cg.CustomGames(tg, clock=lambda: now[0], processes=fake_processes, windows=fake_windows,
+                    state_file=tmp / "t.json")
+check(ct.poll() is None, "no windows, nothing running")
+wins[:] = [(10, "GT: New Horizons 2.9.0", "chrome.exe")]
+check(ct.poll() is None, "title in the wrong program (e.g. a browser tab) is ignored")
+wins[:] = [(11, "GT: New Horizons 2.9.0", "javaw.exe")]
+p = ct.poll()
+check(p and p["name"] == "GT: New Horizons", f"title + process match: {p}")
+wins[:] = [(12, "Some Emulator - Zelda", "whatever.exe")]
+p = ct.poll()
+check(p and p["name"] == "Any window", f"title alone matches any program: {p}")
+
 # Launching: only listed games, and only those with a launch target.
 opened = []
 cg.os.startfile = lambda t: opened.append(t)

@@ -66,6 +66,8 @@ enabled = true
 #   name    - shown on the board
 #   process - the program's file name, or a list of them (Task Manager > Details)
 #   match   - optional: text its command line must contain (for javaw.exe and the like)
+#   title   - optional: text a window title must contain; with title, process is optional
+#             and only limits which programs' windows count
 #   image   - optional: a picture file or https URL, cropped to fit (else a placeholder)
 #   launch  - optional: a program, shortcut, folder or URL to open from the board
 #
@@ -75,6 +77,11 @@ enabled = true
 # match = "net.minecraft"
 # image = "C:/Users/you/Pictures/minecraft.png"
 # launch = "C:/XboxGames/Minecraft Launcher/Content/Minecraft.exe"
+#
+# [[games]]
+# name = "GT: New Horizons"
+# title = "GT: New Horizons"
+# process = ["java.exe", "javaw.exe"]
 #
 # [[games]]
 # name = "Minecraft Bedrock"

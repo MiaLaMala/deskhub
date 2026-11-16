@@ -168,7 +168,17 @@ image = "C:/Users/you/Pictures/minecraft.png"   # optional: a file or https URL
 launch = "C:/XboxGames/Minecraft Launcher/Content/Minecraft.exe"   # optional
 ```
 
-While that process runs, the board shows it as the game you're playing, with its session time. The companion remembers when you last played it and for how long (in `~/.deskhub/custom_games.json`), so it joins the recent games, and tapping it opens `launch`. Find the file name under **Details** in Task Manager. Java programs all run as `javaw.exe`, so use `match` to tell them apart; Minecraft Bedrock is `Minecraft.Windows.exe`. Images can be any shape: they're cropped to fit. Without one the board shows a placeholder. A Steam game that's running takes priority, and custom games work with `[steam] enabled = false` or without Steam installed. Restart the companion after editing.
+While that process runs, the board shows it as the game you're playing, with its session time. The companion remembers when you last played it and for how long (in `~/.deskhub/custom_games.json`), so it joins the recent games, and tapping it opens `launch`. Find the file name under **Details** in Task Manager. Java programs all run as `javaw.exe` or `java.exe` ("OpenJDK Platform binary" in Task Manager), so use `match` to tell them apart; Minecraft Bedrock is `Minecraft.Windows.exe`.
+
+You can also match on the game's window title with `title`, which is handy for modpacks that all look like the same Java program. The game counts as running while a visible window's title contains that text. With `process` as well, the window must belong to one of those programs, so a browser tab with the same name doesn't count; `match` isn't used then. For example:
+
+```toml
+[[games]]
+name = "GT: New Horizons"
+title = "GT: New Horizons"
+process = ["java.exe", "javaw.exe"]
+```
+ Images can be any shape: they're cropped to fit. Without one the board shows a placeholder. A Steam game that's running takes priority, and custom games work with `[steam] enabled = false` or without Steam installed. Restart the companion after editing.
 
 ## Customizing Home
 

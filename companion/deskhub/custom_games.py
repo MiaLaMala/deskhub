@@ -6,6 +6,7 @@ watch for:
     name = "Minecraft"
     process = "javaw.exe"        # one name or a list; matched case-insensitively
     match = "minecraft"          # optional: text the command line must contain
+    title = "New Horizons"       # optional: text a window title must contain
     image = "C:/pics/mc.png"     # optional: a local file or an https URL
     launch = "C:/XboxGames/Minecraft Launcher/Content/Minecraft.exe"   # optional
 
@@ -48,14 +49,16 @@ def load_games(cfg: dict) -> list[dict]:
         procs = g.get("process", [])
         procs = [procs] if isinstance(procs, str) else list(procs)
         procs = [str(p).strip().lower() for p in procs if str(p).strip()]
-        if not name or not procs:
-            log.warning("custom game %r needs a name and a process", name or g)
+        title = str(g.get("title", "")).strip().lower()
+        if not name or not (procs or title):
+            log.warning("custom game %r needs a name and a process or title", name or g)
             continue
         games.append({
             "id": game_id(name),
             "name": ascii_fold(name, 40),
             "process": procs,
             "match": str(g.get("match", "")).strip().lower(),
+            "title": title,
             "image": str(g.get("image", "")).strip(),
             "launch": str(g.get("launch", "")).strip(),
         })
@@ -63,11 +66,13 @@ def load_games(cfg: dict) -> list[dict]:
 
 
 class CustomGames:
-    def __init__(self, games: list[dict], clock=time.time, processes=None, state_file=STATE_FILE):
+    def __init__(self, games: list[dict], clock=time.time, processes=None, windows=None,
+                 state_file=STATE_FILE):
         self.games = games
         self.by_id = {g["id"]: g for g in games}
         self._clock = clock
         self._processes = processes or _running_processes
+        self._windows = windows or _window_titles
         self._state_file = state_file
         self._state = self._load()        # id -> {"last": epoch, "total_s": seconds}
         self._running: int = 0            # id of the custom game running now
@@ -92,11 +97,22 @@ class CustomGames:
         self._saved_at = self._clock()
 
     def _find_running(self) -> int:
-        wanted = {p for g in self.games for p in g["process"]}
+        # Games matched by window title: a visible window whose title contains the
+        # text (and, if `process` is set too, that belongs to one of those programs).
+        titled = [g for g in self.games if g["title"]]
+        if titled:
+            for pid, title, proc_name in self._windows():
+                title = title.lower()
+                for g in titled:
+                    if g["title"] in title and (not g["process"] or proc_name() in g["process"]):
+                        return g["id"]
+        wanted = {p for g in self.games if not g["title"] for p in g["process"]}
         if not wanted:
             return 0
         for name, cmdline in self._processes(wanted):
             for g in self.games:
+                if g["title"]:
+                    continue
                 if name in g["process"] and (not g["match"] or g["match"] in cmdline()):
                     return g["id"]
         return 0
@@ -184,3 +200,36 @@ def _running_processes(wanted: set[str]):
                 except (psutil.Error, OSError):
                     return ""
             yield name, cmdline
+
+
+def _window_titles():
+    """(pid, title, lazy lower-case process name) for visible top-level windows."""
+    if sys.platform != "win32":
+        return []
+    import ctypes
+    from ctypes import wintypes
+
+    u32 = ctypes.windll.user32
+    out = []
+
+    @ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
+    def visit(hwnd, _):
+        if u32.IsWindowVisible(hwnd):
+            n = u32.GetWindowTextLengthW(hwnd)
+            if n:
+                buf = ctypes.create_unicode_buffer(n + 1)
+                u32.GetWindowTextW(hwnd, buf, n + 1)
+                pid = wintypes.DWORD()
+                u32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+                out.append((pid.value, buf.value))
+        return True
+
+    u32.EnumWindows(visit, 0)
+
+    def proc_name(pid):
+        try:
+            return psutil.Process(pid).name().lower()
+        except (psutil.Error, OSError):
+            return ""
+
+    return [(pid, title, (lambda p=pid: proc_name(p))) for pid, title in out]
