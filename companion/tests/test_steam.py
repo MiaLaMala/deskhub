@@ -158,7 +158,7 @@ for f in frames:
     magic, appid, w, h, kind, zero = hdr(f)
     check(magic == b"STM1" and zero == 0, "frame magic")
     check((w, h) == st.KIND_SIZES[kind] and len(f) == 16 + w * h * 2, f"frame size kind {kind}")
-check(st.KIND_SIZES == {0: (340, 159), 1: (128, 60), 2: (96, 144)}, "kind sizes")
+check(st.KIND_SIZES == {0: (340, 159), 1: (64, 96), 2: (96, 144)}, "kind sizes")
 p30 = next(f for f in frames if hdr(f)[1] == 30 and hdr(f)[4] == 2)
 px = struct.unpack("<H", p30[16:18])[0]
 check(px >> 11 == 0 and (px >> 5) & 0x3F > 50, "portrait fallback is a crop of the green header")

@@ -390,7 +390,7 @@ The board runs a WebSocket server at `ws://deskhub.local/ws`. The companion conn
 | `printer` | `printers` (up to 4) with `name`, `model`, `online`, `state`, `pct`, `remaining_min`, `layer`/`layers`, `file`, temperatures, `speed`, `error` and `ams`. Sent when something changes, and at least every 30 seconds. |
 | `net` | `online`, `latency_ms`, `jitter_ms`, `loss_pct`, `hist` (last 60 probes in ms, -1 = lost), `up_since`, `last_drop`, `today_bytes`, `month_bytes`, `speed`, `testing` and `ip`. Sent every 2 seconds. |
 | `steam` | `found`, `playing` (`appid`, `name`, `session_s`, `total_min`) and `recent` (up to 5 with `appid`, `name`, `last`, `total_min`). Sent when something changes, and at least every 60 seconds. |
-| binary | `STM1`, then `u32 appid`, `u16 width`, `u16 height`, `u16 kind`, `u16 0` and RGB565 little-endian pixels. Kind 0 is the playing game's header (340x159), 1 a thumbnail (128x60), 2 a portrait cover (96x144). |
+| binary | `STM1`, then `u32 appid`, `u16 width`, `u16 height`, `u16 kind`, `u16 0` and RGB565 little-endian pixels. Kind 0 is the playing game's header (340x159), 1 a Home thumbnail (64x96, portrait), 2 a portrait cover (96x144). |
 | `claude` | `limits`, the current 5-hour `block`, `today`, `last_hour`, `days` (7 values) and `models`. Sent every 5 seconds. |
 
 | From the board | Contents |

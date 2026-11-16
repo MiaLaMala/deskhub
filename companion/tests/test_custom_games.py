@@ -102,7 +102,7 @@ check(snap["playing"] and snap["playing"]["appid"] == mc and [g["appid"] for g i
 frames = s.frames()
 sizes = {struct.unpack("<IHHHH", f[4:16])[3]: struct.unpack("<IHHHH", f[4:16])[1:3] for f in frames
          if struct.unpack("<I", f[4:8])[0] == mc}
-check(sizes.get(0) == (340, 159) and sizes.get(1) == (128, 60), f"header and thumb frames: {sizes}")
+check(sizes.get(0) == (340, 159) and sizes.get(1) == (64, 96), f"header and thumb frames: {sizes}")
 check(all(f.startswith(b"STM1") and len(f) == 16 + 2 * struct.unpack("<HH", f[8:12])[0] * struct.unpack("<HH", f[8:12])[1]
           for f in frames), "frame sizes")
 check(not any(struct.unpack("<I", f[4:8])[0] == dol for f in frames), "no image -> no frame (board placeholder)")

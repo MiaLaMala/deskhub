@@ -39,7 +39,7 @@ extern int g_nav;
 #define CONTENT_H (PAGE_H - 2 * PAD)   // 440 with a side rail, 372 with the dock
 
 // Material Icons and the large clock font, rendered at runtime by Tiny TTF.
-extern lv_font_t *g_icon_24, *g_icon_32, *g_icon_48, *g_icon_80, *g_font_clock;
+extern lv_font_t *g_icon_20, *g_icon_24, *g_icon_32, *g_icon_48, *g_icon_80, *g_font_clock;
 
 // Latest data, for pages that show it.
 extern hub_stats_t g_stats;

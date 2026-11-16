@@ -22,7 +22,7 @@ extern const uint8_t icons_ttf_end[] asm("_binary_MaterialIcons_Regular_ttf_end"
 extern const uint8_t clock_ttf_start[] asm("_binary_Montserrat_SemiBold_ttf_start");
 extern const uint8_t clock_ttf_end[] asm("_binary_Montserrat_SemiBold_ttf_end");
 
-lv_font_t *g_icon_24, *g_icon_32, *g_icon_48, *g_icon_80, *g_font_clock;
+lv_font_t *g_icon_20, *g_icon_24, *g_icon_32, *g_icon_48, *g_icon_80, *g_font_clock;
 
 hub_stats_t g_stats;
 hub_media_t g_media;
@@ -323,7 +323,7 @@ static void apply_layout(void)
     int status = 2 * lv_font_get_line_height(g_icon_24) + 8;
     if (g_nav == NAV_BOTTOM) {
         // The same idea across the dock's width (the status icons take ~80 px).
-        int avail = 800 - 28 - 80 - (shown + 2) * RAIL_GAP;
+        int avail = 800 - 28 - 40 - (shown + 2) * RAIL_GAP;
         int tab_w = shown ? avail / shown : 72;
         if (tab_w > 72) tab_w = 72;
         for (int i = 0; i < PAGE_COUNT; i++) lv_obj_set_size(s_nav[i], tab_w, DOCK_H - 16);
@@ -512,9 +512,22 @@ static void build_rail(lv_obj_t *scr)
     lv_obj_remove_style_all(spacer);
     lv_obj_set_flex_grow(spacer, 1);
     lv_obj_set_size(spacer, 1, 1);
-    s_pc_icon = ui_label(rail, g_icon_24, COL_DIM, ICON_DESKTOP_WINDOWS);
-    if (g_nav == NAV_BOTTOM) lv_obj_set_style_pad_right(s_pc_icon, 6, 0);
-    s_wifi_icon = ui_label(rail, g_icon_24, COL_DIM, ICON_WIFI_OFF);
+    lv_obj_t *status = rail;
+    const lv_font_t *font = g_icon_24;
+    if (g_nav == NAV_BOTTOM) {
+        // In the dock: PC above Wi-Fi in a small column at the end, a size smaller.
+        status = lv_obj_create(rail);
+        lv_obj_remove_style_all(status);
+        lv_obj_set_size(status, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+        lv_obj_set_flex_flow(status, LV_FLEX_FLOW_COLUMN);
+        lv_obj_set_flex_align(status, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+        lv_obj_set_style_pad_row(status, 2, 0);
+        lv_obj_set_style_pad_right(status, 4, 0);
+        lv_obj_remove_flag(status, LV_OBJ_FLAG_SCROLLABLE);
+        font = g_icon_20;
+    }
+    s_pc_icon = ui_label(status, font, COL_DIM, ICON_DESKTOP_WINDOWS);
+    s_wifi_icon = ui_label(status, font, COL_DIM, ICON_WIFI_OFF);
 }
 
 // The night sky (gradient plus stars) is rendered once into a PSRAM image.
@@ -619,6 +632,7 @@ static void page_none(lv_obj_t *page)
 void ui_init(void)
 {
     size_t icon_len = icons_ttf_end - icons_ttf_start;
+    g_icon_20 = lv_tiny_ttf_create_data(icons_ttf_start, icon_len, 20);
     g_icon_24 = lv_tiny_ttf_create_data(icons_ttf_start, icon_len, 24);
     g_icon_32 = lv_tiny_ttf_create_data(icons_ttf_start, icon_len, 32);
     g_icon_48 = lv_tiny_ttf_create_data(icons_ttf_start, icon_len, 48);
@@ -626,6 +640,7 @@ void ui_init(void)
     g_font_clock = lv_tiny_ttf_create_data(clock_ttf_start, clock_ttf_end - clock_ttf_start, 128);
     // Fall back to built-in fonts so a failed TTF load can never hand LVGL a NULL font.
     // Icons then show as boxes, but the UI keeps working.
+    if (!g_icon_20) g_icon_20 = (lv_font_t *)&lv_font_montserrat_20;
     if (!g_icon_24) g_icon_24 = (lv_font_t *)&lv_font_montserrat_24;
     if (!g_icon_32) g_icon_32 = (lv_font_t *)&lv_font_montserrat_32;
     if (!g_icon_48) g_icon_48 = (lv_font_t *)&lv_font_montserrat_48;

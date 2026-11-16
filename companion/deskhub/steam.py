@@ -29,7 +29,9 @@ ART_DIR = pathlib.Path.home() / ".deskhub" / "steam_art"
 NAMES_FILE = pathlib.Path.home() / ".deskhub" / "steam_names.json"
 
 KIND_HEADER, KIND_THUMB, KIND_PORTRAIT = 0, 1, 2
-KIND_SIZES = {KIND_HEADER: (340, 159), KIND_THUMB: (128, 60), KIND_PORTRAIT: (96, 144)}
+# The Home thumbnail is a small portrait cover (2:3), shown at the card's full height.
+KIND_SIZES = {KIND_HEADER: (340, 159), KIND_THUMB: (64, 96), KIND_PORTRAIT: (96, 144)}
+_TALL = (KIND_THUMB, KIND_PORTRAIT)
 
 _SKIP_IDS = {228980}
 _SKIP_WORDS = ("redistributable", "proton", "steam linux runtime", "steamworks")
@@ -173,9 +175,9 @@ def _crop_to(im: Image.Image, aspect: float) -> Image.Image:
 def build_frame(appid: int, kind: int, header: bytes | None, portrait: bytes | None) -> bytes:
     """STM1 frame for one (appid, kind) from the raw header / portrait JPEG bytes."""
     w, h = KIND_SIZES[kind]
-    if kind == KIND_PORTRAIT and portrait:
+    if kind in _TALL and portrait:
         im = Image.open(io.BytesIO(portrait)).convert("RGB")
-    elif kind == KIND_PORTRAIT:
+    elif kind in _TALL:
         im = Image.open(io.BytesIO(header)).convert("RGB")
         iw, ih = im.size
         cw = min(iw, round(ih * 2 / 3))
@@ -440,7 +442,7 @@ class Steam:
             if not image:
                 return None  # the board shows its placeholder
             header, portrait = image, None
-        elif kind == KIND_PORTRAIT:
+        elif kind in _TALL:
             portrait = self._fetch_art(appid, True)
             header = None if portrait else self._fetch_art(appid, False)
             if not portrait and not header:

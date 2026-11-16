@@ -421,11 +421,12 @@ static void game_play_cb(lv_event_t *e)
 
 static void create_game(lv_obj_t *page)
 {
+    // A portrait cover at the card's full height, with what's playing, the play
+    // time and the game's name stacked beside it. Sizes are set in layout_game().
     lv_obj_t *c = widget_card(page, PAGE_GAMES);
     s_gm_ph = lv_obj_create(c);
     lv_obj_remove_style_all(s_gm_ph);
     lv_obj_remove_flag(s_gm_ph, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_set_size(s_gm_ph, 128, 60);
     lv_obj_set_style_radius(s_gm_ph, 8, 0);
     lv_obj_set_style_bg_color(s_gm_ph, lv_color_hex(COL_CARD_HI), 0);
     lv_obj_set_style_bg_opa(s_gm_ph, LV_OPA_COVER, 0);
@@ -433,35 +434,44 @@ static void create_game(lv_obj_t *page)
     lv_obj_center(pi);
     s_gm_img = lv_image_create(c);
     lv_obj_remove_flag(s_gm_img, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_set_size(s_gm_img, 128, 60);
+    lv_image_set_inner_align(s_gm_img, LV_IMAGE_ALIGN_STRETCH);
     lv_obj_set_style_radius(s_gm_img, 8, 0);
     lv_obj_set_style_clip_corner(s_gm_img, true, 0);
     s_gm_cap = ui_caption(c, "STEAM");
     lv_label_set_long_mode(s_gm_cap, LV_LABEL_LONG_DOT);
     lv_obj_set_height(s_gm_cap, 18);
-    lv_obj_set_pos(s_gm_cap, 140, 4);
     s_gm_sub = ui_label(c, &lv_font_montserrat_14, COL_MUTED, "");
     lv_label_set_long_mode(s_gm_sub, LV_LABEL_LONG_DOT);
     lv_obj_set_height(s_gm_sub, 18);
-    lv_obj_set_pos(s_gm_sub, 140, 30);
     s_gm_name = ui_label(c, &lv_font_montserrat_20, COL_TEXT, "");
     lv_label_set_long_mode(s_gm_name, LV_LABEL_LONG_DOT);
-    lv_obj_set_height(s_gm_name, UI_COMPACT ? 22 : 24);
-    lv_obj_set_pos(s_gm_name, 0, UI_COMPACT ? 61 : 66);
+    lv_obj_set_height(s_gm_name, 24);
+    // Play button (last game, nothing running) sits on the cover.
     s_gm_play = ui_round_button(c, 40, COL_ACCENT, g_icon_24, ICON_PLAY_ARROW, game_play_cb, NULL);
     lv_obj_set_style_text_color(lv_obj_get_child(s_gm_play, 0), lv_color_hex(COL_BG), 0);
-    lv_obj_align(s_gm_play, LV_ALIGN_TOP_RIGHT, 0, UI_COMPACT ? 42 : 50);   // on the name row
+    lv_obj_set_style_bg_opa(s_gm_play, LV_OPA_90, 0);
     s_w[W_GAME] = c;
 }
 
 static void layout_game(int w, int h)
 {
-    (void)h;
-    bool play = !lv_obj_has_flag(s_gm_play, LV_OBJ_FLAG_HIDDEN);
-    int text_w = w - 32 - 140;
-    lv_obj_set_width(s_gm_sub, text_w);
+    lv_obj_t *c = s_w[W_GAME];
+    if (h <= 0) h = lv_obj_get_height(c);
+    int inner = h - lv_obj_get_style_pad_top(c, 0) - lv_obj_get_style_pad_bottom(c, 0) - 2;
+    int tile_h = inner, tile_w = inner * 2 / 3;
+    lv_obj_set_size(s_gm_ph, tile_w, tile_h);
+    lv_obj_set_size(s_gm_img, tile_w, tile_h);
+    lv_obj_set_pos(s_gm_ph, 0, 0);
+    lv_obj_set_pos(s_gm_img, 0, 0);
+    int x = tile_w + 14, text_w = w - 32 - x;
+    int y0 = (inner - 66) / 2;   // the three lines, centred beside the cover
+    lv_obj_set_pos(s_gm_cap, x, y0);
+    lv_obj_set_pos(s_gm_sub, x, y0 + 20);
+    lv_obj_set_pos(s_gm_name, x, y0 + 40);
     lv_obj_set_width(s_gm_cap, text_w);
-    lv_obj_set_width(s_gm_name, w - 32 - (play ? 48 : 0));
+    lv_obj_set_width(s_gm_sub, text_w);
+    lv_obj_set_width(s_gm_name, text_w);
+    lv_obj_align_to(s_gm_play, s_gm_ph, LV_ALIGN_CENTER, 0, 0);
 }
 
 // ---- internet ---------------------------------------------------------------
