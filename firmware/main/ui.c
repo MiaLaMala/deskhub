@@ -37,6 +37,10 @@ static lv_obj_t *s_pages[PAGE_COUNT];
 static lv_obj_t *s_nav[PAGE_COUNT];
 static lv_obj_t *s_wifi_icon, *s_pc_icon;
 static lv_obj_t *s_nav_logo;   // the AI tab's agent logo
+
+#define RAIL_PAD_V 10
+#define RAIL_GAP 2
+#define RAIL_TAB_MAX 52
 static int s_page = -1;
 
 // Default until the companion says otherwise: everything but the printer page.
@@ -299,11 +303,20 @@ static void nav_cb(lv_event_t *e)
 // Show only the enabled pages in the rail (flex layout closes the gaps).
 static void apply_layout(void)
 {
+    int shown = 0;
     for (int i = 0; i < PAGE_COUNT; i++) {
         bool on = g_pages_mask & (1u << i);
         if (on) lv_obj_remove_flag(s_nav[i], LV_OBJ_FLAG_HIDDEN);
         else lv_obj_add_flag(s_nav[i], LV_OBJ_FLAG_HIDDEN);
+        shown += on;
     }
+    // Share the rail's height between the tabs that are shown, so it is filled
+    // whether 4 or 10 pages are on (capped so a few tabs don't get huge).
+    int status_h = 2 * lv_font_get_line_height(g_icon_24) + 8;
+    int avail = PAGE_H - 2 * RAIL_PAD_V - status_h - (shown + 2) * RAIL_GAP;
+    int tab_h = shown ? avail / shown : RAIL_TAB_MAX;
+    if (tab_h > RAIL_TAB_MAX) tab_h = RAIL_TAB_MAX;
+    for (int i = 0; i < PAGE_COUNT; i++) lv_obj_set_height(s_nav[i], tab_h);
     home_apply_layout();
     if (s_page >= 0 && !(g_pages_mask & (1u << s_page))) {
         int old = s_page;
@@ -403,16 +416,16 @@ static void build_rail(lv_obj_t *scr)
     lv_obj_set_style_border_side(rail, LV_BORDER_SIDE_RIGHT, 0);
     lv_obj_set_style_border_color(rail, lv_color_hex(COL_BORDER), 0);
     lv_obj_set_style_border_width(rail, 1, 0);
-    lv_obj_set_style_pad_ver(rail, 10, 0);
+    lv_obj_set_style_pad_ver(rail, RAIL_PAD_V, 0);
     lv_obj_set_flex_flow(rail, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(rail, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_set_style_pad_row(rail, 2, 0);
+    lv_obj_set_style_pad_row(rail, RAIL_GAP, 0);
     lv_obj_remove_flag(rail, LV_OBJ_FLAG_SCROLLABLE);
 
     for (int i = 0; i < PAGE_COUNT; i++) {
         lv_obj_t *b = lv_button_create(rail);
         lv_obj_remove_style_all(b);
-        lv_obj_set_size(b, 60, 38);  // ten tabs plus status icons fit in 480 px
+        lv_obj_set_size(b, 60, RAIL_TAB_MAX);  // height set by apply_layout()
         lv_obj_set_style_radius(b, 18, 0);
         // Selected page: an indigo-to-violet pill with a soft edge.
         lv_obj_set_style_bg_color(b, lv_color_hex(COL_ACCENT), 0);
