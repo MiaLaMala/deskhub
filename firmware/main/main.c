@@ -5,6 +5,7 @@
 #include "hub_server.h"
 #include "net.h"
 #include "nvs_flash.h"
+#include "ota.h"
 #include "ui.h"
 #include "weather.h"
 
@@ -27,6 +28,7 @@ void app_main(void)
     display_unlock();
 
     hub_server_start();
+    ota_mark_valid();   // got this far: keep this firmware (no rollback)
     weather_start();
     ESP_LOGI("main", "free internal %u, psram %u",
              (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL),

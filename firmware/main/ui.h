@@ -33,3 +33,8 @@ void ui_set_nav(int nav);
 // Screensaver (a drifting clock) shown while the PC's display is asleep. A tap hides it.
 void ui_saver_show(bool on);
 bool ui_saver_shown(void);
+// Firmware update prompt (Install / Deny), its progress, and a final message.
+void ui_update_show(void);
+void ui_update_progress(int pct);
+void ui_update_message(const char *text);
+void ui_update_hide(void);

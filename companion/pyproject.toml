@@ -33,6 +33,7 @@ deskhub-setup = "deskhub.setup_cli:main"
 deskhub-printers = "deskhub.printers_cli:main"
 deskhub-games = "deskhub.games_cli:main"
 deskhub-install = "deskhub.install_startup:main"
+deskhub-flash = "deskhub.flash_cli:main"
 
 [dependency-groups]
 dev = [

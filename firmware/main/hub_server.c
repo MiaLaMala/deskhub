@@ -16,6 +16,7 @@
 #include "esp_timer.h"
 #include "hub_model.h"
 #include "net.h"
+#include "ota.h"
 #include "sdkconfig.h"
 #include "ui.h"
 
@@ -733,5 +734,6 @@ void hub_server_start(void)
     httpd_register_uri_handler(s_server, &tap);
     static const httpd_uri_t perf = {.uri = "/perf", .method = HTTP_GET, .handler = perf_handler};
     httpd_register_uri_handler(s_server, &perf);
+    ota_register(s_server);
     ESP_LOGI(TAG, "listening on :80");
 }

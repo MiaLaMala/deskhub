@@ -468,35 +468,16 @@ def find_port() -> str | None:
     return ports[0] if len(ports) == 1 else None
 
 
-def step_flash(firmware: pathlib.Path):
+def step_flash(firmware: pathlib.Path, config_path: pathlib.Path, board_token: str | None = None):
     heading("Build and flash")
-    if not yes("Build the firmware and flash the board now", True):
-        print(f"Later: in {firmware}, run `idf.py -p COMx flash`.")
+    if not yes("Build the firmware and install it on the board now", True):
+        print("Later: uv run deskhub-flash")
         return
-    idf = find_idf()
-    if not idf:
-        print("ESP-IDF not found (looked in IDF_PATH, ~/esp, C:/Espressif/frameworks and C:/esp).\n"
-              "The board was NOT flashed. Install ESP-IDF 5.5 and run setup again, or flash by hand (see README).")
-        return
-    port = find_port() or ask("Board's COM port (Device Manager > Ports)", "")
-    if not port:
-        print("No port given, so the board was NOT flashed.")
-        return
-    env = find_idf_python_env(idf)
-    if env:
-        # Run ESP-IDF with the Python it was installed with. export.ps1 looks for a
-        # python_env matching whichever `python` comes first on PATH.
-        script = (f'$env:IDF_PYTHON_ENV_PATH = "{env}"; '
-                  f'$env:PATH = "{env / "Scripts"};" + $env:PATH; ')
-    else:
-        script = f'$env:PATH = "{pathlib.Path(sys.base_prefix)};" + $env:PATH; '
-    script += f'. "{idf / "export.ps1"}" | Out-Null; Set-Location "{firmware}"; idf.py -p {port} flash'
-    print(f"Building and flashing on {port}. The first build takes a few minutes.")
-    # ESP-IDF refuses to run when it sees an MSYS/Git Bash environment, even from PowerShell.
-    env_vars = {k: v for k, v in os.environ.items() if k not in ("MSYSTEM", "MSYSTEM_PREFIX", "MINGW_PREFIX")}
-    r = subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script], env=env_vars)
-    print("Done. The hub restarts with the new settings." if r.returncode == 0
-          else "Flashing failed; see the output above.")
+    # Over Wi-Fi when the board is reachable (it asks on screen first), else USB.
+    from .flash_cli import install
+
+    install(firmware, config_path, token=board_token,
+            ask_port=lambda: ask("Board's COM port (Device Manager > Ports)", ""))
 
 
 def main():
@@ -521,6 +502,7 @@ def main():
     cfg = step_wifi(cfg)
     cfg, country = step_location(cfg)
     cfg = step_units(cfg, country)
+    board_token = read_kconfig(cfg, "HUB_TOKEN")   # what the board has now, for a Wi-Fi install
     cfg = step_token(cfg, config_path)
     sdk.write_text(cfg, encoding="utf-8")
     print(f"\nSaved hub settings to {sdk}.")
@@ -539,7 +521,7 @@ def main():
     step_alerts(config_path)
     step_agent(config_path)
 
-    step_flash(firmware)
+    step_flash(firmware, config_path, board_token)
     step_startup(config_path)
     print("\nRestart the companion (uv run python -m deskhub) to pick up calendar or token changes.")
 

@@ -61,3 +61,4 @@ CONFIG_COMPILER_OPTIMIZATION_PERF=y
 # Not used, measured: two LVGL draw threads (CONFIG_LV_OS_FREERTOS + LV_DRAW_SW_DRAW_UNIT_CNT=2)
 # cut a full redraw only 13% but cost ~33 KB of internal RAM; LV_ATTRIBUTE_FAST_MEM_USE_IRAM
 # used up internal RAM entirely.
+CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y

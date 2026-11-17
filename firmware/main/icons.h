@@ -7,6 +7,7 @@
 #define ICON_HOME               "\xEE\xA2\x8A" /* e88a */
 #define ICON_INSIGHTS           "\xEF\x82\x92" /* f092 */
 #define ICON_MEMORY             "\xEE\x8C\xA2" /* e322 */
+#define ICON_SYSTEM_UPDATE      "\xEE\x98\xAA" /* e62a */
 #define ICON_SPEED              "\xEE\xA7\xA4" /* e9e4 */
 #define ICON_MUSIC_NOTE         "\xEE\x90\x85" /* e405 */
 #define ICON_EVENT              "\xEE\xA1\xB8" /* e878 */

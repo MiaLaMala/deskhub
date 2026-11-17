@@ -83,7 +83,7 @@ It asks these questions in order. When you run it again, each answer you gave be
 10. **Claude Code limits**: whether to turn on live limits. See [Claude Code usage](#claude-code-usage).
 11. **Waiting alerts**: whether the board shows when a Claude Code session is waiting for you. Setup offers to add the hooks to Claude Code's settings, update hooks from an older version, or remove them when you turn alerts off. See [Waiting alerts](#waiting-alerts).
 12. **AI agent**: which agent the AI page shows: `auto`, `claude` or `codex`.
-13. **Build and flash**: setup asks before it builds. Then it finds the board's USB port, or asks for the COM port if it can't tell (Device Manager lists it under *Ports*), and installs the firmware. The first build takes a few minutes.
+13. **Build and flash**: setup asks before it builds. Once the board runs Desk Hub, the new firmware goes over Wi-Fi and the board asks you to tap **Install**. The first time, or when Wi-Fi can't work, it uses USB: setup finds the board's port, or asks for the COM port if it can't tell (Device Manager lists it under *Ports*). The first build takes a few minutes.
 14. **Start with Windows**: whether the companion starts by itself, hidden, when you sign in. See [Start the companion with Windows](#start-the-companion-with-windows).
 
 Setup also creates `companion/config.toml` and gives the board and the companion a shared random token, so they can trust each other.
@@ -94,6 +94,18 @@ If setup says it can't find ESP-IDF, or the flash fails, you can flash by hand. 
 . C:\Espressif\frameworks\esp-idf-v5.5.1\export.ps1
 idf.py -p COM5 flash
 ```
+
+### Updating the firmware
+
+After pulling new code, or changing a setting that lives in the firmware, run:
+
+```bash
+uv run deskhub-flash
+```
+
+It builds the firmware and sends it to the board over Wi-Fi. The board shows **Install a firmware update?**: tap **Install** within a minute and it installs, then restarts; **Deny** leaves it as it is. Nothing is installed without that tap, and the upload needs the board's token. If the board isn't reachable, runs firmware from before Wi-Fi updates, or no longer accepts the token, `deskhub-flash` falls back to USB. Use `--usb` to go straight to USB, and `--no-build` to send the last build again.
+
+If a new firmware can't start properly, the board goes back to the previous one by itself on the next restart.
 
 ### 4. Start the companion
 

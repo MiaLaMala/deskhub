@@ -25,10 +25,6 @@ Ideas for Desk Hub, roughly in order of value. Each item notes how it would work
   - **Apply live:** saving pushes layout, Home and tile changes to the board at once; settings that need firmware (Wi-Fi, city, units) offer **Build and flash**.
   - Opened from the tray icon (next to **Edit config**) and by `uv run deskhub-config`.
 
-- [ ] **Firmware updates over Wi-Fi.** Flash new builds without the USB cable.
-  - Add OTA partitions (a one-time USB flash to change the partition table) and an authenticated `/firmware` upload endpoint, with an on-screen Allow/Deny prompt.
-  - Setup and a `deskhub-flash` command use it when the board is reachable, and fall back to USB.
-
 ## Publishing
 
 - [ ] **GitHub repository.**
@@ -57,3 +53,4 @@ Ideas for Desk Hub, roughly in order of value. Each item notes how it would work
 - [x] Night mode: the board goes dark or shows a clock on a schedule kept on the board, and a touch wakes it for a minute
 - [x] Start with Windows: `deskhub-install` adds a hidden login shortcut (and `--remove` takes it away), offered as setup's last step
 - [x] Tray icon for the companion: connection status, Edit config, Run setup, Restart, Open log and Quit; the login shortcut starts it with the icon
+- [x] Firmware updates over Wi-Fi: `deskhub-flash` (and setup) send new builds to the board, which asks Install / Deny and rolls back a build that can't start; USB as the fallback
