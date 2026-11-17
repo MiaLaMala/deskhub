@@ -430,12 +430,22 @@ def step_home(config_path: pathlib.Path):
         if new_header:
             print("With the top bar, the clock widget isn't shown.")
         print("Add widgets one at a time; each goes in the first free spot, left to right,\n"
-              "top to bottom. Press Enter when you're done.")
+              "top to bottom. Type undo to take the last one off, or clear to start\n"
+              "over. Press Enter when you're done.")
         new_grid = []
         while True:
             name = ask("Widget to add", "").strip().lower()
             if not name:
                 break
+            if name in ("undo", "clear"):
+                if not new_grid:
+                    print("Nothing to take off yet.")
+                    continue
+                gone = new_grid[-1:] if name == "undo" else new_grid
+                print(f"Took off {', '.join(g['widget'] for g in gone)}.")
+                new_grid = new_grid[:-1] if name == "undo" else []
+                print(grid_map(new_grid))
+                continue
             if name not in HOME_WIDGETS:
                 print(f"Unknown widget: {name}")
                 continue

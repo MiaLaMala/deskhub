@@ -262,7 +262,7 @@ Live download and upload speeds come from the same numbers as the PC stats page.
 
 ## Customizing Home
 
-Home is a grid of 5 columns by 3 rows, under a slim bar with the time and date. Each widget takes a size in cells (width × height) and lays itself out for it. Place widgets in `companion/config.toml`, or use setup's *Home screen* step, which asks for a widget and a size and puts it in the first free spot:
+Home is a grid of 5 columns by 3 rows, under a slim bar with the time and date. Each widget takes a size in cells (width × height) and lays itself out for it. Place widgets in `companion/config.toml`, or use setup's *Home screen* step, which asks for a widget and a size and puts it in the first free spot (type `undo` to take the last one off, or `clear` to start over):
 
 ```toml
 [home]

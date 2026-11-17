@@ -51,4 +51,28 @@ m = home_message(cfg)
 check(m["header"] is False and m["grid"] == home_grid(cfg), "message carries the grid")
 check(m["left"] == ["weather", "clock"] and m["right"] == [], "and columns for older firmware")
 
+# The setup step: undo takes the last widget off, clear starts over.
+import builtins
+import tempfile
+
+import tomlkit
+from deskhub import setup_cli
+
+answers = iter(["n",                      # no slim top bar
+                "n",                      # don't keep today's layout
+                "clock", "3x1", "media", "2x1", "undo",
+                "net", "1x1", "clear", "undo",
+                "weather", "2x1", "stats", "2x1", "undo", "events", "2x2", ""])
+real_input = builtins.input
+builtins.input = lambda prompt="": next(answers)
+try:
+    with tempfile.TemporaryDirectory() as d:
+        path = pathlib.Path(d) / "config.toml"
+        path.write_text("", encoding="utf-8")
+        setup_cli.step_home(path)
+        saved = tomlkit.parse(path.read_text(encoding="utf-8")).unwrap()["home"]["grid"]
+finally:
+    builtins.input = real_input
+check(saved == [G("weather", 0, 0, 2, 1), G("events", 2, 0, 2, 2)], f"undo and clear in setup: {saved}")
+
 print("\nPROBLEMS:" if problems else "\nOK", problems if problems else "")
