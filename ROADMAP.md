@@ -13,12 +13,6 @@ Ideas for Desk Hub, roughly in order of value. Each item notes how it would work
 
 ## Day-to-day polish
 
-- [ ] **Home as a 5 × 3 grid with sized widgets.** Replace today's two columns with a grid of 5 columns by 3 rows, so widgets fill the screen without odd gaps or squeezed cards.
-  - **Sizes per widget:** each widget lists the sizes it supports, such as 1×1, 2×1, 1×2 or 2×2, and lays itself out for each. For example, weather at 1×1 shows the temperature and icon, and at 2×1 adds high, low and conditions. The clock can be 2×1 or 3×1, and Up next 2×2 or 2×3.
-  - **Config:** `[home]` lists widgets with a position and size, for example `{ widget = "weather", x = 0, y = 0, w = 2, h = 1 }`. The companion checks for overlaps and unsupported sizes before sending.
-  - **Cell size:** computed from the space the navigation bar leaves (beside the rail or above the dock), with one gap value, so every widget lines up.
-  - **Setup and Configurator:** pick a widget, then a size from its list. The Configurator UI gets a drag-and-drop grid editor.
-
 - [ ] **Configurator UI on the PC.** A settings window instead of editing `config.toml` and answering setup questions in a terminal.
   - **Sections:** Wi-Fi and city, pages (toggles and order), a drag-and-drop Home layout with a live preview at 800 × 480, calendars, printers, shortcut tiles (icon picker, colour, action), custom games (pick from open windows), Claude/Codex options, internet, and Steam key.
   - **How:** a small local web app served by the companion on `127.0.0.1` (no new install; opens in the default browser), editing `config.toml` with tomlkit so comments survive. Secrets still go to the Windows credential store.
@@ -54,3 +48,4 @@ Ideas for Desk Hub, roughly in order of value. Each item notes how it would work
 - [x] Start with Windows: `deskhub-install` adds a hidden login shortcut (and `--remove` takes it away), offered as setup's last step
 - [x] Tray icon for the companion: connection status, Edit config, Run setup, Restart, Open log and Quit; the login shortcut starts it with the icon
 - [x] Firmware updates over Wi-Fi: `deskhub-flash` (and setup) send new builds to the board, which asks Install / Deny and rolls back a build that can't start; USB as the fallback
+- [x] Home as a 5 × 3 grid: widgets placed by cell with sizes they support, checked by the companion; setup places them for you

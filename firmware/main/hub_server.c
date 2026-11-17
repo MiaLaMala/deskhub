@@ -294,18 +294,34 @@ static void on_pc_power(const cJSON *m)
 // Home widgets: {"type":"home","left":["clock",...],"right":["weather",...]}.
 static void on_home(const cJSON *m)
 {
-    char spec[128] = "";
-    if (get_bool(m, "header")) strlcpy(spec, "header;", sizeof(spec));
-    const char *cols[2] = {"left", "right"};
-    for (int c = 0; c < 2; c++) {
-        if (c) strlcat(spec, "|", sizeof(spec));
-        bool first = true;
+    // {"type":"home","header":true,"grid":[{"widget":"weather","x":0,"y":0,"w":2,"h":1},...]}
+    // or, from older companions, "left"/"right" columns of widget names.
+    char spec[256] = "";
+    const cJSON *grid = cJSON_GetObjectItemCaseSensitive(m, "grid");
+    if (cJSON_IsArray(grid)) strlcpy(spec, "grid;", sizeof(spec));
+    if (get_bool(m, "header")) strlcat(spec, "header;", sizeof(spec));
+    if (cJSON_IsArray(grid)) {
         const cJSON *it;
-        cJSON_ArrayForEach(it, cJSON_GetObjectItemCaseSensitive(m, cols[c])) {
-            if (!cJSON_IsString(it) || strlen(it->valuestring) > 12) continue;
-            if (!first) strlcat(spec, ",", sizeof(spec));
-            strlcat(spec, it->valuestring, sizeof(spec));
-            first = false;
+        cJSON_ArrayForEach(it, grid) {
+            char name[16], item[40];
+            copy_str(name, sizeof(name), it, "widget");
+            if (!name[0]) continue;
+            snprintf(item, sizeof(item), "%s@%d,%d,%d,%d;", name, (int)get_num(it, "x", 0), (int)get_num(it, "y", 0),
+                     (int)get_num(it, "w", 1), (int)get_num(it, "h", 1));
+            strlcat(spec, item, sizeof(spec));
+        }
+    } else {
+        const char *cols[2] = {"left", "right"};
+        for (int c = 0; c < 2; c++) {
+            if (c) strlcat(spec, "|", sizeof(spec));
+            bool first = true;
+            const cJSON *it;
+            cJSON_ArrayForEach(it, cJSON_GetObjectItemCaseSensitive(m, cols[c])) {
+                if (!cJSON_IsString(it) || strlen(it->valuestring) > 12) continue;
+                if (!first) strlcat(spec, ",", sizeof(spec));
+                strlcat(spec, it->valuestring, sizeof(spec));
+                first = false;
+            }
         }
     }
     display_lock();

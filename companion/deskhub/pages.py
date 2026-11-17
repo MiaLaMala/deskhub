@@ -1,7 +1,10 @@
 """Which board pages are shown. Home is always on."""
+import logging
 import re
 
 from .steam import steam_installed
+
+log = logging.getLogger(__name__)
 
 ALL_PAGES = ["home", "stats", "ai", "calendar", "weather", "media", "printer", "shortcuts", "timer", "games", "network"]
 PAGE_LABELS = {
@@ -131,6 +134,116 @@ def home_header(cfg: dict) -> bool:
     return bool(home.get("header", True))
 
 
+# ---- the 5 x 3 grid ----------------------------------------------------------
+GRID_COLS, GRID_ROWS = 5, 3
+# Sizes each widget supports: (widths, heights), in grid cells.
+HOME_SIZES = {
+    "clock": (range(2, 6), range(1, 3)),
+    "claude": (range(1, 6), range(1, 2)),
+    "events": (range(2, 6), range(1, 4)),
+    "weather": (range(1, 6), range(1, 2)),
+    "media": (range(2, 6), range(1, 2)),
+    "stats": (range(1, 6), range(1, 2)),
+    "printer": (range(2, 6), range(1, 2)),
+    "game": (range(2, 6), range(1, 2)),
+    "net": (range(1, 6), range(1, 2)),
+}
+
+
+def widget_sizes(name: str) -> list[str]:
+    """Sizes a widget supports, like ["2x1", "3x1"]."""
+    ws, hs = HOME_SIZES[name]
+    return [f"{w}x{h}" for h in hs for w in ws]
+
+
+def grid_problem(items: list[dict]) -> list[str]:
+    """Why each grid entry can't be used (empty list = all fine), in order."""
+    taken: dict[tuple[int, int], str] = {}
+    problems = []
+    for it in items:
+        name, x, y, w, h = it["widget"], it["x"], it["y"], it["w"], it["h"]
+        if name not in HOME_SIZES:
+            problems.append(f"{name}: no such widget")
+            continue
+        ws, hs = HOME_SIZES[name]
+        if w not in ws or h not in hs:
+            problems.append(f"{name}: {w}x{h} isn't a size it supports ({', '.join(widget_sizes(name))})")
+            continue
+        if x < 0 or y < 0 or x + w > GRID_COLS or y + h > GRID_ROWS:
+            problems.append(f"{name}: at {x},{y} a {w}x{h} widget runs off the {GRID_COLS}x{GRID_ROWS} grid")
+            continue
+        cells = [(cx, cy) for cx in range(x, x + w) for cy in range(y, y + h)]
+        clash = next((taken[c] for c in cells if c in taken), None)
+        if clash:
+            problems.append(f"{name}: overlaps {clash}")
+            continue
+        for c in cells:
+            taken[c] = name
+    return problems
+
+
+def place(items: list[tuple[str, int, int]], fixed: list[dict] | None = None) -> tuple[list[dict], list[str]]:
+    """Put (widget, w, h) items in the first free spot each, row by row.
+    Returns the placed entries and the names that didn't fit."""
+    grid = list(fixed or [])
+    left_out = []
+    for name, w, h in items:
+        for y in range(GRID_ROWS - h + 1):
+            spot = next((x for x in range(GRID_COLS - w + 1)
+                         if not grid_problem(grid + [{"widget": name, "x": x, "y": y, "w": w, "h": h}])), None)
+            if spot is not None:
+                grid.append({"widget": name, "x": spot, "y": y, "w": w, "h": h})
+                break
+        else:
+            left_out.append(name)
+    return grid, left_out
+
+
+def columns_to_grid(left: list[str], right: list[str]) -> list[dict]:
+    """Today's two columns on the grid: the left one 3 cells wide, the right one 2,
+    one row per widget, with Up next taking the rest of its column."""
+    grid = []
+    for x, w, col in ((0, 3, left), (3, 2, right)):
+        y = 0
+        for i, name in enumerate(col):
+            if y >= GRID_ROWS:
+                break
+            rest = GRID_ROWS - y
+            h = rest if name == "events" and i == len(col) - 1 else 1
+            h = min(h, max(HOME_SIZES[name][1]))
+            if w in HOME_SIZES[name][0]:
+                grid.append({"widget": name, "x": x, "y": y, "w": w, "h": h})
+            y += h
+    return grid
+
+
+def home_grid(cfg: dict) -> list[dict]:
+    """[home] grid = [{ widget = "weather", x = 0, y = 0, w = 2, h = 1 }, ...], checked;
+    entries that don't fit are dropped (and logged). Without it, the columns convert."""
+    home = cfg.get("home") if isinstance(cfg.get("home"), dict) else {}
+    raw = home.get("grid")
+    if not isinstance(raw, list):
+        return columns_to_grid(*home_columns(cfg))
+    good: list[dict] = []
+    for e in raw:
+        if not isinstance(e, dict):
+            continue
+        try:
+            it = {"widget": str(e.get("widget", "")).lower(), "x": int(e.get("x", 0)), "y": int(e.get("y", 0)),
+                  "w": int(e.get("w", 1)), "h": int(e.get("h", 1))}
+        except (TypeError, ValueError):
+            continue
+        problem = grid_problem(good + [it])
+        if problem:
+            log.warning("[home] grid: %s; leaving it out", problem[-1])
+        else:
+            good.append(it)
+    return good
+
+
 def home_message(cfg: dict) -> dict:
-    left, right = home_columns(cfg)
-    return {"type": "home", "left": left, "right": right, "header": home_header(cfg)}
+    grid = home_grid(cfg)
+    # Columns too, for board firmware from before the grid.
+    left = [g["widget"] for g in sorted(grid, key=lambda g: g["y"]) if g["x"] < 3]
+    right = [g["widget"] for g in sorted(grid, key=lambda g: g["y"]) if g["x"] >= 3]
+    return {"type": "home", "left": left, "right": right, "header": home_header(cfg), "grid": grid}

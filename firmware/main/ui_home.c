@@ -1,4 +1,4 @@
-// Home: a configurable set of widgets in two columns.
+// Home: a configurable set of widgets on a 5 x 3 grid (or, from older companions, two columns).
 //
 // The companion sends {"type":"home","left":[...],"right":[...]} with widget
 // names in order (top to bottom). Each widget has a natural height; "events"
@@ -31,7 +31,7 @@ static const int W_PAGE[W_COUNT] = {-1, PAGE_CLAUDE, PAGE_CALENDAR, PAGE_WEATHER
 #define W_MIN_EVENTS 120
 
 static lv_obj_t *s_w[W_COUNT];
-static char s_spec[128] = "header;claude,events|weather,media,stats";
+static char s_spec[256] = "header;claude,events|weather,media,stats";
 
 // Optional slim top bar with the time and date (instead of the clock widget).
 #define HEADER_H 44
@@ -111,7 +111,8 @@ static int time_digits(void)
 }
 
 // Geometry from the 128 px font's metrics, scaled linearly (no font is created here).
-static clock_geo_t clock_geo(int w)
+// max_h > 0: also shrink the digits so the clock and its date fit that height (grid cells).
+static clock_geo_t clock_geo(int w, int max_h)
 {
     clock_geo_t g;
     const lv_font_t *f = g_font_clock;
@@ -125,6 +126,11 @@ static clock_geo_t clock_geo(int w)
     if (g.px > 170) g.px = 170;
     lv_font_glyph_dsc_t d;
     lv_font_get_glyph_dsc(f, &d, '0', 0);
+    if (max_h > 0 && d.box_h > 0) {
+        int room = max_h - CLOCK_DATE_GAP - CLOCK_DATE_H;   // left for the digits
+        int fit = room * CLOCK_PX / d.box_h;
+        if (fit < g.px) g.px = fit < 24 ? 24 : fit;
+    }
     int ascent = f->line_height - f->base_line;
     g.cell = cell * g.px / CLOCK_PX;
     g.colon = colon * g.px / CLOCK_PX;
@@ -184,7 +190,7 @@ static void set_clock_text(const clock_geo_t *g)
 
 static void layout_clock(int w, int h)
 {
-    clock_geo_t g = clock_geo(w);
+    clock_geo_t g = clock_geo(w, h);
     s_clock_narrow = g.narrow;
     lv_font_t *old = NULL;
     lv_font_t *font = ui_clock_font(g.px, &old);
@@ -204,7 +210,7 @@ static void layout_clock(int w, int h)
 
 static int widget_height(int id, int w)
 {
-    return id == W_CLOCK ? clock_geo(w).height : (UI_COMPACT ? W_HEIGHT_COMPACT : W_HEIGHT)[id];
+    return id == W_CLOCK ? clock_geo(w, 0).height : (UI_COMPACT ? W_HEIGHT_COMPACT : W_HEIGHT)[id];
 }
 
 static void create_claude(lv_obj_t *page)
@@ -237,15 +243,24 @@ static void create_claude(lv_obj_t *page)
 
 static void layout_claude(int w, int h)
 {
+    // One grid cell wide: just the 5-hour limit, no badge.
+    bool tiny = w < 200;
+    for (int i = 0; i < 4; i++) {
+        lv_obj_t *o[4] = {s_cl_cap[1], s_cl_val[1], s_cl_bar[1], s_cl_sub[1]};
+        if (tiny) lv_obj_add_flag(o[i], LV_OBJ_FLAG_HIDDEN);
+        else lv_obj_remove_flag(o[i], LV_OBJ_FLAG_HIDDEN);
+    }
+    if (tiny) lv_obj_add_flag(s_cl_badge, LV_OBJ_FLAG_HIDDEN);
+    else lv_obj_remove_flag(s_cl_badge, LV_OBJ_FLAG_HIDDEN);
     // Badge on the left: a 40 px tile, or just the icon in the narrow column.
     bool narrow = w < 340;
     int badge = narrow ? 24 : 40;
     lv_obj_set_size(s_cl_badge, badge, badge);
     lv_obj_set_style_bg_opa(s_cl_badge, narrow ? LV_OPA_TRANSP : LV_OPA_20, 0);
     lv_obj_align(s_cl_badge, LV_ALIGN_LEFT_MID, 0, 0);
-    int x0 = badge + (narrow ? 8 : 12);
-    int colw = (w - 32 - x0 - 14) / 2;
-    for (int i = 0; i < 2; i++) {
+    int x0 = tiny ? 0 : badge + (narrow ? 8 : 12);
+    int colw = tiny ? w - 32 : (w - 32 - x0 - 14) / 2;
+    for (int i = 0; i < (tiny ? 1 : 2); i++) {
         int x = x0 + i * (colw + 14);
         // Narrow column: shorter captions so the percentage still fits.
         // Captions shrink with the column so they never run into the percentage.
@@ -373,11 +388,40 @@ static void create_stats(lv_obj_t *page)
 
 static void layout_stats(int w, int h)
 {
+    // Rows fill the card's height; one cell wide drops the bars (names and values only).
+    int inner = h - lv_obj_get_style_pad_top(s_w[W_STATS], 0) - lv_obj_get_style_pad_bottom(s_w[W_STATS], 0);
+    int step = inner >= 90 ? 30 : inner / 3;
+    bool bars = w >= 200;
     for (int i = 0; i < 3; i++) {
+        lv_obj_set_pos(s_st_name[i], 0, i * step);
+        if (bars) lv_obj_remove_flag(s_st_bar[i], LV_OBJ_FLAG_HIDDEN);
+        else lv_obj_add_flag(s_st_bar[i], LV_OBJ_FLAG_HIDDEN);
         lv_obj_set_width(s_st_bar[i], w - 32 - 48 - 56);
-        lv_obj_set_pos(s_st_bar[i], 48, i * 30 + 6);
-        lv_obj_set_pos(s_st_val[i], w - 32 - 48, i * 30);
+        lv_obj_set_pos(s_st_bar[i], 48, i * step + 6);
+        lv_obj_set_pos(s_st_val[i], w - 32 - 48, i * step);
     }
+}
+
+static void layout_weather(int w, int h)
+{
+    // One cell wide: a smaller icon beside the temperature, nothing else.
+    bool tiny = w < 200;
+    lv_obj_t *wx = s_w[W_WEATHER];
+    lv_obj_set_style_text_font(s_wx_icon, tiny ? g_icon_32 : g_icon_80, 0);
+    lv_obj_set_style_text_font(s_wx_temp, tiny ? g_font_32 : g_font_48, 0);
+    lv_obj_align(s_wx_icon, LV_ALIGN_LEFT_MID, tiny ? -2 : -4, 0);
+    if (tiny) {
+        lv_obj_align(s_wx_temp, LV_ALIGN_RIGHT_MID, 0, 0);
+        lv_obj_add_flag(s_wx_text, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(s_wx_range, LV_OBJ_FLAG_HIDDEN);
+    } else {
+        lv_obj_set_align(s_wx_temp, LV_ALIGN_TOP_LEFT);
+        lv_obj_set_pos(s_wx_temp, 96, -8);
+        lv_obj_remove_flag(s_wx_text, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_flag(s_wx_range, LV_OBJ_FLAG_HIDDEN);
+    }
+    (void)wx;
+    (void)h;
 }
 
 static void create_printer(lv_obj_t *page)
@@ -505,6 +549,15 @@ static void create_net(lv_obj_t *page)
 static void layout_net(int w, int h)
 {
     (void)h;
+    // One cell wide: the caption and latency; the status shows as the latency's colour.
+    bool tiny = w < 200;
+    if (tiny) {
+        lv_obj_add_flag(s_nt_state, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(s_nt_sub, LV_OBJ_FLAG_HIDDEN);
+    } else {
+        lv_obj_remove_flag(s_nt_state, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_flag(s_nt_sub, LV_OBJ_FLAG_HIDDEN);
+    }
     lv_obj_set_width(s_nt_sub, w - 32);
 }
 
@@ -562,6 +615,7 @@ static void layout_widget(int id, int w, int h)
     case W_PRINTER: layout_printer(w, h); break;
     case W_GAME: layout_game(w, h); break;
     case W_NET: layout_net(w, h); break;
+    case W_WEATHER: layout_weather(w, h); break;
     default: break;
     }
 }
@@ -619,16 +673,66 @@ static void place_column(const int *ids, int n, int x, int w, bool *placed)
     }
 }
 
+// ---- grid: 5 columns x 3 rows ------------------------------------------------
+// "grid;[header;]weather@0,0,2,1;stats@0,1,2,1;..." places each widget on cells
+// x,y (from the top left) spanning w x h. Cells share the space the navigation
+// bar leaves (and the top bar, if shown), with GAP between them.
+#define GRID_COLS 5
+#define GRID_ROWS 3
+
+static void place_grid(const char *s, bool *placed)
+{
+    int area_w = CONTENT_W, area_h = CONTENT_H - s_top;
+    while (*s) {
+        const char *end = strchr(s, ';');
+        int len = end ? (int)(end - s) : (int)strlen(s);
+        char item[32];
+        if (len < (int)sizeof(item)) {
+            memcpy(item, s, len);
+            item[len] = 0;
+            char *at = strchr(item, '@');
+            int x, y, w, h;
+            if (at && sscanf(at + 1, "%d,%d,%d,%d", &x, &y, &w, &h) == 4) {
+                *at = 0;
+                int id = -1;
+                for (int i = 0; i < W_COUNT; i++) {
+                    if (strcmp(item, W_NAMES[i]) == 0) id = i;
+                }
+                if (x < 0) x = 0;
+                if (y < 0) y = 0;
+                if (x + w > GRID_COLS) w = GRID_COLS - x;
+                if (y + h > GRID_ROWS) h = GRID_ROWS - y;
+                if (id >= 0 && !placed[id] && w > 0 && h > 0 && widget_enabled(id)) {
+                    // Edges from the cell grid, so every widget lines up exactly.
+                    int x0 = x * (area_w + GAP) / GRID_COLS;
+                    int x1 = (x + w) * (area_w + GAP) / GRID_COLS - GAP;
+                    int y0 = y * (area_h + GAP) / GRID_ROWS;
+                    int y1 = (y + h) * (area_h + GAP) / GRID_ROWS - GAP;
+                    lv_obj_set_pos(s_w[id], x0, s_top + y0);
+                    lv_obj_set_size(s_w[id], x1 - x0, y1 - y0);
+                    layout_widget(id, x1 - x0, y1 - y0);
+                    lv_obj_remove_flag(s_w[id], LV_OBJ_FLAG_HIDDEN);
+                    placed[id] = true;
+                }
+            }
+        }
+        if (!end) break;
+        s = end + 1;
+    }
+}
+
 // Re-place every widget from s_spec and the page toggles.
 void home_apply_layout(void)
 {
     if (!s_w[W_CLOCK]) return;
     bool placed[W_COUNT] = {0};
     int left[W_COUNT], right[W_COUNT];
+    bool grid = strncmp(s_spec, "grid;", 5) == 0;
+    const char *spec = grid ? s_spec + 5 : s_spec;
     // "header;" in front of the spec: time and date in a slim bar across the top
     // instead of the clock widget, which leaves room for more widgets.
-    s_header = strncmp(s_spec, "header;", 7) == 0;
-    const char *cols = s_header ? s_spec + 7 : s_spec;
+    s_header = strncmp(spec, "header;", 7) == 0;
+    const char *cols = s_header ? spec + 7 : spec;
     s_top = s_header ? HEADER_H + GAP : 0;
     if (s_header) {
         lv_obj_remove_flag(s_hdr, LV_OBJ_FLAG_HIDDEN);
@@ -637,11 +741,16 @@ void home_apply_layout(void)
     } else {
         lv_obj_add_flag(s_hdr, LV_OBJ_FLAG_HIDDEN);
     }
-    int nl = parse_column(cols, left);
-    const char *bar = strchr(cols, '|');
-    int nr = bar ? parse_column(bar + 1, right) : 0;
-    place_column(left, nl, 0, LEFT_W, placed);
-    place_column(right, nr, RIGHT_X, RIGHT_W, placed);
+    if (grid) {
+        place_grid(cols, placed);
+    } else {
+        // Two columns, from companions older than the grid.
+        int nl = parse_column(cols, left);
+        const char *bar = strchr(cols, '|');
+        int nr = bar ? parse_column(bar + 1, right) : 0;
+        place_column(left, nl, 0, LEFT_W, placed);
+        place_column(right, nr, RIGHT_X, RIGHT_W, placed);
+    }
     for (int i = 0; i < W_COUNT; i++) {
         if (!placed[i]) lv_obj_add_flag(s_w[i], LV_OBJ_FLAG_HIDDEN);
     }
@@ -761,7 +870,7 @@ void home_tick(void)
         if (time_digits() != digits_before) {
             home_apply_layout();  // e.g. 9:59 -> 10:00: new size, so the column may reflow
         } else {
-            clock_geo_t g = clock_geo(lv_obj_get_width(s_w[W_CLOCK]));
+            clock_geo_t g = clock_geo(lv_obj_get_width(s_w[W_CLOCK]), lv_obj_get_height(s_w[W_CLOCK]));
             set_clock_text(&g);
         }
     }

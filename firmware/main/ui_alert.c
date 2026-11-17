@@ -90,15 +90,32 @@ static lv_obj_t *cover(lv_obj_t *host)
     lv_obj_set_style_radius(p, lv_obj_get_style_radius(host, 0), 0);
     lv_obj_set_style_border_color(p, lv_color_hex(COL_WARN), 0);
     lv_obj_set_style_border_width(p, 2, 0);
+    lv_obj_set_user_data(p, host);   // fit() may move it onto the page; it still follows this card
     return p;
 }
 
 // Match the host's current size (Home widgets are re-laid out as columns change).
+#define ALERT_MIN_W 320   // narrower than this, the text has no room
+
 static void fit(lv_obj_t *p)
 {
-    lv_obj_t *host = lv_obj_get_parent(p);
+    lv_obj_t *host = lv_obj_get_user_data(p);
     lv_obj_update_layout(host);
-    lv_obj_set_size(p, lv_obj_get_width(host), lv_obj_get_height(host));
+    int w = lv_obj_get_width(host);
+    // (A hidden card keeps the strip as its child, so the strip hides with it.)
+    if (w < ALERT_MIN_W && lv_obj_get_parent(host) && !lv_obj_has_flag(host, LV_OBJ_FLAG_HIDDEN)) {
+        // A one-cell Home card: the strip sits on the page instead, wider than the
+        // card and over its neighbours, but still on the page.
+        lv_obj_t *page = lv_obj_get_parent(host);
+        if (lv_obj_get_parent(p) != page) lv_obj_set_parent(p, page);
+        int x = lv_obj_get_x(host);
+        if (x + ALERT_MIN_W > CONTENT_W) x = CONTENT_W - ALERT_MIN_W;
+        lv_obj_set_size(p, ALERT_MIN_W, lv_obj_get_height(host));
+        lv_obj_set_pos(p, x, lv_obj_get_y(host));
+        return;
+    }
+    if (lv_obj_get_parent(p) != host) lv_obj_set_parent(p, host);
+    lv_obj_set_size(p, w, lv_obj_get_height(host));
     lv_obj_set_pos(p, -lv_obj_get_style_pad_left(host, 0) - lv_obj_get_style_border_width(host, 0),
                    -lv_obj_get_style_pad_top(host, 0) - lv_obj_get_style_border_width(host, 0));
 }

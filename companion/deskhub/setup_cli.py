@@ -391,41 +391,82 @@ def step_display(config_path: pathlib.Path):
         config_path.write_text(tomlkit.dumps(doc), encoding="utf-8")
 
 
+# A sensible first size for each widget when you add it.
+DEFAULT_SIZE = {"clock": "3x1", "claude": "3x1", "events": "2x2", "weather": "2x1", "media": "3x1",
+                "stats": "2x1", "printer": "2x1", "game": "2x1", "net": "2x1"}
+
+
+def grid_map(grid: list[dict]) -> str:
+    """The 5 x 3 grid as text, three letters per cell."""
+    from .pages import GRID_COLS, GRID_ROWS
+
+    cells = [["  . " for _ in range(GRID_COLS)] for _ in range(GRID_ROWS)]
+    for g in grid:
+        for y in range(g["y"], g["y"] + g["h"]):
+            for x in range(g["x"], g["x"] + g["w"]):
+                cells[y][x] = f" {g['widget'][:3]}"
+    return "\n".join("   " + "".join(row) for row in cells)
+
+
 def step_home(config_path: pathlib.Path):
     heading("Home screen")
-    from .pages import HOME_WIDGETS, home_columns, home_header
+    from .pages import HOME_WIDGETS, home_grid, home_header, place, widget_sizes
 
     doc = tomlkit.parse(config_path.read_text(encoding="utf-8"))
-    left, right = home_columns(doc.unwrap())
+    grid = home_grid(doc.unwrap())
     header = home_header(doc.unwrap())
     print("The time and date can be the big clock widget, or a slim bar across the top of\n"
           "Home, which leaves room for another widget.")
     new_header = yes("Time and date in a slim top bar", header)
-    print("Home shows widgets in two columns, top to bottom. Available widgets:")
-    for name, label in HOME_WIDGETS.items():
-        print(f"  {name:<8} {label}")
-    print("The left column is wider and fits the big clock. 'events' stretches to fill its column.")
-    if new_header:
-        print("With the top bar, 'clock' is skipped if you list it.")
-
-    def ask_column(label: str, current: list[str]) -> list[str]:
+    print("Home is a grid of 5 columns by 3 rows. Each widget takes a size in cells,\n"
+          "width x height. Today's layout:")
+    print(grid_map(grid))
+    if yes("Keep this layout", True):
+        new_grid = grid
+    else:
+        print("Widgets and the sizes they come in:")
+        for name, label in HOME_WIDGETS.items():
+            print(f"  {name:<8} {label:<22} {', '.join(widget_sizes(name))}")
+        if new_header:
+            print("With the top bar, the clock widget isn't shown.")
+        print("Add widgets one at a time; each goes in the first free spot, left to right,\n"
+              "top to bottom. Press Enter when you're done.")
+        new_grid = []
         while True:
-            raw = ask(f"{label} column, comma-separated", ", ".join(current))
-            names = [n.strip().lower() for n in raw.split(",") if n.strip()]
-            bad = [n for n in names if n not in HOME_WIDGETS]
-            if not bad:
-                return names
-            print(f"Unknown widget(s): {', '.join(bad)}")
-
-    new_left = ask_column("Left", left)
-    new_right = [n for n in ask_column("Right", right) if n not in new_left]
-    if (new_left, new_right, new_header) != (left, right, header) or "home" not in doc:
+            name = ask("Widget to add", "").strip().lower()
+            if not name:
+                break
+            if name not in HOME_WIDGETS:
+                print(f"Unknown widget: {name}")
+                continue
+            if any(g["widget"] == name for g in new_grid):
+                print(f"{name} is already on Home.")
+                continue
+            sizes = widget_sizes(name)
+            while True:
+                size = ask(f"Size ({', '.join(sizes)})", DEFAULT_SIZE[name]).strip().lower().replace("×", "x")
+                if size in sizes:
+                    break
+                print(f"{name} comes in {', '.join(sizes)}.")
+            w, h = (int(v) for v in size.split("x"))
+            new_grid, left_out = place([(name, w, h)], new_grid)
+            if left_out:
+                print(f"No room left for a {size} {name}; try a smaller size.")
+            else:
+                print(grid_map(new_grid))
+    if (new_grid, new_header) != (grid, header) or "home" not in doc or "grid" not in doc["home"]:
         home = doc.get("home") or tomlkit.table()
         home["header"] = new_header
-        for key, value in (("left", new_left), ("right", new_right)):
-            arr = tomlkit.array()
-            arr.extend(value)
-            home[key] = arr
+        arr = tomlkit.array()
+        for g in new_grid:
+            t = tomlkit.inline_table()
+            t.update({"widget": g["widget"], "x": g["x"], "y": g["y"], "w": g["w"], "h": g["h"]})
+            arr.append(t)
+        arr.multiline(True)
+        home["grid"] = arr
+        for old in ("left", "right"):   # replaced by the grid
+            if old in home:
+                del home[old]
         doc["home"] = home
         config_path.write_text(tomlkit.dumps(doc), encoding="utf-8")
 
