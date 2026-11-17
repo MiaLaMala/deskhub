@@ -149,8 +149,8 @@ static void create_clock(lv_obj_t *page)
         lv_obj_set_style_text_align(s_cell[i], LV_TEXT_ALIGN_CENTER, 0);
     }
     s_clock_font = g_font_clock;
-    s_ampm = ui_label(w, &lv_font_montserrat_24, COL_MUTED, "");
-    s_date = ui_label(w, &lv_font_montserrat_24, COL_MUTED, "Waiting for network");
+    s_ampm = ui_label(w, g_font_24, COL_MUTED, "");
+    s_date = ui_label(w, g_font_24, COL_MUTED, "Waiting for network");
     // Separator dot between the date and AM/PM in the narrow column.
     s_date_dot = lv_obj_create(w);
     lv_obj_remove_style_all(s_date_dot);
@@ -224,12 +224,12 @@ static void create_claude(lv_obj_t *page)
     lv_obj_center(s_cl_icon);
     static const char *caps[2] = {"5-HOUR LIMIT", "WEEKLY LIMIT"};
     for (int i = 0; i < 2; i++) {
-        s_cl_cap[i] = ui_label(c, &lv_font_montserrat_14, COL_MUTED, caps[i]);
-        s_cl_val[i] = ui_label(c, &lv_font_montserrat_20, COL_TEXT, "--");
+        s_cl_cap[i] = ui_label(c, g_font_14, COL_MUTED, caps[i]);
+        s_cl_val[i] = ui_label(c, g_font_20, COL_TEXT, "--");
         lv_obj_set_width(s_cl_val[i], 64);
         lv_obj_set_style_text_align(s_cl_val[i], LV_TEXT_ALIGN_RIGHT, 0);
         s_cl_bar[i] = ui_bar(c, COL_GOOD);
-        s_cl_sub[i] = ui_label(c, &lv_font_montserrat_14, COL_MUTED, "");
+        s_cl_sub[i] = ui_label(c, g_font_14, COL_MUTED, "");
         lv_label_set_long_mode(s_cl_sub[i], LV_LABEL_LONG_DOT);
     }
     s_w[W_CLAUDE] = c;
@@ -276,14 +276,14 @@ static void create_events(lv_obj_t *page)
         lv_obj_set_style_radius(s_ev_dot[i], 2, 0);
         lv_obj_set_style_bg_opa(s_ev_dot[i], LV_OPA_COVER, 0);
         lv_obj_align(s_ev_dot[i], LV_ALIGN_LEFT_MID, 0, 0);
-        s_ev_title[i] = ui_label(row, &lv_font_montserrat_20, COL_TEXT, "");
+        s_ev_title[i] = ui_label(row, g_font_20, COL_TEXT, "");
         lv_label_set_long_mode(s_ev_title[i], LV_LABEL_LONG_DOT);
         lv_obj_set_pos(s_ev_title[i], 14, 2);
-        s_ev_time[i] = ui_label(row, &lv_font_montserrat_16, COL_MUTED, "");
+        s_ev_time[i] = ui_label(row, g_font_16, COL_MUTED, "");
         lv_obj_set_pos(s_ev_time[i], 14, 30);
         s_ev_rows[i] = row;
     }
-    s_ev_empty = ui_label(ev, &lv_font_montserrat_20, COL_DIM, "Nothing scheduled");
+    s_ev_empty = ui_label(ev, g_font_20, COL_DIM, "Nothing scheduled");
     lv_obj_center(s_ev_empty);
     s_w[W_EVENTS] = ev;
 }
@@ -308,11 +308,11 @@ static void create_weather(lv_obj_t *page)
     lv_obj_t *wx = widget_card(page, PAGE_WEATHER);
     s_wx_icon = ui_label(wx, g_icon_80, COL_WARN, ICON_CLOUD);
     lv_obj_align(s_wx_icon, LV_ALIGN_LEFT_MID, -4, 0);
-    s_wx_temp = ui_label(wx, &lv_font_montserrat_48, COL_TEXT, "--");
+    s_wx_temp = ui_label(wx, g_font_48, COL_TEXT, "--");
     lv_obj_set_pos(s_wx_temp, 96, -8);
-    s_wx_text = ui_label(wx, &lv_font_montserrat_16, COL_MUTED, "Loading weather");
+    s_wx_text = ui_label(wx, g_font_16, COL_MUTED, "Loading weather");
     lv_obj_set_pos(s_wx_text, 98, UI_COMPACT ? 42 : 46);
-    s_wx_range = ui_label(wx, &lv_font_montserrat_16, COL_MUTED, "");
+    s_wx_range = ui_label(wx, g_font_16, COL_MUTED, "");
     lv_obj_set_pos(s_wx_range, 98, UI_COMPACT ? 61 : 66);
     s_w[W_WEATHER] = wx;
 }
@@ -338,10 +338,10 @@ static void create_media(lv_obj_t *page)
     lv_obj_set_size(s_md_art, 64, 64);
     lv_image_set_inner_align(s_md_art, LV_IMAGE_ALIGN_STRETCH);
     lv_obj_add_flag(s_md_art, LV_OBJ_FLAG_HIDDEN);
-    s_md_title = ui_label(md, &lv_font_montserrat_20, COL_TEXT, "Nothing playing");
+    s_md_title = ui_label(md, g_font_20, COL_TEXT, "Nothing playing");
     lv_label_set_long_mode(s_md_title, LV_LABEL_LONG_SCROLL_CIRCULAR);
     lv_obj_set_pos(s_md_title, 76, 2);
-    s_md_artist = ui_label(md, &lv_font_montserrat_16, COL_MUTED, "");
+    s_md_artist = ui_label(md, g_font_16, COL_MUTED, "");
     lv_label_set_long_mode(s_md_artist, LV_LABEL_LONG_DOT);
     lv_obj_set_pos(s_md_artist, 76, 30);
     s_md_btn = ui_round_button(md, 40, COL_CARD_HI, g_icon_24, ICON_PLAY_ARROW, play_cb, NULL);
@@ -361,10 +361,10 @@ static void create_stats(lv_obj_t *page)
     static const char *names[3] = {"CPU", "GPU", "RAM"};
     static const uint32_t colors[3] = {COL_ACCENT2, COL_CYAN, COL_DATA3};
     for (int i = 0; i < 3; i++) {
-        s_st_name[i] = ui_label(st, &lv_font_montserrat_16, COL_MUTED, names[i]);
+        s_st_name[i] = ui_label(st, g_font_16, COL_MUTED, names[i]);
         lv_obj_set_pos(s_st_name[i], 0, i * 30);
         s_st_bar[i] = ui_bar(st, colors[i]);
-        s_st_val[i] = ui_label(st, &lv_font_montserrat_16, COL_TEXT, "--");
+        s_st_val[i] = ui_label(st, g_font_16, COL_TEXT, "--");
         lv_obj_set_width(s_st_val[i], 48);
         lv_obj_set_style_text_align(s_st_val[i], LV_TEXT_ALIGN_RIGHT, 0);
     }
@@ -385,15 +385,15 @@ static void create_printer(lv_obj_t *page)
     lv_obj_t *c = widget_card(page, PAGE_PRINTER);
     s_pr_name = ui_caption(c, "3D PRINT");
     lv_obj_set_pos(s_pr_name, 0, 0);
-    s_pr_state = ui_label(c, &lv_font_montserrat_14, COL_MUTED, "");
+    s_pr_state = ui_label(c, g_font_14, COL_MUTED, "");
     lv_obj_align(s_pr_state, LV_ALIGN_TOP_RIGHT, 0, 0);
-    s_pr_file = ui_label(c, &lv_font_montserrat_20, COL_TEXT, "");
+    s_pr_file = ui_label(c, g_font_20, COL_TEXT, "");
     lv_label_set_long_mode(s_pr_file, LV_LABEL_LONG_DOT);
     lv_obj_set_pos(s_pr_file, 0, 22);
     s_pr_bar = ui_bar(c, COL_ACCENT);
     lv_obj_set_height(s_pr_bar, 10);
     lv_obj_set_pos(s_pr_bar, 0, UI_COMPACT ? 50 : 54);
-    s_pr_info = ui_label(c, &lv_font_montserrat_14, COL_MUTED, "");
+    s_pr_info = ui_label(c, g_font_14, COL_MUTED, "");
     lv_obj_set_pos(s_pr_info, 0, UI_COMPACT ? 64 : 70);
     s_w[W_PRINTER] = c;
 }
@@ -441,10 +441,10 @@ static void create_game(lv_obj_t *page)
     s_gm_cap = ui_caption(c, "STEAM");
     lv_label_set_long_mode(s_gm_cap, LV_LABEL_LONG_DOT);
     lv_obj_set_height(s_gm_cap, 18);
-    s_gm_sub = ui_label(c, &lv_font_montserrat_14, COL_MUTED, "");
+    s_gm_sub = ui_label(c, g_font_14, COL_MUTED, "");
     lv_label_set_long_mode(s_gm_sub, LV_LABEL_LONG_DOT);
     lv_obj_set_height(s_gm_sub, 18);
-    s_gm_name = ui_label(c, &lv_font_montserrat_20, COL_TEXT, "");
+    s_gm_name = ui_label(c, g_font_20, COL_TEXT, "");
     lv_label_set_long_mode(s_gm_name, LV_LABEL_LONG_DOT);
     lv_obj_set_height(s_gm_name, 24);
     // Play button (last game, nothing running) sits on the cover.
@@ -491,11 +491,11 @@ static void create_net(lv_obj_t *page)
     lv_obj_t *c = widget_card(page, PAGE_NETWORK);
     lv_obj_t *cap = ui_caption(c, "INTERNET");
     lv_obj_set_pos(cap, 0, 0);
-    s_nt_state = ui_label(c, &lv_font_montserrat_14, COL_GOOD, "");
+    s_nt_state = ui_label(c, g_font_14, COL_GOOD, "");
     lv_obj_align(s_nt_state, LV_ALIGN_TOP_RIGHT, 0, 0);
-    s_nt_lat = ui_label(c, &lv_font_montserrat_32, COL_TEXT, "--");
+    s_nt_lat = ui_label(c, g_font_32, COL_TEXT, "--");
     lv_obj_set_pos(s_nt_lat, 0, 22);
-    s_nt_sub = ui_label(c, &lv_font_montserrat_14, COL_MUTED, "");
+    s_nt_sub = ui_label(c, g_font_14, COL_MUTED, "");
     lv_label_set_long_mode(s_nt_sub, LV_LABEL_LONG_DOT);
     lv_obj_set_height(s_nt_sub, 18);
     lv_obj_set_pos(s_nt_sub, 0, UI_COMPACT ? 62 : 66);
@@ -523,8 +523,8 @@ static void create_header(lv_obj_t *page)
     lv_obj_set_style_border_width(s_hdr, 1, 0);
     s_hdr_time = ui_label(s_hdr, ui_header_font(), COL_TEXT, "--:--");
     lv_obj_align(s_hdr_time, LV_ALIGN_LEFT_MID, 0, -4);
-    s_hdr_ampm = ui_label(s_hdr, &lv_font_montserrat_20, COL_MUTED, "");
-    s_hdr_date = ui_label(s_hdr, &lv_font_montserrat_24, COL_MUTED, "");
+    s_hdr_ampm = ui_label(s_hdr, g_font_20, COL_MUTED, "");
+    s_hdr_date = ui_label(s_hdr, g_font_24, COL_MUTED, "");
     lv_obj_align(s_hdr_date, LV_ALIGN_RIGHT_MID, 0, -2);
     lv_obj_add_flag(s_hdr, LV_OBJ_FLAG_HIDDEN);
 }
@@ -778,7 +778,7 @@ static void update_date(const struct tm *tm)
     const int nfmt = sizeof(formats) / sizeof(formats[0]);
     int w = lv_obj_get_width(s_w[W_CLOCK]);
     char text[48];
-    const lv_font_t *ref = &lv_font_montserrat_24;
+    const lv_font_t *ref = g_font_24;
 
     if (!s_clock_narrow) {
         // Wide column: AM/PM sits beside the clock; longest date that fits at 24 px.
@@ -787,7 +787,7 @@ static void update_date(const struct tm *tm)
             strftime(text, sizeof(text), formats[i], tm);
             if (text_width(text, ref, 0) <= w) break;
         }
-        lv_obj_set_style_text_font(s_ampm, &lv_font_montserrat_24, 0);
+        lv_obj_set_style_text_font(s_ampm, g_font_24, 0);
         lv_obj_set_style_text_color(s_ampm, lv_color_hex(COL_MUTED), 0);
         if (s_date_px != 24 || strcmp(lv_label_get_text(s_date), text) != 0) {
             lv_obj_set_style_text_font(s_date, ref, 0);
@@ -1046,7 +1046,7 @@ void home_refresh_game(void)
         else snprintf(buf, sizeof(buf), "%dm", t / 60);
         if (games_total_worth_showing(g->total_min, t)) {
             ui_fmt_playtime(tot, sizeof(tot), g->total_min);
-            strlcat(buf, "  " LV_SYMBOL_BULLET "  ", sizeof(buf));
+            strlcat(buf, "  " "•" "  ", sizeof(buf));
             strlcat(buf, tot, sizeof(buf));
         }
         if (strcmp(lv_label_get_text(s_gm_sub), buf) != 0) lv_label_set_text(s_gm_sub, buf);
@@ -1057,7 +1057,7 @@ void home_refresh_game(void)
         games_fmt_ago(buf, sizeof(buf), g->last);
         if (g->total_min > 0) {
             ui_fmt_playtime(tot, sizeof(tot), g->total_min);
-            strlcat(buf, "  " LV_SYMBOL_BULLET "  ", sizeof(buf));
+            strlcat(buf, "  " "•" "  ", sizeof(buf));
             strlcat(buf, tot, sizeof(buf));
         }
         lv_label_set_text(s_gm_sub, buf);
@@ -1089,10 +1089,10 @@ void home_refresh_net(void)
         strlcpy(buf, "Speed test running...", sizeof(buf));
     } else if (n->has_speed) {
         ui_fmt_ago(t, sizeof(t), n->speed_at);
-        snprintf(buf, sizeof(buf), LV_SYMBOL_DOWN " %.0f  " LV_SYMBOL_UP " %.0f Mbps  " LV_SYMBOL_BULLET "  %s",
+        snprintf(buf, sizeof(buf), "↓" " %.0f  " "↑" " %.0f Mbps  " "•" "  %s",
                  n->down_mbps, n->up_mbps, t);
     } else {
-        snprintf(buf, sizeof(buf), "Jitter %.1f ms  " LV_SYMBOL_BULLET "  Loss %d%%", n->jitter_ms, n->loss_pct);
+        snprintf(buf, sizeof(buf), "Jitter %.1f ms  " "•" "  Loss %d%%", n->jitter_ms, n->loss_pct);
     }
     lv_label_set_text(s_nt_sub, buf);
 }

@@ -79,23 +79,23 @@ static lv_obj_t *line(lv_obj_t *parent, const lv_font_t *font, uint32_t color, i
 void net_page_create(lv_obj_t *page)
 {
     lv_obj_t *c = top_card(page, 0, "LATENCY");
-    s_lat = line(c, UI_COMPACT ? &lv_font_montserrat_32 : &lv_font_montserrat_48, COL_TEXT, UI_COMPACT ? 24 : 20);
-    s_lat_sub = line(c, &lv_font_montserrat_14, COL_MUTED, UI_COMPACT ? 64 : 78);
+    s_lat = line(c, UI_COMPACT ? g_font_32 : g_font_48, COL_TEXT, UI_COMPACT ? 24 : 20);
+    s_lat_sub = line(c, g_font_14, COL_MUTED, UI_COMPACT ? 64 : 78);
 
     c = top_card(page, 1, "STATUS");
-    s_status = line(c, &lv_font_montserrat_32, COL_GOOD, 22);
-    s_up = line(c, &lv_font_montserrat_16, COL_TEXT, UI_COMPACT ? 54 : 60);
-    s_drop = line(c, &lv_font_montserrat_14, COL_MUTED, UI_COMPACT ? 70 : 80);
+    s_status = line(c, g_font_32, COL_GOOD, 22);
+    s_up = line(c, g_font_16, COL_TEXT, UI_COMPACT ? 54 : 60);
+    s_drop = line(c, g_font_14, COL_MUTED, UI_COMPACT ? 70 : 80);
 
     c = top_card(page, 2, "DATA USED");
     // Label on the left, amount on the right, one row each.
-    lv_obj_t *l = line(c, &lv_font_montserrat_16, COL_MUTED, UI_COMPACT ? 28 : 34);
+    lv_obj_t *l = line(c, g_font_16, COL_MUTED, UI_COMPACT ? 28 : 34);
     lv_label_set_text(l, "Today");
-    s_today = line(c, &lv_font_montserrat_24, COL_TEXT, UI_COMPACT ? 22 : 28);
+    s_today = line(c, g_font_24, COL_TEXT, UI_COMPACT ? 22 : 28);
     lv_obj_set_style_text_align(s_today, LV_TEXT_ALIGN_RIGHT, 0);
-    l = line(c, &lv_font_montserrat_16, COL_MUTED, UI_COMPACT ? 58 : 72);
+    l = line(c, g_font_16, COL_MUTED, UI_COMPACT ? 58 : 72);
     lv_label_set_text(l, "This month");
-    s_month = line(c, &lv_font_montserrat_24, COL_TEXT, UI_COMPACT ? 52 : 66);
+    s_month = line(c, g_font_24, COL_TEXT, UI_COMPACT ? 52 : 66);
     lv_obj_set_style_text_align(s_month, LV_TEXT_ALIGN_RIGHT, 0);
 
     // Latency over the last two minutes.
@@ -104,7 +104,7 @@ void net_page_create(lv_obj_t *page)
     lv_obj_set_pos(ch, 0, TOP_H + 12);
     lv_obj_t *cap = ui_caption(ch, "LATENCY, LAST 2 MINUTES");
     lv_obj_set_pos(cap, 0, 0);
-    s_chart_max = ui_label(ch, &lv_font_montserrat_14, COL_DIM, "");
+    s_chart_max = ui_label(ch, g_font_14, COL_DIM, "");
     lv_obj_align(s_chart_max, LV_ALIGN_TOP_RIGHT, 0, 0);
     s_chart = lv_chart_create(ch);
     lv_obj_set_size(s_chart, CONTENT_W - 32, CHART_H - 32 - 24);
@@ -128,15 +128,15 @@ void net_page_create(lv_obj_t *page)
     lv_obj_set_pos(cap, 0, 0);
     lv_obj_t *dl = ui_label(b, g_icon_32, COL_CYAN, ICON_ARROW_DOWNWARD);
     lv_obj_set_pos(dl, 0, UI_COMPACT ? 20 : 26);
-    s_down = ui_label(b, &lv_font_montserrat_32, COL_TEXT, "");
+    s_down = ui_label(b, g_font_32, COL_TEXT, "");
     lv_obj_set_pos(s_down, 36, UI_COMPACT ? 18 : 24);
     lv_obj_t *ul = ui_label(b, g_icon_32, COL_ACCENT2, ICON_ARROW_UPWARD);
     lv_obj_set_pos(ul, 230, UI_COMPACT ? 20 : 26);
-    s_upl = ui_label(b, &lv_font_montserrat_32, COL_TEXT, "");
+    s_upl = ui_label(b, g_font_32, COL_TEXT, "");
     lv_obj_set_pos(s_upl, 266, UI_COMPACT ? 18 : 24);
-    s_sp_sub = ui_label(b, &lv_font_montserrat_14, COL_MUTED, "");
+    s_sp_sub = ui_label(b, g_font_14, COL_MUTED, "");
     lv_obj_set_pos(s_sp_sub, 0, UI_COMPACT ? 54 : 66);
-    s_now = ui_label(b, &lv_font_montserrat_14, COL_DIM, "");
+    s_now = ui_label(b, g_font_14, COL_DIM, "");
     lv_obj_align(s_now, LV_ALIGN_TOP_RIGHT, 0, 0);
 
     s_run = lv_button_create(b);
@@ -150,10 +150,10 @@ void net_page_create(lv_obj_t *page)
     lv_obj_set_ext_click_area(s_run, 8);
     lv_obj_align(s_run, LV_ALIGN_BOTTOM_RIGHT, 0, 0);
     lv_obj_add_event_cb(s_run, run_cb, LV_EVENT_CLICKED, NULL);
-    s_run_lbl = ui_label(s_run, &lv_font_montserrat_16, COL_BG, "Run test");
+    s_run_lbl = ui_label(s_run, g_font_16, COL_BG, "Run test");
     lv_obj_center(s_run_lbl);
 
-    s_offline = ui_label(ch, &lv_font_montserrat_16, COL_DIM, "Start the companion app on your PC");
+    s_offline = ui_label(ch, g_font_16, COL_DIM, "Start the companion app on your PC");
     lv_obj_align(s_offline, LV_ALIGN_CENTER, 0, 10);
     net_refresh();
 }
@@ -165,7 +165,7 @@ void net_refresh_live(void)
     char d[16], u[16], buf[80];
     snprintf(d, sizeof(d), "%.1f", g_stats.net_down * 8.192f / 1000);
     snprintf(u, sizeof(u), "%.1f", g_stats.net_up * 8.192f / 1000);
-    snprintf(buf, sizeof(buf), "Now " LV_SYMBOL_DOWN " %s  " LV_SYMBOL_UP " %s Mbps", d, u);
+    snprintf(buf, sizeof(buf), "Now " "↓" " %s  " "↑" " %s Mbps", d, u);
     lv_label_set_text(s_now, g_pc_online ? buf : "");
 }
 
@@ -190,7 +190,7 @@ void net_refresh(void)
     lv_label_set_text(s_lat, buf);
     lv_obj_set_style_text_color(s_lat, lv_color_hex(n->latency_ms < 0 ? COL_DIM : n->latency_ms < 40 ? COL_TEXT
                                                     : n->latency_ms < 100 ? COL_WARN : COL_BAD), 0);
-    snprintf(buf, sizeof(buf), "Jitter %.1f ms  " LV_SYMBOL_BULLET "  Loss %d%%", n->jitter_ms, n->loss_pct);
+    snprintf(buf, sizeof(buf), "Jitter %.1f ms  " "•" "  Loss %d%%", n->jitter_ms, n->loss_pct);
     lv_label_set_text(s_lat_sub, buf);
     lv_obj_set_style_text_color(s_lat_sub, lv_color_hex(n->loss_pct >= 5 ? COL_BAD : COL_MUTED), 0);
 
@@ -237,7 +237,7 @@ void net_refresh(void)
         snprintf(buf, sizeof(buf), "%.0f Mbps", n->up_mbps);
         lv_label_set_text(s_upl, buf);
         ui_fmt_ago(t, sizeof(t), n->speed_at);
-        snprintf(buf, sizeof(buf), "Ping %.0f ms  " LV_SYMBOL_BULLET "  tested %s", n->speed_ping_ms, t);
+        snprintf(buf, sizeof(buf), "Ping %.0f ms  " "•" "  tested %s", n->speed_ping_ms, t);
         lv_label_set_text(s_sp_sub, buf);
     } else {
         lv_label_set_text(s_down, "--");

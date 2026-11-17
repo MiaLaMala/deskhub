@@ -9,7 +9,7 @@ static lv_obj_t *s_list, *s_empty, *s_empty_sub;
 
 void calendar_create(lv_obj_t *page)
 {
-    lv_obj_t *title = ui_label(page, &lv_font_montserrat_32, COL_TEXT, "Upcoming");
+    lv_obj_t *title = ui_label(page, g_font_32, COL_TEXT, "Upcoming");
     lv_obj_set_pos(title, 0, 0);
 
     s_list = lv_obj_create(page);
@@ -21,9 +21,9 @@ void calendar_create(lv_obj_t *page)
     lv_obj_set_scroll_dir(s_list, LV_DIR_VER);
     lv_obj_set_scrollbar_mode(s_list, LV_SCROLLBAR_MODE_ACTIVE);
 
-    s_empty = ui_label(page, &lv_font_montserrat_24, COL_MUTED, "No upcoming events");
+    s_empty = ui_label(page, g_font_24, COL_MUTED, "No upcoming events");
     lv_obj_align(s_empty, LV_ALIGN_CENTER, 0, 0);
-    s_empty_sub = ui_label(page, &lv_font_montserrat_16, COL_DIM, "");
+    s_empty_sub = ui_label(page, g_font_16, COL_DIM, "");
     lv_obj_align(s_empty_sub, LV_ALIGN_CENTER, 0, 34);
 
     calendar_refresh(true);
@@ -46,7 +46,7 @@ static void add_day_header(time_t t, time_t now)
     } else {
         strlcpy(buf, date, sizeof(buf));
     }
-    lv_obj_t *l = ui_label(s_list, &lv_font_montserrat_16, COL_ACCENT, buf);
+    lv_obj_t *l = ui_label(s_list, g_font_16, COL_ACCENT, buf);
     lv_obj_set_style_pad_top(l, 6, 0);
 }
 
@@ -78,11 +78,11 @@ static void add_event(const hub_event_t *e, time_t now)
         ui_fmt_clock(t2, sizeof(t2), e->end);
         snprintf(when, sizeof(when), "%s\n%s", t1, t2);
     }
-    lv_obj_t *tl = ui_label(row, &lv_font_montserrat_16, live ? COL_TEXT : COL_MUTED, when);
+    lv_obj_t *tl = ui_label(row, g_font_16, live ? COL_TEXT : COL_MUTED, when);
     lv_obj_set_width(tl, 100);
     lv_obj_set_pos(tl, 4, 0);
 
-    lv_obj_t *title = ui_label(row, &lv_font_montserrat_20, COL_TEXT, e->title);
+    lv_obj_t *title = ui_label(row, g_font_20, COL_TEXT, e->title);
     lv_label_set_long_mode(title, LV_LABEL_LONG_DOT);
     lv_obj_set_width(title, CONTENT_W - 160);
     lv_obj_set_pos(title, 116, 0);
@@ -91,7 +91,7 @@ static void add_event(const hub_event_t *e, time_t now)
     if (e->location[0] && e->calendar[0]) snprintf(sub, sizeof(sub), "%s  \xE2\x80\xA2  %s", e->location, e->calendar);
     else snprintf(sub, sizeof(sub), "%s%s", e->location, e->calendar);
     if (sub[0]) {
-        lv_obj_t *s = ui_label(row, &lv_font_montserrat_14, COL_MUTED, sub);
+        lv_obj_t *s = ui_label(row, g_font_14, COL_MUTED, sub);
         lv_label_set_long_mode(s, LV_LABEL_LONG_DOT);
         lv_obj_set_width(s, CONTENT_W - 160);
         lv_obj_set_pos(s, 116, 26);

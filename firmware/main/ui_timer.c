@@ -182,14 +182,14 @@ static void build_done(void)
 
     lv_obj_t *icon = ui_label(card, g_icon_80, COL_GOOD, ICON_TIMER);
     lv_obj_align(icon, LV_ALIGN_TOP_MID, 0, 0);
-    lv_obj_t *t = ui_label(card, &lv_font_montserrat_48, COL_TEXT, "Time's up");
+    lv_obj_t *t = ui_label(card, g_font_48, COL_TEXT, "Time's up");
     lv_obj_align(t, LV_ALIGN_TOP_MID, 0, 96);
-    s_done_sub = ui_label(card, &lv_font_montserrat_20, COL_MUTED, "");
+    s_done_sub = ui_label(card, g_font_20, COL_MUTED, "");
     lv_obj_align(s_done_sub, LV_ALIGN_TOP_MID, 0, 156);
 
-    lv_obj_t *again = pill(card, 220, 64, COL_CARD_HI, &lv_font_montserrat_24, "Again", done_again_cb, NULL);
+    lv_obj_t *again = pill(card, 220, 64, COL_CARD_HI, g_font_24, "Again", done_again_cb, NULL);
     lv_obj_align(again, LV_ALIGN_BOTTOM_LEFT, 0, 0);
-    lv_obj_t *ok = pill(card, 220, 64, COL_ACCENT, &lv_font_montserrat_24, "Done", done_dismiss_cb, NULL);
+    lv_obj_t *ok = pill(card, 220, 64, COL_ACCENT, g_font_24, "Done", done_dismiss_cb, NULL);
     lv_obj_align(ok, LV_ALIGN_BOTTOM_RIGHT, 0, 0);
 }
 
@@ -216,7 +216,7 @@ void timer_page_create(lv_obj_t *page)
 
     s_time = ui_label(left, ui_timer_font(), COL_TEXT, "");
     lv_obj_align_to(s_time, s_arc, LV_ALIGN_CENTER, 0, -10);
-    s_status = ui_label(left, &lv_font_montserrat_20, COL_MUTED, "");
+    s_status = ui_label(left, g_font_20, COL_MUTED, "");
     lv_obj_align_to(s_status, s_arc, LV_ALIGN_CENTER, 0, 50);
     lv_obj_set_style_text_align(s_time, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_set_width(s_time, RING - 40);
@@ -236,7 +236,7 @@ void timer_page_create(lv_obj_t *page)
     for (int i = 0; i < N_PRESETS; i++) {
         char buf[8];
         snprintf(buf, sizeof(buf), "%d", PRESETS[i]);
-        s_preset[i] = pill(right, bw, bh, COL_CARD_HI, &lv_font_montserrat_24, buf, preset_cb,
+        s_preset[i] = pill(right, bw, bh, COL_CARD_HI, g_font_24, buf, preset_cb,
                            (void *)(intptr_t)PRESETS[i]);
         lv_obj_set_style_radius(s_preset[i], 16, 0);
         lv_obj_set_pos(s_preset[i], (i % 2) * (bw + 12), 28 + (i / 2) * (bh + 12));

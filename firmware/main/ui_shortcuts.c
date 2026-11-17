@@ -53,9 +53,9 @@ void shortcuts_create(lv_obj_t *page)
     lv_obj_set_size(s_empty, LV_PCT(100), LV_PCT(100));
     lv_obj_t *icon = ui_label(s_empty, g_icon_80, COL_DIM, ICON_GRID_VIEW);
     lv_obj_align(icon, LV_ALIGN_CENTER, 0, -40);
-    lv_obj_t *msg = ui_label(s_empty, &lv_font_montserrat_24, COL_MUTED, "No shortcuts yet");
+    lv_obj_t *msg = ui_label(s_empty, g_font_24, COL_MUTED, "No shortcuts yet");
     lv_obj_align(msg, LV_ALIGN_CENTER, 0, 24);
-    lv_obj_t *sub = ui_label(s_empty, &lv_font_montserrat_16, COL_DIM, "Start the companion app on your PC");
+    lv_obj_t *sub = ui_label(s_empty, g_font_16, COL_DIM, "Start the companion app on your PC");
     lv_obj_align(sub, LV_ALIGN_CENTER, 0, 56);
 }
 
@@ -75,7 +75,7 @@ void shortcuts_refresh(const hub_tile_t *tiles, int n)
     int tw = (W - (cols - 1) * GAP) / cols;
     int th = (H - (rows - 1) * GAP) / rows;
     const lv_font_t *icon_font = th >= 140 ? g_icon_80 : g_icon_48;
-    const lv_font_t *label_font = th >= 120 ? &lv_font_montserrat_20 : &lv_font_montserrat_16;
+    const lv_font_t *label_font = th >= 120 ? g_font_20 : g_font_16;
 
     for (int i = 0; i < n; i++) {
         const hub_tile_t *t = &tiles[i];

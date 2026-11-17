@@ -74,7 +74,7 @@ void ui_saver_show(bool on)
         lv_obj_set_flex_align(s_box, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
         lv_obj_remove_flag(s_box, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_SCROLLABLE);
         s_time = ui_label(s_box, g_font_clock, COL_MUTED, "");
-        s_sub = ui_label(s_box, &lv_font_montserrat_24, COL_DIM, "");
+        s_sub = ui_label(s_box, g_font_24, COL_DIM, "");
         s_timer = lv_timer_create(update, 2000, NULL);
         lv_timer_pause(s_timer);
     }

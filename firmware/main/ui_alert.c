@@ -72,7 +72,7 @@ static lv_obj_t *pill(lv_obj_t *parent, const char *text, bool primary, lv_event
     lv_obj_set_style_border_width(b, primary ? 0 : 1, 0);
     lv_obj_set_style_bg_color(b, lv_color_hex(COL_ACCENT_PRESSED), LV_STATE_PRESSED);
     lv_obj_set_ext_click_area(b, 6);
-    lv_obj_t *l = ui_label(b, &lv_font_montserrat_20, primary ? COL_BG : COL_TEXT, text);
+    lv_obj_t *l = ui_label(b, g_font_20, primary ? COL_BG : COL_TEXT, text);
     lv_obj_center(l);
     lv_obj_add_event_cb(b, cb, LV_EVENT_CLICKED, NULL);
     return b;
@@ -120,11 +120,11 @@ static void build_home(lv_obj_t *host)
     p->logo = lv_image_create(badge);
     lv_obj_center(p->logo);
 
-    p->kind = ui_label(p->root, &lv_font_montserrat_14, COL_WARN, "");
+    p->kind = ui_label(p->root, g_font_14, COL_WARN, "");
     lv_label_set_long_mode(p->kind, LV_LABEL_LONG_DOT);
     lv_obj_set_height(p->kind, 18);   // one line, cut with "..."
     lv_obj_align(p->kind, LV_ALIGN_LEFT_MID, 52, -12);
-    p->detail = ui_label(p->root, &lv_font_montserrat_16, COL_TEXT, "");
+    p->detail = ui_label(p->root, g_font_16, COL_TEXT, "");
     lv_label_set_long_mode(p->detail, LV_LABEL_LONG_DOT);
     lv_obj_set_height(p->detail, 20);
     lv_obj_align(p->detail, LV_ALIGN_LEFT_MID, 52, 12);
@@ -154,14 +154,14 @@ static void build_ai(lv_obj_t *host)
 
     p->kind = ui_caption(p->root, "");
     lv_obj_align(p->kind, LV_ALIGN_TOP_LEFT, 72, 4);
-    p->project = ui_label(p->root, &lv_font_montserrat_16, COL_MUTED, "");
+    p->project = ui_label(p->root, g_font_16, COL_MUTED, "");
     lv_label_set_long_mode(p->project, LV_LABEL_LONG_DOT);
     lv_obj_align(p->project, LV_ALIGN_TOP_LEFT, 72, 28);
 
-    p->title = ui_label(p->root, &lv_font_montserrat_24, COL_TEXT, "");
+    p->title = ui_label(p->root, g_font_24, COL_TEXT, "");
     lv_label_set_long_mode(p->title, LV_LABEL_LONG_DOT);
     lv_obj_align(p->title, LV_ALIGN_TOP_LEFT, 0, 68);
-    p->detail = ui_label(p->root, &lv_font_montserrat_16, COL_MUTED, "");
+    p->detail = ui_label(p->root, g_font_16, COL_MUTED, "");
     lv_label_set_long_mode(p->detail, LV_LABEL_LONG_DOT);
     lv_obj_set_height(p->detail, 20);
     lv_obj_align(p->detail, LV_ALIGN_TOP_LEFT, 0, 100);

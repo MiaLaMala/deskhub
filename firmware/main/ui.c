@@ -19,10 +19,31 @@ static const char *TAG = "ui";
 
 extern const uint8_t icons_ttf_start[] asm("_binary_MaterialIcons_Regular_ttf_start");
 extern const uint8_t icons_ttf_end[] asm("_binary_MaterialIcons_Regular_ttf_end");
-extern const uint8_t clock_ttf_start[] asm("_binary_Montserrat_SemiBold_ttf_start");
-extern const uint8_t clock_ttf_end[] asm("_binary_Montserrat_SemiBold_ttf_end");
+// Inter: Medium for text, SemiBold for large numbers and the clock.
+extern const uint8_t text_ttf_start[] asm("_binary_Inter_Medium_ttf_start");
+extern const uint8_t text_ttf_end[] asm("_binary_Inter_Medium_ttf_end");
+extern const uint8_t clock_ttf_start[] asm("_binary_Inter_SemiBold_ttf_start");
+extern const uint8_t clock_ttf_end[] asm("_binary_Inter_SemiBold_ttf_end");
 
 lv_font_t *g_icon_20, *g_icon_24, *g_icon_32, *g_icon_48, *g_icon_80, *g_font_clock;
+lv_font_t *g_font_14, *g_font_16, *g_font_20, *g_font_24, *g_font_32, *g_font_48;
+
+// Inter at one size. Glyphs Inter lacks come from the built-in Montserrat of
+// that size, which is also used outright if the TTF can't be loaded.
+static lv_font_t *inter(int px, bool semibold, const lv_font_t *builtin)
+{
+    const uint8_t *start = semibold ? clock_ttf_start : text_ttf_start;
+    const uint8_t *end = semibold ? clock_ttf_end : text_ttf_end;
+    // No kerning: stb_truetype looks each letter pair up in the font's GPOS table
+    // on every layout and draw, which made full redraws several times slower.
+    lv_font_t *f = lv_tiny_ttf_create_data_ex(start, end - start, px, LV_FONT_KERNING_NONE, 256);
+    if (!f) {
+        ESP_LOGE(TAG, "Inter %d px failed, using built-in font", px);
+        return (lv_font_t *)builtin;
+    }
+    f->fallback = builtin;
+    return f;
+}
 
 hub_stats_t g_stats;
 hub_media_t g_media;
@@ -73,7 +94,7 @@ lv_font_t *ui_header_font(void)
 {
     static lv_font_t *s_font;
     if (!s_font) s_font = lv_tiny_ttf_create_data(clock_ttf_start, clock_ttf_end - clock_ttf_start, 40);
-    return s_font ? s_font : (lv_font_t *)&lv_font_montserrat_32;
+    return s_font ? s_font : (lv_font_t *)g_font_32;
 }
 
 // The clock's TTF at 72 px, for the timer's countdown. Created once on first use.
@@ -81,7 +102,7 @@ lv_font_t *ui_timer_font(void)
 {
     static lv_font_t *s_font;
     if (!s_font) s_font = lv_tiny_ttf_create_data(clock_ttf_start, clock_ttf_end - clock_ttf_start, 72);
-    return s_font ? s_font : (lv_font_t *)&lv_font_montserrat_48;
+    return s_font ? s_font : (lv_font_t *)g_font_48;
 }
 
 // Same TTF as the clock, for the date line (its own cached size).
@@ -143,7 +164,7 @@ lv_obj_t *ui_card(lv_obj_t *parent)
 
 lv_obj_t *ui_caption(lv_obj_t *parent, const char *text)
 {
-    lv_obj_t *l = ui_label(parent, &lv_font_montserrat_14, COL_MUTED, text);
+    lv_obj_t *l = ui_label(parent, g_font_14, COL_MUTED, text);
     lv_obj_set_style_text_letter_space(l, 2, 0);
     return l;
 }
@@ -410,7 +431,7 @@ void ui_rail_set_text(int page, const char *text)
 {
     if (page == PAGE_CLAUDE || page < 0 || page >= PAGE_COUNT || !s_nav[page]) return;
     lv_obj_t *l = lv_obj_get_child(s_nav[page], 0);
-    const lv_font_t *font = text ? &lv_font_montserrat_16 : g_icon_32;
+    const lv_font_t *font = text ? g_font_16 : g_icon_32;
     if (!text) text = s_glyphs[page];
     if (lv_obj_get_style_text_font(l, 0) != font) lv_obj_set_style_text_font(l, font, 0);
     if (strcmp(lv_label_get_text(l), text) != 0) lv_label_set_text(l, text);
@@ -563,6 +584,12 @@ static void page_none(lv_obj_t *page)
 
 void ui_init(void)
 {
+    g_font_14 = inter(14, false, &lv_font_montserrat_14);
+    g_font_16 = inter(16, false, &lv_font_montserrat_16);
+    g_font_20 = inter(20, false, &lv_font_montserrat_20);
+    g_font_24 = inter(24, false, &lv_font_montserrat_24);
+    g_font_32 = inter(32, true, &lv_font_montserrat_32);
+    g_font_48 = inter(48, true, &lv_font_montserrat_48);
     size_t icon_len = icons_ttf_end - icons_ttf_start;
     g_icon_20 = lv_tiny_ttf_create_data(icons_ttf_start, icon_len, 20);
     g_icon_24 = lv_tiny_ttf_create_data(icons_ttf_start, icon_len, 24);
@@ -572,14 +599,14 @@ void ui_init(void)
     g_font_clock = lv_tiny_ttf_create_data(clock_ttf_start, clock_ttf_end - clock_ttf_start, 128);
     // Fall back to built-in fonts so a failed TTF load can never hand LVGL a NULL font.
     // Icons then show as boxes, but the UI keeps working.
-    if (!g_icon_20) g_icon_20 = (lv_font_t *)&lv_font_montserrat_20;
-    if (!g_icon_24) g_icon_24 = (lv_font_t *)&lv_font_montserrat_24;
-    if (!g_icon_32) g_icon_32 = (lv_font_t *)&lv_font_montserrat_32;
-    if (!g_icon_48) g_icon_48 = (lv_font_t *)&lv_font_montserrat_48;
-    if (!g_icon_80) g_icon_80 = (lv_font_t *)&lv_font_montserrat_48;
+    if (!g_icon_20) g_icon_20 = (lv_font_t *)g_font_20;
+    if (!g_icon_24) g_icon_24 = (lv_font_t *)g_font_24;
+    if (!g_icon_32) g_icon_32 = (lv_font_t *)g_font_32;
+    if (!g_icon_48) g_icon_48 = (lv_font_t *)g_font_48;
+    if (!g_icon_80) g_icon_80 = (lv_font_t *)g_font_48;
     if (!g_font_clock) {
         ESP_LOGE(TAG, "clock font failed, using built-in font");
-        g_font_clock = (lv_font_t *)&lv_font_montserrat_48;
+        g_font_clock = (lv_font_t *)g_font_48;
     }
 
     s_art_buf = heap_caps_malloc(320 * 320 * 2, MALLOC_CAP_SPIRAM);

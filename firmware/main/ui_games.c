@@ -178,13 +178,13 @@ void games_page_create(lv_obj_t *page)
     s_now_cap = ui_caption(s_now_box, "NOW PLAYING");
     lv_obj_set_style_text_color(s_now_cap, lv_color_hex(COL_GOOD), 0);
     lv_obj_set_pos(s_now_cap, tx, 4);
-    s_now_name = ui_label(s_now_box, &lv_font_montserrat_24, COL_TEXT, "");
+    s_now_name = ui_label(s_now_box, g_font_24, COL_TEXT, "");
     lv_label_set_long_mode(s_now_name, LV_LABEL_LONG_DOT);
     lv_obj_set_size(s_now_name, tw, UI_COMPACT ? 30 : 62);
     lv_obj_set_pos(s_now_name, tx, UI_COMPACT ? 24 : 30);
-    s_now_time = ui_label(s_now_box, &lv_font_montserrat_20, COL_TEXT, "");
+    s_now_time = ui_label(s_now_box, g_font_20, COL_TEXT, "");
     lv_obj_set_pos(s_now_time, tx, UI_COMPACT ? 54 : IMG_H - 54);
-    s_now_total = ui_label(s_now_box, &lv_font_montserrat_16, COL_MUTED, "");
+    s_now_total = ui_label(s_now_box, g_font_16, COL_MUTED, "");
     lv_obj_set_pos(s_now_total, tx, UI_COMPACT ? 80 : IMG_H - 24);
 
     s_idle = lv_obj_create(top);
@@ -193,9 +193,9 @@ void games_page_create(lv_obj_t *page)
     lv_obj_remove_flag(s_idle, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_t *ic = ui_label(s_idle, g_icon_80, COL_DIM, ICON_SPORTS_ESPORTS);
     lv_obj_align(ic, LV_ALIGN_LEFT_MID, 24, 0);
-    lv_obj_t *t = ui_label(s_idle, &lv_font_montserrat_24, COL_TEXT, "No game running");
+    lv_obj_t *t = ui_label(s_idle, g_font_24, COL_TEXT, "No game running");
     lv_obj_align(t, LV_ALIGN_LEFT_MID, 136, -22);
-    s_idle_sub = ui_label(s_idle, &lv_font_montserrat_16, COL_MUTED, "");
+    s_idle_sub = ui_label(s_idle, g_font_16, COL_MUTED, "");
     lv_obj_set_width(s_idle_sub, 372 - 136 - 16);   // wraps clear of the friends list
     lv_obj_align(s_idle_sub, LV_ALIGN_LEFT_MID, 136, 22);
 
@@ -204,11 +204,11 @@ void games_page_create(lv_obj_t *page)
     s_fr_cap = ui_caption(s_idle, "FRIENDS IN GAME");
     lv_obj_set_pos(s_fr_cap, fx, 0);
     for (int i = 0; i < HUB_STEAM_FRIENDS; i++) {
-        s_fr_name[i] = ui_label(s_idle, &lv_font_montserrat_16, COL_TEXT, "");
+        s_fr_name[i] = ui_label(s_idle, g_font_16, COL_TEXT, "");
         lv_label_set_long_mode(s_fr_name[i], LV_LABEL_LONG_DOT);
         lv_obj_set_size(s_fr_name[i], fw * 2 / 5, 20);
         lv_obj_set_pos(s_fr_name[i], fx, 24 + i * 27);
-        s_fr_game[i] = ui_label(s_idle, &lv_font_montserrat_14, COL_GOOD, "");
+        s_fr_game[i] = ui_label(s_idle, g_font_14, COL_GOOD, "");
         lv_label_set_long_mode(s_fr_game[i], LV_LABEL_LONG_DOT);
         lv_obj_set_size(s_fr_game[i], fw * 3 / 5 - 8, 18);
         lv_obj_set_pos(s_fr_game[i], fx + fw * 2 / 5 + 8, 26 + i * 27);
@@ -218,7 +218,7 @@ void games_page_create(lv_obj_t *page)
     lv_obj_t *bot = ui_card(page);
     lv_obj_set_size(bot, CONTENT_W, CONTENT_H - TOP_H - 12);
     lv_obj_set_pos(bot, 0, TOP_H + 12);
-    lv_obj_t *cap = ui_caption(bot, "RECENT  " LV_SYMBOL_BULLET "  TAP TO PLAY");
+    lv_obj_t *cap = ui_caption(bot, "RECENT  " "•" "  TAP TO PLAY");
     lv_obj_set_pos(cap, 0, 0);
     const int step = (CONTENT_W - 32 - PORT_W) / (HUB_STEAM_RECENT - 1);
     for (int i = 0; i < HUB_STEAM_RECENT; i++) {
@@ -246,13 +246,13 @@ void games_page_create(lv_obj_t *page)
         lv_obj_set_style_radius(img, 10, 0);
         lv_obj_set_style_clip_corner(img, true, 0);
         lv_obj_align(img, LV_ALIGN_TOP_MID, 0, 0);
-        lv_obj_t *name = ui_label(b, &lv_font_montserrat_14, COL_MUTED, "");
+        lv_obj_t *name = ui_label(b, g_font_14, COL_MUTED, "");
         lv_label_set_long_mode(name, LV_LABEL_LONG_DOT);
         lv_obj_set_size(name, step - 8, 18);
         lv_obj_set_style_text_align(name, LV_TEXT_ALIGN_CENTER, 0);
         lv_obj_align(name, LV_ALIGN_BOTTOM_MID, 0, 0);
         // Total playtime, as a small badge on the cover.
-        lv_obj_t *hrs = ui_label(b, &lv_font_montserrat_14, COL_TEXT, "");
+        lv_obj_t *hrs = ui_label(b, g_font_14, COL_TEXT, "");
         lv_obj_remove_flag(hrs, LV_OBJ_FLAG_CLICKABLE);
         lv_obj_set_style_bg_color(hrs, lv_color_hex(0x000000), 0);
         lv_obj_set_style_bg_opa(hrs, LV_OPA_70, 0);
@@ -266,7 +266,7 @@ void games_page_create(lv_obj_t *page)
         s_tile_ph[i] = ph;
         s_tile_name[i] = name;
     }
-    s_recent_empty = ui_label(bot, &lv_font_montserrat_16, COL_DIM, "");
+    s_recent_empty = ui_label(bot, g_font_16, COL_DIM, "");
     lv_obj_align(s_recent_empty, LV_ALIGN_CENTER, 0, 10);
     games_refresh();
 }
@@ -287,7 +287,7 @@ void games_refresh(void)
         if (games_total_worth_showing(s->now.total_min, games_session_s())) snprintf(buf, sizeof(buf), "%s played", tot);
         if (s->friend_count) {
             char fr[32];
-            snprintf(fr, sizeof(fr), "%s%d friend%s in game", buf[0] ? "  " LV_SYMBOL_BULLET "  " : "",
+            snprintf(fr, sizeof(fr), "%s%d friend%s in game", buf[0] ? "  " "•" "  " : "",
                      s->friend_count, s->friend_count == 1 ? "" : "s");
             strlcat(buf, fr, sizeof(buf));
         }

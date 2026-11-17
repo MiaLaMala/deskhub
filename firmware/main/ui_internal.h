@@ -45,6 +45,8 @@ extern int g_nav;
 
 // Material Icons and the large clock font, rendered at runtime by Tiny TTF.
 extern lv_font_t *g_icon_20, *g_icon_24, *g_icon_32, *g_icon_48, *g_icon_80, *g_font_clock;
+// Text: Inter at fixed sizes (Medium up to 24 px, SemiBold at 32 and 48).
+extern lv_font_t *g_font_14, *g_font_16, *g_font_20, *g_font_24, *g_font_32, *g_font_48;
 
 // Latest data, for pages that show it.
 extern hub_stats_t g_stats;

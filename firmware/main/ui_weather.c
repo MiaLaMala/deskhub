@@ -33,16 +33,16 @@ void weather_page_create(lv_obj_t *page)
     lv_obj_set_pos(now, 0, 0);
     s_icon = ui_label(now, g_icon_80, COL_WARN, ICON_CLOUD);
     lv_obj_align(s_icon, LV_ALIGN_LEFT_MID, 4, 0);
-    s_temp = ui_label(now, &lv_font_montserrat_48, COL_TEXT, "--");
+    s_temp = ui_label(now, g_font_48, COL_TEXT, "--");
     lv_obj_set_pos(s_temp, 110, c ? 0 : 6);
-    s_cond = ui_label(now, &lv_font_montserrat_20, COL_TEXT, "Loading weather");
+    s_cond = ui_label(now, g_font_20, COL_TEXT, "Loading weather");
     lv_obj_set_pos(s_cond, 112, c ? 52 : 64);
-    s_city = ui_label(now, &lv_font_montserrat_16, COL_MUTED, CONFIG_HUB_CITY);
+    s_city = ui_label(now, g_font_16, COL_MUTED, CONFIG_HUB_CITY);
     lv_obj_set_pos(s_city, 112, c ? 76 : 94);
-    s_details = ui_label(now, &lv_font_montserrat_16, COL_TEXT, "");
+    s_details = ui_label(now, g_font_16, COL_TEXT, "");
     lv_obj_set_style_text_line_space(s_details, 8, 0);
     lv_obj_align(s_details, LV_ALIGN_TOP_RIGHT, 0, 6);
-    s_updated = ui_label(now, &lv_font_montserrat_14, COL_DIM, "");
+    s_updated = ui_label(now, g_font_14, COL_DIM, "");
     lv_obj_align(s_updated, LV_ALIGN_BOTTOM_RIGHT, 0, 4);
 
     lv_obj_t *hourly = ui_card(page);
@@ -54,13 +54,13 @@ void weather_page_create(lv_obj_t *page)
     lv_obj_set_scrollbar_mode(hourly, LV_SCROLLBAR_MODE_OFF);
     for (int i = 0; i < HUB_HOURS; i++) {
         int x = i * CELL_W;
-        s_h_time[i] = centered(hourly, &lv_font_montserrat_14, COL_MUTED, CELL_W);
+        s_h_time[i] = centered(hourly, g_font_14, COL_MUTED, CELL_W);
         lv_obj_set_pos(s_h_time[i], x, 0);
         s_h_icon[i] = centered(hourly, g_icon_32, COL_TEXT, CELL_W);
         lv_obj_set_pos(s_h_icon[i], x, c ? 20 : 22);
-        s_h_temp[i] = centered(hourly, &lv_font_montserrat_20, COL_TEXT, CELL_W);
+        s_h_temp[i] = centered(hourly, g_font_20, COL_TEXT, CELL_W);
         lv_obj_set_pos(s_h_temp[i], x, c ? 54 : 60);
-        s_h_rain[i] = centered(hourly, &lv_font_montserrat_14, COL_ACCENT2, CELL_W);
+        s_h_rain[i] = centered(hourly, g_font_14, COL_ACCENT2, CELL_W);
         lv_obj_set_pos(s_h_rain[i], x, c ? 76 : 86);
     }
 
@@ -70,13 +70,13 @@ void weather_page_create(lv_obj_t *page)
     lv_obj_set_pos(daily, 0, c ? 252 : 302);
     for (int i = 0; i < HUB_DAYS; i++) {
         int x = i * DAY_W;
-        s_d_name[i] = centered(daily, &lv_font_montserrat_16, COL_MUTED, DAY_W);
+        s_d_name[i] = centered(daily, g_font_16, COL_MUTED, DAY_W);
         lv_obj_set_pos(s_d_name[i], x, 0);
         s_d_icon[i] = centered(daily, g_icon_32, COL_TEXT, DAY_W);
         lv_obj_set_pos(s_d_icon[i], x, c ? 22 : 24);
-        s_d_range[i] = centered(daily, &lv_font_montserrat_16, COL_TEXT, DAY_W);
+        s_d_range[i] = centered(daily, g_font_16, COL_TEXT, DAY_W);
         lv_obj_set_pos(s_d_range[i], x, c ? 56 : 62);
-        s_d_rain[i] = centered(daily, &lv_font_montserrat_14, COL_ACCENT2, DAY_W);
+        s_d_rain[i] = centered(daily, g_font_14, COL_ACCENT2, DAY_W);
         lv_obj_set_pos(s_d_rain[i], x, c ? 76 : 86);
     }
 }

@@ -67,7 +67,7 @@ static void make_limit_card(lv_obj_t *page, limit_card_t *c, int x, const char *
     lv_obj_t *card = ui_card(page);
     lv_obj_set_size(card, CARD_W, TOP_H);
     lv_obj_set_pos(card, x, 0);
-    lv_obj_t *t = ui_label(card, &lv_font_montserrat_14, COL_MUTED, title);
+    lv_obj_t *t = ui_label(card, g_font_14, COL_MUTED, title);
     lv_obj_align(t, LV_ALIGN_TOP_LEFT, 0, 0);
 
     c->arc = lv_arc_create(card);
@@ -82,20 +82,20 @@ static void make_limit_card(lv_obj_t *page, limit_card_t *c, int x, const char *
     lv_obj_set_style_arc_width(c->arc, 11, LV_PART_INDICATOR);
     lv_obj_set_style_arc_rounded(c->arc, true, LV_PART_INDICATOR);
     lv_obj_set_style_arc_color(c->arc, lv_color_hex(COL_CARD_HI), LV_PART_MAIN);
-    c->pct = ui_label(card, &lv_font_montserrat_32, COL_TEXT, "");
+    c->pct = ui_label(card, g_font_32, COL_TEXT, "");
     lv_obj_set_width(c->pct, ARC_D);
     lv_obj_set_style_text_align(c->pct, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_align_to(c->pct, c->arc, LV_ALIGN_CENTER, 0, -2);
 
     // Shown instead of the arc when there is no limit data.
-    c->big = ui_label(card, &lv_font_montserrat_32, COL_TEXT, "");
+    c->big = ui_label(card, g_font_32, COL_TEXT, "");
     lv_obj_align(c->big, LV_ALIGN_TOP_MID, 0, 50);
 
-    c->sub = ui_label(card, &lv_font_montserrat_14, COL_MUTED, "");
+    c->sub = ui_label(card, g_font_14, COL_MUTED, "");
     lv_obj_set_width(c->sub, CARD_W - 32);
     lv_obj_set_style_text_align(c->sub, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_align(c->sub, LV_ALIGN_BOTTOM_MID, 0, -20);
-    c->reset = ui_label(card, &lv_font_montserrat_16, COL_TEXT, "");
+    c->reset = ui_label(card, g_font_16, COL_TEXT, "");
     lv_obj_set_width(c->reset, CARD_W - 32);
     lv_obj_set_style_text_align(c->reset, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_align(c->reset, LV_ALIGN_BOTTOM_MID, 0, 2);
@@ -136,9 +136,9 @@ void claude_create(lv_obj_t *page)
     lv_obj_set_pos(t, 0, 0);
     static const char *names[4] = {"Tokens", "Output", "Messages", "Last hour"};
     for (int i = 0; i < 4; i++) {
-        lv_obj_t *n = ui_label(today, &lv_font_montserrat_16, COL_MUTED, names[i]);
+        lv_obj_t *n = ui_label(today, g_font_16, COL_MUTED, names[i]);
         lv_obj_set_pos(n, 0, 30 + i * (UI_COMPACT ? 30 : 36));
-        s_today_val[i] = ui_label(today, i == 0 ? &lv_font_montserrat_20 : &lv_font_montserrat_16, COL_TEXT, "--");
+        s_today_val[i] = ui_label(today, i == 0 ? g_font_20 : g_font_16, COL_TEXT, "--");
         lv_obj_set_width(s_today_val[i], 90);
         lv_obj_set_style_text_align(s_today_val[i], LV_TEXT_ALIGN_RIGHT, 0);
         lv_obj_set_pos(s_today_val[i], CARD_W - 32 - 90, 28 + i * (UI_COMPACT ? 30 : 36));
@@ -150,7 +150,7 @@ void claude_create(lv_obj_t *page)
     lv_obj_set_pos(hist, 0, TOP_H + 12);
     lv_obj_t *h = ui_caption(hist, "LAST 7 DAYS");
     lv_obj_set_pos(h, 0, 0);
-    s_peak = ui_label(hist, &lv_font_montserrat_14, COL_DIM, "");
+    s_peak = ui_label(hist, g_font_14, COL_DIM, "");
     lv_obj_align(s_peak, LV_ALIGN_TOP_LEFT, CHART_W - 150, 0);
     lv_obj_set_width(s_peak, 150);
     lv_obj_set_style_text_align(s_peak, LV_TEXT_ALIGN_RIGHT, 0);
@@ -170,7 +170,7 @@ void claude_create(lv_obj_t *page)
     lv_obj_set_style_bg_grad_dir(s_chart, LV_GRAD_DIR_VER, LV_PART_ITEMS);
     s_ser = lv_chart_add_series(s_chart, lv_color_hex(ui_agent_color()), LV_CHART_AXIS_PRIMARY_Y);
     for (int i = 0; i < HUB_CLAUDE_DAYS; i++) {
-        s_day_lbl[i] = ui_label(hist, &lv_font_montserrat_14, COL_MUTED, "");
+        s_day_lbl[i] = ui_label(hist, g_font_14, COL_MUTED, "");
         lv_obj_set_width(s_day_lbl[i], CHART_W / HUB_CLAUDE_DAYS);
         lv_obj_set_style_text_align(s_day_lbl[i], LV_TEXT_ALIGN_CENTER, 0);
         lv_obj_set_pos(s_day_lbl[i], i * CHART_W / HUB_CLAUDE_DAYS, 24 + HIST_CHART_H + 6);
@@ -180,9 +180,9 @@ void claude_create(lv_obj_t *page)
     lv_obj_t *mt = ui_caption(hist, "MODELS TODAY");
     lv_obj_set_pos(mt, mx, 0);
     for (int i = 0; i < HUB_CLAUDE_MODELS; i++) {
-        s_model_name[i] = ui_label(hist, &lv_font_montserrat_16, COL_TEXT, "");
+        s_model_name[i] = ui_label(hist, g_font_16, COL_TEXT, "");
         lv_obj_set_pos(s_model_name[i], mx, 28 + i * 44);
-        s_model_val[i] = ui_label(hist, &lv_font_montserrat_14, COL_MUTED, "");
+        s_model_val[i] = ui_label(hist, g_font_14, COL_MUTED, "");
         lv_obj_set_width(s_model_val[i], 80);
         lv_obj_set_style_text_align(s_model_val[i], LV_TEXT_ALIGN_RIGHT, 0);
         lv_obj_set_pos(s_model_val[i], mx + mw - 80, 30 + i * 44);
@@ -191,7 +191,7 @@ void claude_create(lv_obj_t *page)
         lv_obj_set_pos(s_model_bar[i], mx, 50 + i * 44);
     }
 
-    s_offline = ui_label(page, &lv_font_montserrat_16, COL_DIM, "Start the companion app on your PC");
+    s_offline = ui_label(page, g_font_16, COL_DIM, "Start the companion app on your PC");
     lv_obj_align(s_offline, LV_ALIGN_BOTTOM_MID, 0, -6);
 
     claude_refresh();

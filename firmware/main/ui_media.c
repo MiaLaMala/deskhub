@@ -66,17 +66,17 @@ void media_create(lv_obj_t *page)
     lv_image_set_inner_align(s_art, LV_IMAGE_ALIGN_STRETCH);
     lv_obj_add_flag(s_art, LV_OBJ_FLAG_HIDDEN);
 
-    s_source = ui_label(s_body, &lv_font_montserrat_14, COL_ACCENT, "");
+    s_source = ui_label(s_body, g_font_14, COL_ACCENT, "");
     lv_obj_set_pos(s_source, COL_X, 52);
-    s_title = ui_label(s_body, &lv_font_montserrat_32, COL_TEXT, "");
+    s_title = ui_label(s_body, g_font_32, COL_TEXT, "");
     lv_label_set_long_mode(s_title, LV_LABEL_LONG_SCROLL_CIRCULAR);
     lv_obj_set_width(s_title, COL_W);
     lv_obj_set_pos(s_title, COL_X, 76);
-    s_artist = ui_label(s_body, &lv_font_montserrat_24, COL_TEXT, "");
+    s_artist = ui_label(s_body, g_font_24, COL_TEXT, "");
     lv_label_set_long_mode(s_artist, LV_LABEL_LONG_DOT);
     lv_obj_set_width(s_artist, COL_W);
     lv_obj_set_pos(s_artist, COL_X, 122);
-    s_album = ui_label(s_body, &lv_font_montserrat_16, COL_MUTED, "");
+    s_album = ui_label(s_body, g_font_16, COL_MUTED, "");
     lv_label_set_long_mode(s_album, LV_LABEL_LONG_DOT);
     lv_obj_set_width(s_album, COL_W);
     lv_obj_set_pos(s_album, COL_X, 156);
@@ -93,9 +93,9 @@ void media_create(lv_obj_t *page)
     lv_obj_add_event_cb(s_slider, seek_cb, LV_EVENT_VALUE_CHANGED, NULL);
     lv_obj_add_event_cb(s_slider, seek_cb, LV_EVENT_RELEASED, NULL);
 
-    s_pos = ui_label(s_body, &lv_font_montserrat_14, COL_MUTED, "0:00");
+    s_pos = ui_label(s_body, g_font_14, COL_MUTED, "0:00");
     lv_obj_set_pos(s_pos, COL_X, 234);
-    s_dur = ui_label(s_body, &lv_font_montserrat_14, COL_MUTED, "0:00");
+    s_dur = ui_label(s_body, g_font_14, COL_MUTED, "0:00");
     lv_obj_set_width(s_dur, 80);
     lv_obj_set_style_text_align(s_dur, LV_TEXT_ALIGN_RIGHT, 0);
     lv_obj_set_pos(s_dur, COL_X + COL_W - 80, 234);
@@ -118,9 +118,9 @@ void media_create(lv_obj_t *page)
     lv_obj_set_size(s_empty, LV_PCT(100), LV_PCT(100));
     lv_obj_t *icon = ui_label(s_empty, g_icon_80, COL_DIM, ICON_MUSIC_NOTE);
     lv_obj_align(icon, LV_ALIGN_CENTER, 0, -40);
-    lv_obj_t *msg = ui_label(s_empty, &lv_font_montserrat_24, COL_MUTED, "Nothing playing");
+    lv_obj_t *msg = ui_label(s_empty, g_font_24, COL_MUTED, "Nothing playing");
     lv_obj_align(msg, LV_ALIGN_CENTER, 0, 24);
-    s_empty_sub = ui_label(s_empty, &lv_font_montserrat_16, COL_DIM, "");
+    s_empty_sub = ui_label(s_empty, g_font_16, COL_DIM, "");
     lv_obj_align(s_empty_sub, LV_ALIGN_CENTER, 0, 56);
 
     media_refresh();

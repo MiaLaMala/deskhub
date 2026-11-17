@@ -79,7 +79,7 @@ void printer_create(lv_obj_t *page)
     lv_obj_remove_flag(s_body, LV_OBJ_FLAG_SCROLLABLE);
 
     // Header: printer name (tap to switch printers), state chip, "1/2".
-    s_name = ui_label(s_body, &lv_font_montserrat_32, COL_TEXT, "");
+    s_name = ui_label(s_body, g_font_32, COL_TEXT, "");
     lv_obj_set_pos(s_name, 0, 0);
     lv_obj_add_flag(s_name, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_ext_click_area(s_name, 12);
@@ -90,9 +90,9 @@ void printer_create(lv_obj_t *page)
     lv_obj_set_style_radius(s_chip, LV_RADIUS_CIRCLE, 0);
     lv_obj_set_style_bg_opa(s_chip, LV_OPA_30, 0);
     lv_obj_set_style_pad_hor(s_chip, 12, 0);
-    s_chip_lbl = ui_label(s_chip, &lv_font_montserrat_16, COL_TEXT, "");
+    s_chip_lbl = ui_label(s_chip, g_font_16, COL_TEXT, "");
     lv_obj_center(s_chip_lbl);
-    s_count = ui_label(s_body, &lv_font_montserrat_16, COL_MUTED, "");
+    s_count = ui_label(s_body, g_font_16, COL_MUTED, "");
     lv_obj_align(s_count, LV_ALIGN_TOP_RIGHT, 0, 10);
 
     // Left: progress ring.
@@ -111,23 +111,23 @@ void printer_create(lv_obj_t *page)
     lv_obj_set_style_arc_width(s_arc, 16, LV_PART_INDICATOR);
     lv_obj_set_style_arc_rounded(s_arc, true, LV_PART_INDICATOR);
     lv_obj_set_style_arc_color(s_arc, lv_color_hex(COL_CARD_HI), LV_PART_MAIN);
-    s_pct = ui_label(left, &lv_font_montserrat_48, COL_TEXT, "");
+    s_pct = ui_label(left, g_font_48, COL_TEXT, "");
     lv_obj_set_width(s_pct, 200);
     lv_obj_set_style_text_align(s_pct, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_align_to(s_pct, s_arc, LV_ALIGN_CENTER, 0, -10);
-    s_remain = ui_label(left, &lv_font_montserrat_16, COL_MUTED, "");
+    s_remain = ui_label(left, g_font_16, COL_MUTED, "");
     lv_obj_set_width(s_remain, 200);
     lv_obj_set_style_text_align(s_remain, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_align_to(s_remain, s_arc, LV_ALIGN_CENTER, 0, 32);
-    s_eta = ui_label(left, &lv_font_montserrat_20, COL_TEXT, "");
+    s_eta = ui_label(left, g_font_20, COL_TEXT, "");
     lv_obj_set_width(s_eta, LEFT_W - 32);
     lv_obj_set_style_text_align(s_eta, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_align(s_eta, LV_ALIGN_BOTTOM_MID, 0, -64);
-    s_layer = ui_label(left, &lv_font_montserrat_16, COL_MUTED, "");
+    s_layer = ui_label(left, g_font_16, COL_MUTED, "");
     lv_obj_set_width(s_layer, LEFT_W - 32);
     lv_obj_set_style_text_align(s_layer, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_align(s_layer, LV_ALIGN_BOTTOM_MID, 0, -40);
-    s_error = ui_label(left, &lv_font_montserrat_14, COL_BAD, "");
+    s_error = ui_label(left, g_font_14, COL_BAD, "");
     lv_label_set_long_mode(s_error, LV_LABEL_LONG_DOT);
     lv_obj_set_width(s_error, LEFT_W - 32);
     lv_obj_set_style_text_align(s_error, LV_TEXT_ALIGN_CENTER, 0);
@@ -139,11 +139,11 @@ void printer_create(lv_obj_t *page)
     lv_obj_set_pos(job, RIGHT_X, 56);
     s_file_cap = ui_caption(job, "PRINTING");
     lv_obj_set_pos(s_file_cap, 0, 0);
-    s_file = ui_label(job, &lv_font_montserrat_24, COL_TEXT, "");
+    s_file = ui_label(job, g_font_24, COL_TEXT, "");
     lv_label_set_long_mode(s_file, LV_LABEL_LONG_DOT);
     lv_obj_set_width(s_file, RIGHT_W - 32);
     lv_obj_set_pos(s_file, 0, UI_COMPACT ? 20 : 22);
-    s_speed = ui_label(job, &lv_font_montserrat_14, COL_MUTED, "");
+    s_speed = ui_label(job, g_font_14, COL_MUTED, "");
     lv_obj_set_pos(s_speed, 0, UI_COMPACT ? 48 : 58);
 
     // Right middle: temperatures.
@@ -157,11 +157,11 @@ void printer_create(lv_obj_t *page)
     for (int i = 0; i < 3; i++) {
         lv_obj_t *ic = ui_label(temps, g_icon_24, tints[i], glyphs[i]);
         lv_obj_set_pos(ic, i * col, 0);
-        lv_obj_t *nm = ui_label(temps, &lv_font_montserrat_14, COL_MUTED, names[i]);
+        lv_obj_t *nm = ui_label(temps, g_font_14, COL_MUTED, names[i]);
         lv_obj_set_pos(nm, i * col + 30, 4);
-        s_temp_val[i] = ui_label(temps, &lv_font_montserrat_32, COL_TEXT, "--");
+        s_temp_val[i] = ui_label(temps, g_font_32, COL_TEXT, "--");
         lv_obj_set_pos(s_temp_val[i], i * col, UI_COMPACT ? 24 : 32);
-        s_temp_tgt[i] = ui_label(temps, &lv_font_montserrat_14, COL_MUTED, "");
+        s_temp_tgt[i] = ui_label(temps, g_font_14, COL_MUTED, "");
         lv_obj_set_pos(s_temp_tgt[i], i * col, UI_COMPACT ? 58 : 70);
     }
 
@@ -183,14 +183,14 @@ void printer_create(lv_obj_t *page)
         lv_obj_set_style_outline_pad(d, 3, 0);
         lv_obj_set_pos(d, i * step + (step - SWATCH) / 2, UI_COMPACT ? 22 : 26);
         s_ams_dot[i] = d;
-        s_ams_lbl[i] = ui_label(s_ams_card, &lv_font_montserrat_14, COL_MUTED, "");
+        s_ams_lbl[i] = ui_label(s_ams_card, g_font_14, COL_MUTED, "");
         lv_label_set_long_mode(s_ams_lbl[i], LV_LABEL_LONG_CLIP);
         lv_obj_set_width(s_ams_lbl[i], step);
         lv_obj_set_style_text_align(s_ams_lbl[i], LV_TEXT_ALIGN_CENTER, 0);
         lv_obj_set_pos(s_ams_lbl[i], i * step, 62);
             if (UI_COMPACT) lv_obj_add_flag(s_ams_lbl[i], LV_OBJ_FLAG_HIDDEN);   // no room for labels
     }
-    s_ams_none = ui_label(s_ams_card, &lv_font_montserrat_16, COL_DIM, "No AMS data");
+    s_ams_none = ui_label(s_ams_card, g_font_16, COL_DIM, "No AMS data");
     lv_obj_set_pos(s_ams_none, 0, 32);
 
     // Empty state.
@@ -199,9 +199,9 @@ void printer_create(lv_obj_t *page)
     lv_obj_set_size(s_empty, LV_PCT(100), LV_PCT(100));
     lv_obj_t *icon = ui_label(s_empty, g_icon_80, COL_DIM, ICON_VIEW_IN_AR);
     lv_obj_align(icon, LV_ALIGN_CENTER, 0, -40);
-    lv_obj_t *msg = ui_label(s_empty, &lv_font_montserrat_24, COL_MUTED, "No printer connected");
+    lv_obj_t *msg = ui_label(s_empty, g_font_24, COL_MUTED, "No printer connected");
     lv_obj_align(msg, LV_ALIGN_CENTER, 0, 24);
-    s_empty_sub = ui_label(s_empty, &lv_font_montserrat_16, COL_DIM, "");
+    s_empty_sub = ui_label(s_empty, g_font_16, COL_DIM, "");
     lv_obj_align(s_empty_sub, LV_ALIGN_CENTER, 0, 56);
 
     printer_refresh();
@@ -240,7 +240,7 @@ void printer_refresh(void)
     lv_obj_update_layout(s_name);
     lv_obj_align_to(s_chip, s_name, LV_ALIGN_OUT_RIGHT_MID, 14, 0);
     if (g_printer_count > 1) {
-        snprintf(buf, sizeof(buf), "%d of %d  " LV_SYMBOL_RIGHT, sel + 1, g_printer_count);
+        snprintf(buf, sizeof(buf), "%d of %d  " "›", sel + 1, g_printer_count);
         lv_label_set_text(s_count, buf);
     } else {
         lv_label_set_text(s_count, p->model);

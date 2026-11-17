@@ -41,13 +41,13 @@ static void make_gauge(lv_obj_t *page, int i)
     lv_obj_set_style_arc_color(arc, lv_color_hex(COLORS[i]), LV_PART_INDICATOR);
     s_arc[i] = arc;
 
-    s_val[i] = ui_label(c, &lv_font_montserrat_32, COL_TEXT, "--");
+    s_val[i] = ui_label(c, g_font_32, COL_TEXT, "--");
     lv_obj_set_width(s_val[i], 112);
     lv_obj_set_style_text_align(s_val[i], LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_align_to(s_val[i], arc, LV_ALIGN_CENTER, 0, -4);
-    lv_obj_t *name = ui_label(c, &lv_font_montserrat_20, COL_TEXT, NAMES[i]);
+    lv_obj_t *name = ui_label(c, g_font_20, COL_TEXT, NAMES[i]);
     lv_obj_align(name, LV_ALIGN_BOTTOM_MID, 0, -22);
-    s_sub[i] = ui_label(c, &lv_font_montserrat_14, COL_MUTED, "");
+    s_sub[i] = ui_label(c, g_font_14, COL_MUTED, "");
     lv_obj_align(s_sub[i], LV_ALIGN_BOTTOM_MID, 0, 0);
 }
 
@@ -113,7 +113,7 @@ void stats_create(lv_obj_t *page)
         lv_obj_set_style_radius(b, (SWITCH_H - 8) / 2, 0);
         lv_obj_set_style_bg_color(b, lv_color_hex(COL_ACCENT), 0);
         lv_obj_set_ext_click_area(b, 6);
-        lv_obj_t *l = ui_label(b, &lv_font_montserrat_16, COL_MUTED, labels[i]);
+        lv_obj_t *l = ui_label(b, g_font_16, COL_MUTED, labels[i]);
         lv_obj_center(l);
         lv_obj_add_event_cb(b, seg_cb, LV_EVENT_CLICKED, (void *)(intptr_t)i);
         s_seg[i] = b;
@@ -131,16 +131,16 @@ void stats_create(lv_obj_t *page)
 
     lv_obj_t *t = ui_caption(c, "LAST MINUTE");
     lv_obj_set_pos(t, 0, 0);
-    lv_obj_t *cpu_key = ui_label(c, &lv_font_montserrat_14, COL_ACCENT2, "\xE2\x80\xA2 CPU");
+    lv_obj_t *cpu_key = ui_label(c, g_font_14, COL_ACCENT2, "\xE2\x80\xA2 CPU");
     lv_obj_set_pos(cpu_key, 150, 0);
-    lv_obj_t *gpu_key = ui_label(c, &lv_font_montserrat_14, COL_CYAN, "\xE2\x80\xA2 GPU");
+    lv_obj_t *gpu_key = ui_label(c, g_font_14, COL_CYAN, "\xE2\x80\xA2 GPU");
     lv_obj_set_pos(gpu_key, 210, 0);
 
-    s_net = ui_label(c, &lv_font_montserrat_16, COL_TEXT, "");
+    s_net = ui_label(c, g_font_16, COL_TEXT, "");
     lv_obj_align(s_net, LV_ALIGN_TOP_RIGHT, 0, -2);
-    s_disk = ui_label(c, &lv_font_montserrat_14, COL_MUTED, "");
+    s_disk = ui_label(c, g_font_14, COL_MUTED, "");
     lv_obj_align(s_disk, LV_ALIGN_BOTTOM_RIGHT, 0, 4);
-    s_names = ui_label(c, &lv_font_montserrat_14, COL_DIM, "");
+    s_names = ui_label(c, g_font_14, COL_DIM, "");
     lv_obj_align(s_names, LV_ALIGN_BOTTOM_LEFT, 0, 4);
 
     s_chart = lv_chart_create(c);
@@ -162,7 +162,7 @@ void stats_create(lv_obj_t *page)
     lv_chart_set_all_value(s_chart, s_cpu_ser, LV_CHART_POINT_NONE);
     lv_chart_set_all_value(s_chart, s_gpu_ser, LV_CHART_POINT_NONE);
 
-    s_offline = ui_label(c, &lv_font_montserrat_20, COL_DIM, "Start the companion app on your PC");
+    s_offline = ui_label(c, g_font_20, COL_DIM, "Start the companion app on your PC");
     lv_obj_center(s_offline);
     stats_set_view(0);
 }
@@ -230,7 +230,7 @@ void stats_refresh(void)
     char down[20], up[20], buf[160];
     fmt_rate(down, sizeof(down), s->net_down);
     fmt_rate(up, sizeof(up), s->net_up);
-    snprintf(buf, sizeof(buf), LV_SYMBOL_DOWNLOAD " %s    " LV_SYMBOL_UPLOAD " %s", down, up);
+    snprintf(buf, sizeof(buf), "↓ %s    ↑ %s", down, up);
     lv_label_set_text(s_net, buf);
     snprintf(buf, sizeof(buf), "Disk %d%% used", (int)s->disk);
     lv_label_set_text(s_disk, buf);
