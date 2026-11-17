@@ -7,23 +7,28 @@
 #include "hub_model.h"
 #include "lvgl.h"
 
-// Midnight theme: deep navy background, glassy indigo cards, soft violet accents.
-#define COL_BG       0x060914   // bottom of the screen gradient
-#define COL_BG_TOP   0x111842   // top of the screen gradient
-#define COL_RAIL     0x080c22
-#define COL_CARD     0x141c40   // card gradient top
-#define COL_CARD_LO  0x0e1430   // card gradient bottom
-#define COL_CARD_HI  0x1f2a5c   // pressed card, empty bar track
-#define COL_BORDER   0x26315f
-#define COL_TEXT     0xeef1ff
-#define COL_MUTED    0x8e97c6
-#define COL_DIM      0x4e578a
-#define COL_ACCENT   0x8c9eff   // periwinkle
-#define COL_ACCENT2  0xc08cff   // violet
-#define COL_CYAN     0x67e8f9
-#define COL_GOOD     0x4ade9c
-#define COL_WARN     0xfbbf5a
-#define COL_BAD      0xff6b8a
+// Graphite theme: a flat near-black ground, flat cards with a hairline edge, one
+// warm amber accent for actions and highlights, and cool data colours for series.
+// No gradients or transparency: plain fills are the cheapest thing to redraw.
+#define COL_BG       0x0d0e11   // screen
+#define COL_RAIL     0x111216   // navigation bar
+#define COL_CARD     0x16181d   // card surface
+#define COL_CARD_LO  COL_CARD
+#define COL_CARD_HI  0x262a32   // pressed card, selected tab, empty bar track
+#define COL_BORDER   0x262a32   // hairline card edge
+#define COL_PRESSED  0x30343d   // pressed neutral button
+#define COL_TEXT     0xf3f4f6
+#define COL_MUTED    0x9aa0aa   // secondary text (7:1 on a card)
+#define COL_DIM      0x6b717c   // idle icons and placeholders, not body text
+#define COL_ACCENT   0xffb224   // amber: actions, the current item, highlights
+#define COL_ON_ACCENT 0x16181d  // text and icons on amber
+#define COL_ACCENT_PRESSED 0xd9931a
+#define COL_ACCENT2  0x6cb4ff   // blue: the first data series
+#define COL_CYAN     0x5ed3c6   // teal: the second data series
+#define COL_DATA3    0xb49cff   // lilac: the third data series
+#define COL_GOOD     0x3dd68c
+#define COL_WARN     0xffb224
+#define COL_BAD      0xff6b6b
 
 // Layout: navigation rail on the left, pages to its right.
 // The navigation bar sits on the left (default), the right or along the bottom.

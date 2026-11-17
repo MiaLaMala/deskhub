@@ -145,7 +145,7 @@ void net_page_create(lv_obj_t *page)
     lv_obj_set_style_radius(s_run, UI_COMPACT ? 20 : 24, 0);
     lv_obj_set_style_bg_color(s_run, lv_color_hex(COL_ACCENT), 0);
     lv_obj_set_style_bg_opa(s_run, LV_OPA_COVER, 0);
-    lv_obj_set_style_bg_color(s_run, lv_color_hex(COL_ACCENT2), LV_STATE_PRESSED);
+    lv_obj_set_style_bg_color(s_run, lv_color_hex(COL_ACCENT_PRESSED), LV_STATE_PRESSED);
     lv_obj_set_style_bg_color(s_run, lv_color_hex(COL_CARD_HI), LV_STATE_DISABLED);
     lv_obj_set_ext_click_area(s_run, 8);
     lv_obj_align(s_run, LV_ALIGN_BOTTOM_RIGHT, 0, 0);

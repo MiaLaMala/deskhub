@@ -27,16 +27,18 @@ void weather_page_create(lv_obj_t *page)
     const int W = CONTENT_W;
 
     lv_obj_t *now = ui_card(page);
-    lv_obj_set_size(now, W, 150);
+    const bool c = UI_COMPACT;   // 372 px above the bottom bar instead of 440
+    lv_obj_set_size(now, W, c ? 120 : 150);
+    if (c) lv_obj_set_style_pad_all(now, 12, 0);
     lv_obj_set_pos(now, 0, 0);
     s_icon = ui_label(now, g_icon_80, COL_WARN, ICON_CLOUD);
     lv_obj_align(s_icon, LV_ALIGN_LEFT_MID, 4, 0);
     s_temp = ui_label(now, &lv_font_montserrat_48, COL_TEXT, "--");
-    lv_obj_set_pos(s_temp, 110, 6);
+    lv_obj_set_pos(s_temp, 110, c ? 0 : 6);
     s_cond = ui_label(now, &lv_font_montserrat_20, COL_TEXT, "Loading weather");
-    lv_obj_set_pos(s_cond, 112, 64);
+    lv_obj_set_pos(s_cond, 112, c ? 52 : 64);
     s_city = ui_label(now, &lv_font_montserrat_16, COL_MUTED, CONFIG_HUB_CITY);
-    lv_obj_set_pos(s_city, 112, 94);
+    lv_obj_set_pos(s_city, 112, c ? 76 : 94);
     s_details = ui_label(now, &lv_font_montserrat_16, COL_TEXT, "");
     lv_obj_set_style_text_line_space(s_details, 8, 0);
     lv_obj_align(s_details, LV_ALIGN_TOP_RIGHT, 0, 6);
@@ -44,8 +46,8 @@ void weather_page_create(lv_obj_t *page)
     lv_obj_align(s_updated, LV_ALIGN_BOTTOM_RIGHT, 0, 4);
 
     lv_obj_t *hourly = ui_card(page);
-    lv_obj_set_size(hourly, W, 128);
-    lv_obj_set_pos(hourly, 0, 162);
+    lv_obj_set_size(hourly, W, c ? 112 : 128);
+    lv_obj_set_pos(hourly, 0, c ? 130 : 162);
     lv_obj_set_style_pad_all(hourly, 10, 0);
     lv_obj_add_flag(hourly, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_scroll_dir(hourly, LV_DIR_HOR);
@@ -55,26 +57,27 @@ void weather_page_create(lv_obj_t *page)
         s_h_time[i] = centered(hourly, &lv_font_montserrat_14, COL_MUTED, CELL_W);
         lv_obj_set_pos(s_h_time[i], x, 0);
         s_h_icon[i] = centered(hourly, g_icon_32, COL_TEXT, CELL_W);
-        lv_obj_set_pos(s_h_icon[i], x, 22);
+        lv_obj_set_pos(s_h_icon[i], x, c ? 20 : 22);
         s_h_temp[i] = centered(hourly, &lv_font_montserrat_20, COL_TEXT, CELL_W);
-        lv_obj_set_pos(s_h_temp[i], x, 60);
-        s_h_rain[i] = centered(hourly, &lv_font_montserrat_14, 0x60a5fa, CELL_W);
-        lv_obj_set_pos(s_h_rain[i], x, 86);
+        lv_obj_set_pos(s_h_temp[i], x, c ? 54 : 60);
+        s_h_rain[i] = centered(hourly, &lv_font_montserrat_14, COL_ACCENT2, CELL_W);
+        lv_obj_set_pos(s_h_rain[i], x, c ? 76 : 86);
     }
 
     lv_obj_t *daily = ui_card(page);
-    lv_obj_set_size(daily, W, 138);
-    lv_obj_set_pos(daily, 0, 302);
+    lv_obj_set_size(daily, W, c ? 120 : 138);
+    if (c) lv_obj_set_style_pad_all(daily, 12, 0);
+    lv_obj_set_pos(daily, 0, c ? 252 : 302);
     for (int i = 0; i < HUB_DAYS; i++) {
         int x = i * DAY_W;
         s_d_name[i] = centered(daily, &lv_font_montserrat_16, COL_MUTED, DAY_W);
         lv_obj_set_pos(s_d_name[i], x, 0);
         s_d_icon[i] = centered(daily, g_icon_32, COL_TEXT, DAY_W);
-        lv_obj_set_pos(s_d_icon[i], x, 24);
+        lv_obj_set_pos(s_d_icon[i], x, c ? 22 : 24);
         s_d_range[i] = centered(daily, &lv_font_montserrat_16, COL_TEXT, DAY_W);
-        lv_obj_set_pos(s_d_range[i], x, 62);
-        s_d_rain[i] = centered(daily, &lv_font_montserrat_14, 0x60a5fa, DAY_W);
-        lv_obj_set_pos(s_d_rain[i], x, 86);
+        lv_obj_set_pos(s_d_range[i], x, c ? 56 : 62);
+        s_d_rain[i] = centered(daily, &lv_font_montserrat_14, COL_ACCENT2, DAY_W);
+        lv_obj_set_pos(s_d_rain[i], x, c ? 76 : 86);
     }
 }
 

@@ -83,22 +83,17 @@ void shortcuts_refresh(const hub_tile_t *tiles, int n)
         lv_obj_remove_style_all(b);
         lv_obj_set_size(b, tw, th);
         lv_obj_set_pos(b, (i % cols) * (tw + GAP), (i / cols) * (th + GAP));
-        lv_obj_set_style_radius(b, 22, 0);
-        // Midnight tile: the tile's colour as a tint over the card, fading down,
-        // with a matching edge. Pressing lights it up fully.
+        lv_obj_set_style_radius(b, 16, 0);
+        // Graphite tile: a plain card with the icon in the tile's colour. Pressing
+        // tints it; a tile that is "on" (e.g. mic muted) fills with its colour.
         lv_color_t tint = lv_color_hex(t->color);
-        lv_obj_set_style_bg_color(b, lv_color_mix(tint, lv_color_hex(COL_CARD), 110), 0);
-        lv_obj_set_style_bg_grad_color(b, lv_color_hex(COL_CARD_LO), 0);
-        lv_obj_set_style_bg_grad_dir(b, LV_GRAD_DIR_VER, 0);
+        lv_obj_set_style_bg_color(b, lv_color_hex(COL_CARD), 0);
         lv_obj_set_style_bg_opa(b, LV_OPA_COVER, 0);
-        lv_obj_set_style_border_color(b, tint, 0);
+        lv_obj_set_style_border_color(b, lv_color_hex(COL_BORDER), 0);
         lv_obj_set_style_border_width(b, 1, 0);
-        lv_obj_set_style_border_opa(b, LV_OPA_50, 0);
-        lv_obj_set_style_bg_color(b, tint, LV_STATE_PRESSED);
-        lv_obj_set_style_bg_grad_color(b, lv_color_mix(tint, lv_color_hex(COL_CARD), 160), LV_STATE_PRESSED);
-        lv_obj_set_style_bg_color(b, lv_color_lighten(tint, 30), LV_STATE_CHECKED);
-        lv_obj_set_style_bg_grad_color(b, lv_color_darken(tint, 60), LV_STATE_CHECKED);
-        lv_obj_set_style_border_color(b, lv_color_lighten(tint, 150), LV_STATE_CHECKED);
+        lv_obj_set_style_bg_color(b, lv_color_mix(tint, lv_color_hex(COL_CARD), 90), LV_STATE_PRESSED);
+        lv_obj_set_style_bg_color(b, lv_color_darken(tint, 40), LV_STATE_CHECKED);
+        lv_obj_set_style_border_color(b, lv_color_lighten(tint, 120), LV_STATE_CHECKED);
         lv_obj_set_style_border_width(b, 2, LV_STATE_CHECKED);
         lv_obj_set_style_border_opa(b, LV_OPA_COVER, LV_STATE_CHECKED);
         lv_obj_set_style_opa(b, LV_OPA_40, LV_STATE_DISABLED);

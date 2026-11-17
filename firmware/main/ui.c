@@ -129,17 +129,13 @@ lv_obj_t *ui_card(lv_obj_t *parent)
 {
     lv_obj_t *c = lv_obj_create(parent);
     lv_obj_remove_style_all(c);
-    // Glassy card: slightly lighter at the top, with a thin indigo edge.
+    // Flat card with a hairline edge.
     lv_obj_set_style_bg_color(c, lv_color_hex(COL_CARD), 0);
-    lv_obj_set_style_bg_grad_color(c, lv_color_hex(COL_CARD_LO), 0);
-    lv_obj_set_style_bg_grad_dir(c, LV_GRAD_DIR_VER, 0);
     lv_obj_set_style_bg_opa(c, LV_OPA_COVER, 0);
     lv_obj_set_style_bg_color(c, lv_color_hex(COL_CARD_HI), LV_STATE_PRESSED);
-    lv_obj_set_style_bg_grad_color(c, lv_color_hex(COL_CARD), LV_STATE_PRESSED);
     lv_obj_set_style_border_color(c, lv_color_hex(COL_BORDER), 0);
     lv_obj_set_style_border_width(c, 1, 0);
-    lv_obj_set_style_border_opa(c, LV_OPA_80, 0);
-    lv_obj_set_style_radius(c, 22, 0);
+    lv_obj_set_style_radius(c, 16, 0);
     lv_obj_set_style_pad_all(c, 16, 0);
     lv_obj_remove_flag(c, LV_OBJ_FLAG_SCROLLABLE);
     return c;
@@ -154,10 +150,7 @@ lv_obj_t *ui_caption(lv_obj_t *parent, const char *text)
 
 void ui_bar_set_color(lv_obj_t *bar, uint32_t color)
 {
-    // Left-to-right glow: the colour fades to a lighter tint at the tip.
     lv_obj_set_style_bg_color(bar, lv_color_hex(color), LV_PART_INDICATOR);
-    lv_obj_set_style_bg_grad_color(bar, lv_color_lighten(lv_color_hex(color), 90), LV_PART_INDICATOR);
-    lv_obj_set_style_bg_grad_dir(bar, LV_GRAD_DIR_HOR, LV_PART_INDICATOR);
 }
 
 lv_obj_t *ui_label(lv_obj_t *parent, const lv_font_t *font, uint32_t color, const char *text)
@@ -193,12 +186,13 @@ lv_obj_t *ui_round_button(lv_obj_t *parent, int size, uint32_t bg, const lv_font
     lv_obj_set_style_bg_opa(b, LV_OPA_COVER, 0);
     lv_obj_set_style_border_color(b, lv_color_hex(COL_BORDER), 0);
     lv_obj_set_style_border_width(b, bg == COL_CARD ? 1 : 0, 0);
-    lv_obj_set_style_bg_color(b, lv_color_hex(COL_ACCENT2), LV_STATE_PRESSED);
+    bool accent = bg == COL_ACCENT;
+    lv_obj_set_style_bg_color(b, lv_color_hex(accent ? COL_ACCENT_PRESSED : COL_PRESSED), LV_STATE_PRESSED);
     lv_obj_set_style_transform_scale(b, 236, LV_STATE_PRESSED);
     lv_obj_set_style_transform_pivot_x(b, size / 2, 0);
     lv_obj_set_style_transform_pivot_y(b, size / 2, 0);
     lv_obj_set_ext_click_area(b, 8);
-    lv_obj_t *l = ui_label(b, icon_font, COL_TEXT, glyph);
+    lv_obj_t *l = ui_label(b, icon_font, accent ? COL_ON_ACCENT : COL_TEXT, glyph);
     lv_obj_center(l);
     if (cb) lv_obj_add_event_cb(b, cb, LV_EVENT_CLICKED, user);
     return b;
@@ -293,10 +287,9 @@ void ui_show_page(int page)
         bool on = i == page;
         if (on) lv_obj_remove_flag(s_pages[i], LV_OBJ_FLAG_HIDDEN);
         else lv_obj_add_flag(s_pages[i], LV_OBJ_FLAG_HIDDEN);
-        lv_obj_set_style_bg_opa(s_nav[i], on ? LV_OPA_40 : LV_OPA_TRANSP, 0);
-        lv_obj_set_style_border_opa(s_nav[i], on ? LV_OPA_70 : LV_OPA_TRANSP, 0);
+        lv_obj_set_style_bg_opa(s_nav[i], on ? LV_OPA_COVER : LV_OPA_TRANSP, 0);
         lv_obj_set_style_text_color(lv_obj_get_child(s_nav[i], 0),
-                                    lv_color_hex(on ? COL_TEXT : COL_DIM), 0);
+                                    lv_color_hex(on ? COL_TEXT : COL_MUTED), 0);
         // The logo keeps its colours: dim it when its tab isn't selected.
         if (i == PAGE_CLAUDE) lv_obj_set_style_image_opa(lv_obj_get_child(s_nav[i], 0), on ? LV_OPA_COVER : LV_OPA_50, 0);
     }
@@ -483,16 +476,12 @@ static void build_rail(lv_obj_t *scr)
         lv_obj_t *b = lv_button_create(rail);
         lv_obj_remove_style_all(b);
         lv_obj_set_size(b, 60, RAIL_TAB_MAX);  // height set by apply_layout()
-        lv_obj_set_style_radius(b, 18, 0);
-        // Selected page: an indigo-to-violet pill with a soft edge.
-        lv_obj_set_style_bg_color(b, lv_color_hex(COL_ACCENT), 0);
-        lv_obj_set_style_bg_grad_color(b, lv_color_hex(COL_ACCENT2), 0);
-        lv_obj_set_style_bg_grad_dir(b, LV_GRAD_DIR_VER, 0);
+        lv_obj_set_style_radius(b, 14, 0);
+        // Selected page: a flat raised pill behind a white icon.
+        lv_obj_set_style_bg_color(b, lv_color_hex(COL_CARD_HI), 0);
         lv_obj_set_style_bg_opa(b, LV_OPA_TRANSP, 0);
-        lv_obj_set_style_border_color(b, lv_color_hex(COL_ACCENT), 0);
-        lv_obj_set_style_border_width(b, 1, 0);
-        lv_obj_set_style_border_opa(b, LV_OPA_TRANSP, 0);
-        lv_obj_set_style_bg_opa(b, LV_OPA_20, LV_STATE_PRESSED);
+        lv_obj_set_style_bg_color(b, lv_color_hex(COL_PRESSED), LV_STATE_PRESSED);
+        lv_obj_set_style_bg_opa(b, LV_OPA_COVER, LV_STATE_PRESSED);
         lv_obj_t *l;
         if (i == PAGE_CLAUDE) {
             // The AI tab shows the active agent's own logo instead of a glyph.
@@ -500,7 +489,7 @@ static void build_rail(lv_obj_t *scr)
             lv_image_set_src(l, ui_agent_logo(32));
             s_nav_logo = l;
         } else {
-            l = ui_label(b, g_icon_32, COL_DIM, s_glyphs[i]);
+            l = ui_label(b, g_icon_32, COL_MUTED, s_glyphs[i]);
         }
         lv_obj_center(l);
         lv_obj_add_event_cb(b, nav_cb, LV_EVENT_CLICKED, (void *)(intptr_t)i);
@@ -528,63 +517,6 @@ static void build_rail(lv_obj_t *scr)
     }
     s_pc_icon = ui_label(status, font, COL_DIM, ICON_DESKTOP_WINDOWS);
     s_wifi_icon = ui_label(status, font, COL_DIM, ICON_WIFI_OFF);
-}
-
-// The night sky (gradient plus stars) is rendered once into a PSRAM image.
-// Redraws then copy pixels instead of recomputing a gradient and drawing
-// dozens of star objects, which keeps page switches and updates fast.
-static uint16_t *s_bg_px;
-static lv_image_dsc_t s_bg;
-
-static uint16_t rgb565(uint32_t c)
-{
-    return ((c >> 8) & 0xf800) | ((c >> 5) & 0x07e0) | ((c >> 3) & 0x001f);
-}
-
-static uint32_t mix(uint32_t a, uint32_t b, int t, int n)
-{
-    uint32_t r = (((a >> 16) & 0xff) * (n - t) + ((b >> 16) & 0xff) * t) / n;
-    uint32_t g = (((a >> 8) & 0xff) * (n - t) + ((b >> 8) & 0xff) * t) / n;
-    uint32_t bl = ((a & 0xff) * (n - t) + (b & 0xff) * t) / n;
-    return r << 16 | g << 8 | bl;
-}
-
-static void build_stars(lv_obj_t *scr)
-{
-    const int W = 800, H = 480;
-    s_bg_px = heap_caps_malloc(W * H * 2, MALLOC_CAP_SPIRAM);
-    if (!s_bg_px) {
-        lv_obj_set_style_bg_color(scr, lv_color_hex(COL_BG), 0);
-        return;
-    }
-    for (int y = 0; y < H; y++) {
-        uint32_t row = mix(COL_BG_TOP, COL_BG, y, H - 1);
-        // Ordered dither between rows hides RGB565 banding in the gradient.
-        uint16_t a = rgb565(row), b = rgb565(mix(row, 0x000000, 1, 24));
-        for (int x = 0; x < W; x++) s_bg_px[y * W + x] = ((x ^ y) & 1) ? b : a;
-    }
-    uint32_t seed = 0x2545F491;
-    for (int i = 0; i < 90; i++) {
-        seed = seed * 1103515245u + 12345u;
-        int x = (seed >> 8) % (W - 2);
-        seed = seed * 1103515245u + 12345u;
-        int y = (seed >> 8) % (H - 2);
-        seed = seed * 1103515245u + 12345u;
-        int r = (seed >> 8) % 10;
-        uint32_t base = mix(COL_BG_TOP, COL_BG, y, H - 1);
-        uint32_t c = mix(base, r < 3 ? COL_ACCENT : COL_TEXT, 3 + r, 16);
-        int size = r == 0 ? 2 : 1;
-        for (int dy = 0; dy < size; dy++)
-            for (int dx = 0; dx < size; dx++) s_bg_px[(y + dy) * W + x + dx] = rgb565(c);
-    }
-    s_bg.header.magic = LV_IMAGE_HEADER_MAGIC;
-    s_bg.header.cf = LV_COLOR_FORMAT_RGB565;
-    s_bg.header.w = W;
-    s_bg.header.h = H;
-    s_bg.header.stride = W * 2;
-    s_bg.data_size = W * H * 2;
-    s_bg.data = (const uint8_t *)s_bg_px;
-    lv_obj_set_style_bg_image_src(scr, &s_bg, 0);
 }
 
 static void tick_cb(lv_timer_t *t)
@@ -659,7 +591,6 @@ void ui_init(void)
     lv_obj_remove_flag(scr, LV_OBJ_FLAG_SCROLLABLE);
 
     load_nav();
-    build_stars(scr);
     build_rail(scr);
 
     void (*creators[PAGE_COUNT])(lv_obj_t *) = {

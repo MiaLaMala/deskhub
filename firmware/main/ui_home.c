@@ -150,13 +150,13 @@ static void create_clock(lv_obj_t *page)
     }
     s_clock_font = g_font_clock;
     s_ampm = ui_label(w, &lv_font_montserrat_24, COL_MUTED, "");
-    s_date = ui_label(w, &lv_font_montserrat_24, COL_ACCENT, "Waiting for network");
+    s_date = ui_label(w, &lv_font_montserrat_24, COL_MUTED, "Waiting for network");
     // Separator dot between the date and AM/PM in the narrow column.
     s_date_dot = lv_obj_create(w);
     lv_obj_remove_style_all(s_date_dot);
     lv_obj_set_size(s_date_dot, 5, 5);
     lv_obj_set_style_radius(s_date_dot, LV_RADIUS_CIRCLE, 0);
-    lv_obj_set_style_bg_color(s_date_dot, lv_color_hex(COL_ACCENT), 0);
+    lv_obj_set_style_bg_color(s_date_dot, lv_color_hex(COL_MUTED), 0);
     lv_obj_set_style_bg_opa(s_date_dot, LV_OPA_70, 0);
     lv_obj_remove_flag(s_date_dot, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_flag(s_date_dot, LV_OBJ_FLAG_HIDDEN);
@@ -359,7 +359,7 @@ static void create_stats(lv_obj_t *page)
 {
     lv_obj_t *st = widget_card(page, PAGE_STATS);
     static const char *names[3] = {"CPU", "GPU", "RAM"};
-    static const uint32_t colors[3] = {COL_ACCENT, COL_CYAN, COL_ACCENT2};
+    static const uint32_t colors[3] = {COL_ACCENT2, COL_CYAN, COL_DATA3};
     for (int i = 0; i < 3; i++) {
         s_st_name[i] = ui_label(st, &lv_font_montserrat_16, COL_MUTED, names[i]);
         lv_obj_set_pos(s_st_name[i], 0, i * 30);
@@ -524,7 +524,7 @@ static void create_header(lv_obj_t *page)
     s_hdr_time = ui_label(s_hdr, ui_header_font(), COL_TEXT, "--:--");
     lv_obj_align(s_hdr_time, LV_ALIGN_LEFT_MID, 0, -4);
     s_hdr_ampm = ui_label(s_hdr, &lv_font_montserrat_20, COL_MUTED, "");
-    s_hdr_date = ui_label(s_hdr, &lv_font_montserrat_24, COL_ACCENT, "");
+    s_hdr_date = ui_label(s_hdr, &lv_font_montserrat_24, COL_MUTED, "");
     lv_obj_align(s_hdr_date, LV_ALIGN_RIGHT_MID, 0, -2);
     lv_obj_add_flag(s_hdr, LV_OBJ_FLAG_HIDDEN);
 }
@@ -843,7 +843,7 @@ static void update_date(const struct tm *tm)
         lv_obj_set_style_text_font(s_date, use, 0);
         lv_obj_set_style_text_letter_space(s_date, 0, 0);
         lv_obj_set_style_text_font(s_ampm, use, 0);
-        lv_obj_set_style_text_color(s_ampm, lv_color_hex(COL_ACCENT), 0);
+        lv_obj_set_style_text_color(s_ampm, lv_color_hex(COL_MUTED), 0);
         lv_label_set_text(s_date, text);
         if (label_old) lv_tiny_ttf_destroy(label_old);  // the size shown until now
         int shown_px = font ? px : 24;

@@ -70,7 +70,7 @@ static lv_obj_t *pill(lv_obj_t *parent, const char *text, bool primary, lv_event
     lv_obj_set_style_bg_opa(b, LV_OPA_COVER, 0);
     lv_obj_set_style_border_color(b, lv_color_hex(COL_BORDER), 0);
     lv_obj_set_style_border_width(b, primary ? 0 : 1, 0);
-    lv_obj_set_style_bg_color(b, lv_color_hex(COL_ACCENT2), LV_STATE_PRESSED);
+    lv_obj_set_style_bg_color(b, lv_color_hex(COL_ACCENT_PRESSED), LV_STATE_PRESSED);
     lv_obj_set_ext_click_area(b, 6);
     lv_obj_t *l = ui_label(b, &lv_font_montserrat_20, primary ? COL_BG : COL_TEXT, text);
     lv_obj_center(l);

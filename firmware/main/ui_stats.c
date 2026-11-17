@@ -17,7 +17,7 @@ static lv_obj_t *s_chart, *s_net, *s_disk, *s_offline, *s_names;
 static lv_chart_series_t *s_cpu_ser, *s_gpu_ser;
 
 static const char *NAMES[GAUGES] = {"CPU", "GPU", "RAM", "VRAM"};
-static const uint32_t COLORS[GAUGES] = {COL_ACCENT, COL_CYAN, COL_ACCENT2, 0xf0abfc};
+static const uint32_t COLORS[GAUGES] = {COL_ACCENT2, COL_CYAN, COL_DATA3, 0xf79ad3};
 
 static void make_gauge(lv_obj_t *page, int i)
 {
@@ -131,7 +131,7 @@ void stats_create(lv_obj_t *page)
 
     lv_obj_t *t = ui_caption(c, "LAST MINUTE");
     lv_obj_set_pos(t, 0, 0);
-    lv_obj_t *cpu_key = ui_label(c, &lv_font_montserrat_14, COL_ACCENT, "\xE2\x80\xA2 CPU");
+    lv_obj_t *cpu_key = ui_label(c, &lv_font_montserrat_14, COL_ACCENT2, "\xE2\x80\xA2 CPU");
     lv_obj_set_pos(cpu_key, 150, 0);
     lv_obj_t *gpu_key = ui_label(c, &lv_font_montserrat_14, COL_CYAN, "\xE2\x80\xA2 GPU");
     lv_obj_set_pos(gpu_key, 210, 0);
@@ -157,7 +157,7 @@ void stats_create(lv_obj_t *page)
     lv_obj_set_style_line_color(s_chart, lv_color_hex(COL_CARD_HI), LV_PART_MAIN);
     lv_obj_set_style_size(s_chart, 0, 0, LV_PART_INDICATOR);
     lv_obj_set_style_line_width(s_chart, 3, LV_PART_ITEMS);
-    s_cpu_ser = lv_chart_add_series(s_chart, lv_color_hex(COL_ACCENT), LV_CHART_AXIS_PRIMARY_Y);
+    s_cpu_ser = lv_chart_add_series(s_chart, lv_color_hex(COL_ACCENT2), LV_CHART_AXIS_PRIMARY_Y);
     s_gpu_ser = lv_chart_add_series(s_chart, lv_color_hex(COL_CYAN), LV_CHART_AXIS_PRIMARY_Y);
     lv_chart_set_all_value(s_chart, s_cpu_ser, LV_CHART_POINT_NONE);
     lv_chart_set_all_value(s_chart, s_gpu_ser, LV_CHART_POINT_NONE);
