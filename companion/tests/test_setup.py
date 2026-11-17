@@ -48,18 +48,28 @@ fw = root / "firmware"; fw.mkdir()
                               'CONFIG_HUB_FAHRENHEIT=y\n# CONFIG_HUB_24H is not set\n')
 conf = root / "config.toml"
 shutil.copy(pathlib.Path(__file__).parent.parent / "config.example.toml", conf)
-# Wi-Fi, city, pick, F, 24h, calendars, printers, games, 10 pages (hide Weather and Games), nav bar, top bar, home left+right, PC sleep, night (bad, good, style), live limits, flash
+# Wi-Fi, city, pick, F, 24h, calendars, printers, games, 10 pages (hide Weather and Games), nav bar, top bar, home left+right, PC sleep, night (bad, good, style), live limits, flash, start with Windows
 answers = iter(["", "Charlotte, NC", "1", "", "", "n", "n", "n",
-                "", "", "", "n", "", "", "", "", "n", "", "bottom", "y", "clock, events", "media, bogus", "printer", "clock", "25:00-7", "11pm-7:30am", "clock", "y", "", "", "codex", "n"])
+                "", "", "", "n", "", "", "", "", "n", "", "bottom", "y", "clock, events", "media, bogus", "printer", "clock", "25:00-7", "11pm-7:30am", "clock", "y", "", "", "codex", "n", "y"])
 builtins.input = lambda prompt="": next(answers)
 # Never touch the real Claude Code settings: point the alerts step at a temp file.
 s.CLAUDE_SETTINGS = root / "claude_settings.json"
 installer_calls = []
 s.run_installer = lambda *a: installer_calls.append(a) or True
 getpass.getpass = lambda prompt="": ""
+# ...and put the login shortcut in a temp "Startup" folder.
+import deskhub.install_startup as startup
+startup.startup_dir = lambda: root / "Startup"
 sys.argv = ["deskhub-setup", "--config", str(conf), "--firmware", str(fw)]
 s.main()
 out = (fw / "sdkconfig").read_text()
+_lnk = root / "Startup" / startup.LINK_NAME
+check(_lnk.is_file() and _lnk.stat().st_size > 0, "login shortcut created")
+check(b"pythonw" in _lnk.read_bytes().lower() or "pythonw".encode("utf-16-le") in _lnk.read_bytes().lower(),
+      "shortcut runs pythonw")
+answers = iter(["n"])
+s.step_startup(conf)
+check(not _lnk.exists(), "login shortcut removed")
 check(s.read_kconfig(out, "HUB_CITY") == "Charlotte", "city saved")
 check(s.read_kconfig(out, "HUB_LATITUDE", ).startswith("35.2"), "lat saved")
 check(s.read_kconfig(out, "HUB_TZ") == "EST5EDT,M3.2.0,M11.1.0", "tz saved")

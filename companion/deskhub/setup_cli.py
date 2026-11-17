@@ -540,7 +540,26 @@ def main():
     step_agent(config_path)
 
     step_flash(firmware)
+    step_startup(config_path)
     print("\nRestart the companion (uv run python -m deskhub) to pick up calendar or token changes.")
+
+
+def step_startup(config_path: pathlib.Path):
+    heading("Start with Windows")
+    from . import install_startup as startup
+
+    was = startup.installed()
+    print("The companion can start by itself, hidden, each time you sign in to Windows\n"
+          "(its log goes to ~/.deskhub/companion.log).")
+    if yes("Start the companion with Windows", True if not was else was):
+        try:
+            startup.install(config_path)
+            print("Done. It starts at your next sign-in. Undo with: uv run deskhub-install --remove")
+        except Exception as e:
+            print(f"Couldn't add the login shortcut ({e}). Try: uv run deskhub-install")
+    elif was:
+        startup.remove()
+        print("Removed: it no longer starts with Windows.")
 
 
 if __name__ == "__main__":

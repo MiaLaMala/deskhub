@@ -84,6 +84,7 @@ It asks these questions in order. When you run it again, each answer you gave be
 11. **Waiting alerts**: whether the board shows when a Claude Code session is waiting for you. Setup offers to add the hooks to Claude Code's settings, update hooks from an older version, or remove them when you turn alerts off. See [Waiting alerts](#waiting-alerts).
 12. **AI agent**: which agent the AI page shows: `auto`, `claude` or `codex`.
 13. **Build and flash**: setup asks before it builds. Then it finds the board's USB port, or asks for the COM port if it can't tell (Device Manager lists it under *Ports*), and installs the firmware. The first build takes a few minutes.
+14. **Start with Windows**: whether the companion starts by itself, hidden, when you sign in. See [Start the companion with Windows](#start-the-companion-with-windows).
 
 Setup also creates `companion/config.toml` and gives the board and the companion a shared random token, so they can trust each other.
 
@@ -108,13 +109,17 @@ To change anything later, run `uv run deskhub-setup` again.
 
 ### Start the companion with Windows
 
-Press `Win+R`, type `shell:startup` and press Enter. In the folder that opens, create a shortcut with this target, changing the paths to where you cloned the repo:
-
-```
-C:\path\to\deskhub\companion\.venv\Scripts\pythonw.exe -m deskhub --config C:\path\to\deskhub\companion\config.toml
+```bash
+uv run deskhub-install
 ```
 
-Set the shortcut's **Start in** field to the `companion` folder. `pythonw` runs it without a console window.
+This puts a shortcut in your Startup folder that runs the companion hidden (with `pythonw`, so no terminal window) each time you sign in. Setup offers it as its last step. Without a console, the companion logs to `~/.deskhub/companion.log`. To undo it:
+
+```bash
+uv run deskhub-install --remove
+```
+
+Only one companion runs at a time: if the hidden one is already running, starting another in a terminal stops with a message, because two would keep knocking each other off the board.
 
 ## Calendars
 

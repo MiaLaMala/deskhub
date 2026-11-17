@@ -19,10 +19,6 @@ Ideas for Desk Hub, roughly in order of value. Each item notes how it would work
   - **Cell size:** computed from the space the navigation bar leaves (beside the rail or above the dock), with one gap value, so every widget lines up.
   - **Setup and Configurator:** pick a widget, then a size from its list. The Configurator UI gets a drag-and-drop grid editor.
 
-- [ ] **Start with Windows.** A `deskhub-install` command that sets the companion to start at login, hidden (`pythonw`).
-  - It creates the Startup-folder shortcut, and `--remove` undoes it.
-  - Setup offers it as its last step.
-
 - [ ] **Configurator UI on the PC.** A settings window instead of editing `config.toml` and answering setup questions in a terminal.
   - **Sections:** Wi-Fi and city, pages (toggles and order), a drag-and-drop Home layout with a live preview at 800 × 480, calendars, printers, shortcut tiles (icon picker, colour, action), custom games (pick from open windows), Claude/Codex options, internet, and Steam key.
   - **How:** a small local web app served by the companion on `127.0.0.1` (no new install; opens in the default browser), editing `config.toml` with tomlkit so comments survive. Secrets still go to the Windows credential store.
@@ -65,3 +61,4 @@ Ideas for Desk Hub, roughly in order of value. Each item notes how it would work
 - [x] Calendar dot on the sidebar: an event still to come today, in its calendar's colour, when Home doesn't show Up next
 - [x] Readable scrolling: text that doesn't fit rests, eases slowly to its end, rests and comes back, everywhere text can overflow
 - [x] Night mode: the board goes dark or shows a clock on a schedule kept on the board, and a touch wakes it for a minute
+- [x] Start with Windows: `deskhub-install` adds a hidden login shortcut (and `--remove` takes it away), offered as setup's last step

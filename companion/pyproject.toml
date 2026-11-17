@@ -32,6 +32,7 @@ deskhub-calendars = "deskhub.calendars_cli:main"
 deskhub-setup = "deskhub.setup_cli:main"
 deskhub-printers = "deskhub.printers_cli:main"
 deskhub-games = "deskhub.games_cli:main"
+deskhub-install = "deskhub.install_startup:main"
 
 [dependency-groups]
 dev = [

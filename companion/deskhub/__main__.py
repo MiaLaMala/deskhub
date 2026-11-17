@@ -40,6 +40,23 @@ NET_TICK_S = 2
 SPEEDTEST_MIN_GAP_S = 120
 
 
+LOG_FILE = pathlib.Path.home() / ".deskhub" / "companion.log"
+_instance_mutex = None
+
+
+def single_instance() -> bool:
+    """True if no other companion runs for this user (a named Windows mutex)."""
+    global _instance_mutex
+    if sys.platform != "win32":
+        return True
+    import ctypes
+
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel32.CreateMutexW.restype = ctypes.c_void_p
+    _instance_mutex = kernel32.CreateMutexW(None, False, "Local\\DeskHubCompanion")
+    return ctypes.get_last_error() != 183  # ERROR_ALREADY_EXISTS
+
+
 def find_config(arg: str | None) -> pathlib.Path:
     candidates = [pathlib.Path(arg)] if arg else [
         pathlib.Path.cwd() / "config.toml",
@@ -398,11 +415,26 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--config")
     ap.add_argument("--verbose", "-v", action="store_true")
+    ap.add_argument("--log", help=f"log to this file (default when started hidden: {LOG_FILE})")
     args = ap.parse_args()
-    logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO,
-                        format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    fmt = "%(asctime)s %(levelname)s %(name)s: %(message)s"
+    level = logging.DEBUG if args.verbose else logging.INFO
+    # Started hidden (pythonw, e.g. from the login shortcut) there's no console to log to.
+    log_file = pathlib.Path(args.log) if args.log else LOG_FILE if sys.stderr is None else None
+    if log_file:
+        from logging.handlers import RotatingFileHandler
+
+        log_file.parent.mkdir(parents=True, exist_ok=True)
+        handler = RotatingFileHandler(log_file, maxBytes=1_000_000, backupCount=1, encoding="utf-8")
+        logging.basicConfig(level=level, format=fmt, handlers=[handler])
+    else:
+        logging.basicConfig(level=level, format=fmt)
     logging.getLogger("websockets").setLevel(logging.WARNING)
     logging.getLogger("httpx").setLevel(logging.WARNING)
+    if not single_instance():
+        # Two companions would keep knocking each other off the board.
+        log.error("the companion is already running (maybe started with Windows); not starting another")
+        sys.exit("The Desk Hub companion is already running. Stop that one first.")
     path = find_config(args.config)
     cfg = tomllib.loads(path.read_text(encoding="utf-8"))
     log.info("using %s", path)
