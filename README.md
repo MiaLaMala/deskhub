@@ -14,6 +14,32 @@ The board runs custom firmware (ESP-IDF + LVGL). A small Python app on your Wind
 | ![Timer](docs/screenshots/timer.png) | ![Waiting alert](docs/screenshots/alert.png) |
 | ![Games](docs/screenshots/games.png) | ![Internet](docs/screenshots/network.png) |
 
+## Contents
+
+- [Features](#features)
+- [What you need](#what-you-need)
+- [Setup](#setup)
+  - [1. Install the tools](#1-install-the-tools)
+  - [2. Get the code](#2-get-the-code)
+  - [3. Run setup](#3-run-setup)
+  - [Updating the firmware](#updating-the-firmware)
+  - [4. Start the companion](#4-start-the-companion)
+  - [Start the companion with Windows](#start-the-companion-with-windows)
+- [Commands](#commands)
+- [Calendars](#calendars)
+- [Choosing pages](#choosing-pages)
+- [When the PC sleeps](#when-the-pc-sleeps) and [Night mode](#night-mode)
+- [Steam](#steam) and [Games that aren't on Steam](#games-that-arent-on-steam)
+- [Internet](#internet)
+- [Customizing Home](#customizing-home)
+- [3D printer (Bambu Lab)](#3d-printer-bambu-lab)
+- [Claude Code usage](#claude-code-usage), [Codex](#codex) and [Waiting alerts](#waiting-alerts)
+- [Shortcuts](#shortcuts)
+- [Troubleshooting](#troubleshooting)
+- [How it works](#how-it-works)
+- [Development](#development) and [Hardware notes](#hardware-notes-43b)
+- [Roadmap](#roadmap), [License](#license) and [Credits](#credits)
+
 ## Features
 
 | Page | What it shows | Where the data comes from |
@@ -29,6 +55,8 @@ The board runs custom firmware (ESP-IDF + LVGL). A small Python app on your Wind
 | Games | The Steam game you're playing with its cover and session time, your five most recent games, and a tap to launch one (optional) | companion, from Steam's local files |
 | Stats: Internet view | Online status, latency, jitter and packet loss with a one-minute chart, uptime and the last drop, data used today and this month, and an on-demand speed test | companion |
 | Timer | Countdown with presets from 1 to 45 minutes, pause and reset, and a full-screen "Time's up" card. The time left shows on its sidebar tab | the board itself, works without the PC |
+
+Home is a 5 × 3 grid you arrange yourself, with widgets in the sizes you choose ([Customizing Home](#customizing-home)). The board also tells you when a Claude Code session is waiting for a permission or a reply ([Waiting alerts](#waiting-alerts)), and goes dark or shows a dim clock while the PC's screen sleeps or during night hours ([When the PC sleeps](#when-the-pc-sleeps)). New firmware goes over Wi-Fi and installs only after you tap the board ([Updating the firmware](#updating-the-firmware)). The companion can start hidden with Windows, with an icon in the notification area ([Start the companion with Windows](#start-the-companion-with-windows)).
 
 ## What you need
 
@@ -59,7 +87,7 @@ git clone https://github.com/zacharyinserra/deskhub.git
 cd deskhub\companion
 ```
 
-Replace `<owner>` with the GitHub account that hosts this repo. Clone to a short path such as `C:\Code\deskhub`. Very long Windows paths break some of the Python packages.
+Clone to a short path such as `C:\Code\deskhub`. Very long Windows paths break some of the Python packages.
 
 ### 3. Run setup
 
@@ -78,7 +106,7 @@ It asks these questions in order. When you run it again, each answer you gave be
 5. **3D printers**: whether to add or change Bambu Lab printers. See [3D printer](#3d-printer-bambu-lab).
 6. **Games**: whether to add games that aren't on Steam, such as Minecraft. See [Games that aren't on Steam](#games-that-arent-on-steam).
 7. **Pages**: a yes/no for each page, to choose which ones the sidebar shows (Home is always shown), then where the navigation bar goes: `left`, `right` or `bottom`. Moving it restarts the board once so every page is laid out for the new space; with the bar along the bottom, pages use a slightly more compact layout.
-8. **Home screen**: whether the time and date go in a slim top bar, then which widgets go in each column.
+8. **Home screen**: whether the time and date go in a slim top bar, then whether to keep the current layout. To change it, add widgets one at a time with a size each; `undo` takes the last one off and `clear` starts over. See [Customizing Home](#customizing-home).
 9. **Screen sleep and night mode**: whether the board goes dark (`off`), shows a dim clock (`clock`) or stays as it is (`none`) while the PC's screen sleeps, then night-mode hours such as `23:00-07:00` (or `off`) and what it shows at night. See [When the PC sleeps](#when-the-pc-sleeps).
 10. **Claude Code limits**: whether to turn on live limits. See [Claude Code usage](#claude-code-usage).
 11. **Waiting alerts**: whether the board shows when a Claude Code session is waiting for you. Setup offers to add the hooks to Claude Code's settings, update hooks from an older version, or remove them when you turn alerts off. See [Waiting alerts](#waiting-alerts).
@@ -103,7 +131,7 @@ After pulling new code, or changing a setting that lives in the firmware, run:
 uv run deskhub-flash
 ```
 
-It builds the firmware and sends it to the board over Wi-Fi. The board shows **Install a firmware update?**: tap **Install** within a minute and it installs, then restarts; **Deny** leaves it as it is. Nothing is installed without that tap, and the upload needs the board's token. If the board isn't reachable, runs firmware from before Wi-Fi updates, or no longer accepts the token, `deskhub-flash` falls back to USB. Use `--usb` to go straight to USB, and `--no-build` to send the last build again.
+It builds the firmware and sends it to the board over Wi-Fi. The board shows **Install a firmware update?**: tap **Install** within a minute and it installs, then restarts; **Deny** leaves it as it is. Nothing is installed without that tap, and the upload needs the board's token. If the board isn't reachable, runs firmware from before Wi-Fi updates, or no longer accepts the token, `deskhub-flash` falls back to USB. Use `--usb` to go straight to USB, `--port COM5` to pick the USB port when more than one board is plugged in, and `--no-build` to send the last build again.
 
 If a new firmware can't start properly, the board goes back to the previous one by itself on the next restart.
 
@@ -113,7 +141,9 @@ If a new firmware can't start properly, the board goes back to the previous one 
 uv run python -m deskhub
 ```
 
-Within a few seconds the monitor icon near the bottom of the board's sidebar, just above the Wi-Fi icon, turns green. The stats, media and calendar pages then fill in. Leave this window open while you use the board, and run other commands such as `uv run deskhub-calendars` in a second terminal.
+Within a few seconds the monitor icon near the bottom of the board's sidebar, just above the Wi-Fi icon, turns green. The stats, media and calendar pages then fill in. Leave this window open while you use the board, and run other commands such as `uv run deskhub-calendars` in a second terminal. To have it start by itself instead, hidden in the background, see [Start the companion with Windows](#start-the-companion-with-windows).
+
+Options: `--config <path>` uses another config file, `--tray` shows the notification-area icon, `--log <path>` writes a log file, and `-v` logs more detail.
 
 Start it with `python -m deskhub` as shown, not `uv run deskhub`. The `deskhub.exe` launcher stays locked while the companion runs, so any later `uv run` that needs to update the project fails with "Access is denied".
 
@@ -131,9 +161,24 @@ This puts a shortcut in your Startup folder that runs the companion hidden (with
 uv run deskhub-install --remove
 ```
 
-The hidden companion shows an icon in the notification area by the clock: amber while the board is connected, grey while it isn't, with the board's name and IP in its tooltip. Right-click it for **Edit config**, **Run setup**, **Restart** (picks up config changes), **Open log** and **Quit**; double-click opens the config. Run `uv run deskhub --tray` to get the icon from a terminal too.
+The hidden companion shows an icon in the notification area by the clock: amber while the board is connected, grey while it isn't, with the board's name and IP in its tooltip. Right-click it for **Edit config**, **Run setup**, **Restart** (picks up config changes), **Open log** and **Quit**; double-click opens the config. Run `uv run python -m deskhub --tray` to get the icon from a terminal too.
 
 Only one companion runs at a time: if the hidden one is already running, starting another in a terminal stops with a message, because two would keep knocking each other off the board.
+
+## Commands
+
+Run these in `companion/`.
+
+| Command | What it does |
+| --- | --- |
+| `uv run python -m deskhub` | Runs the companion. |
+| `uv run deskhub-setup` | Walks through every setting, then builds and flashes the firmware. |
+| `uv run deskhub-flash` | Builds the firmware and sends it to the board over Wi-Fi, or USB. |
+| `uv run deskhub-install` | Starts the companion with Windows; `--remove` stops that. |
+| `uv run deskhub-calendars` | Lists, adds and removes calendars. |
+| `uv run deskhub-printers` | Adds and removes Bambu Lab printers. |
+| `uv run deskhub-games` | Adds a game that isn't on Steam, picked from the programs running now. |
+| `uv run python install_claude.py` | Installs the Claude Code status line and hooks; `statusline`, `hooks` and `--remove` narrow it down. |
 
 ## Calendars
 
@@ -169,9 +214,10 @@ Home is always shown. To hide other pages, list the ones you want in `companion/
 ```toml
 [pages]
 enabled = ["home", "stats", "ai", "calendar", "weather", "media", "printer", "shortcuts", "timer", "games", "network"]
+nav = "left"   # where the navigation bar goes: "left" (default), "right" or "bottom"
 ```
 
-Remove a name to hide that page. Without a `[pages]` block everything is shown except the 3D printer page, which turns on by itself once you add a printer, and the Games page, which turns on when Steam is installed. Setup asks about each page too (the *Pages* step). The companion sends the list to the board every time it connects, so restart the companion after editing.
+Remove a name to hide that page. Without a `[pages]` block everything is shown except the 3D printer page, which turns on by itself once you add a printer, and the Games page, which turns on when Steam is installed. Setup asks about each page too (the *Pages* step). The companion sends the list to the board every time it connects, so restart the companion after editing. Changing `nav` restarts the board once so every page is laid out for the new space.
 
 ## When the PC sleeps
 
@@ -443,8 +489,11 @@ The board runs a WebSocket server at `ws://deskhub.local/ws`. The companion conn
 | binary | `ART1`, then `u32 art_id`, `u16 width`, `u16 height` and the cover's RGB565 little-endian pixels. Sent when the cover changes. |
 | `events` | Up to 16 events with `title`, `loc`, `cal`, `start`/`end` (Unix time), `all_day`, `color`. |
 | `tiles` | Up to 16 buttons with `label`, `icon`, `color`. |
-| `layout` | `pages`, the page names to show. Sent right after `hello_ok`. |
-| `home` | `left` and `right`, the Home widget names per column, top to bottom, and `header` (time and date in a top bar). Sent right after `layout`. |
+| `layout` | `pages`, the page names to show; `nav` (`left`, `right` or `bottom`); `pc_sleep` (`off`, `clock` or `none`); `night_start`/`night_end` (minutes after midnight, -1 = no night mode) and `night_style` (`off` or `clock`). Sent right after `hello_ok`. |
+| `home` | `header` (time and date in a top bar) and `grid`, a list of `widget`, `x`, `y`, `w`, `h`. Also `left` and `right` columns of widget names, which firmware from before the grid uses instead. Sent right after `layout`. |
+| `pc_power` | `asleep`: whether the PC's screen is off or the PC is going to sleep. Sent after each connect and when it changes. |
+| `alert` | A Claude Code session waiting for you: `id`, `kind` (`permission` or `input`), `agent`, `title`, `detail` and `project`; or `clear: true` when nothing is waiting. |
+| `tile_state` | `on`, the indexes of toggle buttons that are on (mic muted, speakers muted). Sent when it changes. |
 | `printer` | `printers` (up to 4) with `name`, `model`, `online`, `state`, `pct`, `remaining_min`, `layer`/`layers`, `file`, temperatures, `speed`, `error` and `ams`. Sent when something changes, and at least every 30 seconds. |
 | `net` | `online`, `latency_ms`, `jitter_ms`, `loss_pct`, `hist` (last 60 probes in ms, -1 = lost), `up_since`, `last_drop`, `today_bytes`, `month_bytes`, `speed`, `testing` and `ip`. Sent every 2 seconds. |
 | `steam` | `found`, `playing` (`appid`, `name`, `session_s`, `total_min`) and `recent` (up to 5 with `appid`, `name`, `last`, `total_min`). Sent when something changes, and at least every 60 seconds. |
@@ -457,6 +506,16 @@ The board runs a WebSocket server at `ws://deskhub.local/ws`. The companion conn
 | `speedtest` | no fields; runs a speed test now (at most one per 2 minutes) |
 | `steam_launch` | `appid`, a recent or running game to launch |
 | `shortcut` | `id`, the button's index. The PC looks up what the button does, so the board never holds commands. |
+| `alert_action` | `id` of the alert and `action`: `focus` (bring that session's window to the front) or `dismiss` |
+
+The board also serves a few HTTP endpoints, all of which need the token as `?token=…`:
+
+| Endpoint | What it does |
+| --- | --- |
+| `POST /firmware` | Takes a new firmware image. The board asks on screen before installing it (see [Updating the firmware](#updating-the-firmware)). |
+| `GET /screenshot` | The current screen as a BMP. |
+| `GET /tap?x=…&y=…` | Taps the screen at that point. |
+| `GET /perf` | Rendering stats as JSON (frames per second, frame times). `&full=1` also times a full-screen redraw. |
 
 The board treats the PC as offline once nothing has arrived for 5 seconds. Without the token, other devices on your network can't drive the display or trigger your shortcuts. The traffic is not encrypted, so use a network you trust.
 
@@ -466,12 +525,13 @@ The board treats the PC as offline once nothing has arrived for 5 seconds. Witho
 firmware/    ESP-IDF 5.5 + LVGL 9 firmware for the ESP32-S3
 companion/   Python companion: stats, media, calendars, Claude usage, shortcuts, setup
 docs/        screenshots
+.github/     CI: builds the firmware and runs the companion tests on every push
 ```
 
 - **Build by hand**: in `firmware/`, load ESP-IDF's `export.ps1` (see [Run setup](#3-run-setup)), then run `idf.py build` and `idf.py -p COM5 flash monitor`. The board's settings live in `firmware/sdkconfig`, which holds your Wi-Fi password and is git-ignored.
-- **Tests**: in `companion/`, run `uv run python tests/test_setup.py`, `tests/test_calendars.py` and `tests/test_printer.py`. The calendar test starts a local CalDAV server; the printer test uses a tiny local MQTT broker and needs no printer.
+- **Tests**: in `companion/`, `uv run python tests/run_all.py` runs every `tests/test_*.py` and lists any that fail; each one also runs on its own. The calendar test starts a local CalDAV server, the printer test uses a tiny local MQTT broker and needs no printer, and `test_setup.py` looks up cities on Open-Meteo, so it needs the internet.
 - **Without the board**: `uv run python tests/fake_hub.py --seconds 10` speaks the board's side of the protocol and checks every message. In a second terminal, run `uv run python -m deskhub --config tests/test_config.toml`.
-- **Debug endpoints**: both need the token. `http://deskhub.local/screenshot?token=…` returns the current screen as a BMP, and `http://deskhub.local/tap?token=…&x=…&y=…` taps the screen.
+- **Debug endpoints**: `/screenshot`, `/tap` and `/perf` on the board; see [How it works](#how-it-works).
 
 ### Hardware notes (4.3B)
 
