@@ -141,6 +141,9 @@ lv_obj_t *home_claude_card(void);
 lv_obj_t *claude_history_card(void);
 // A small coloured dot on a rail tab; color 0 removes it.
 void ui_rail_set_badge(int page, uint32_t color);
+// The Calendar tab's dot: an event still to come today, when Home doesn't show Up next.
+void ui_calendar_badge(void);
+bool home_shows_events(void);
 void ui_alert_relayout(void);   // after Home re-lays out its widgets
 void shortcuts_set_lit(uint32_t mask);
 

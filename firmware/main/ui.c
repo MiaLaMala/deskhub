@@ -572,7 +572,29 @@ static void tick_cb(lv_timer_t *t)
         // Drop events that have ended.
         home_refresh_events();
         calendar_refresh(false);
+        ui_calendar_badge();   // goes away once the day's last event ends
     }
+}
+
+void ui_calendar_badge(void)
+{
+    uint32_t color = 0;
+    time_t now = time(NULL);
+    struct tm tm;
+    localtime_r(&now, &tm);
+    if (tm.tm_year >= 120 && !home_shows_events() && (g_pages_mask & (1u << PAGE_CALENDAR))) {
+        tm.tm_hour = 23; tm.tm_min = 59; tm.tm_sec = 59;
+        time_t day_end = mktime(&tm);
+        // Events are sorted by start: the first one not over yet is the one the
+        // Calendar page lists first.
+        for (int i = 0; i < g_event_count; i++) {
+            const hub_event_t *e = &g_events[i];
+            if (e->end <= now) continue;
+            if (e->start <= day_end) color = e->color ? e->color : COL_ACCENT;
+            break;
+        }
+    }
+    ui_rail_set_badge(PAGE_CALENDAR, color);
 }
 
 // ---- public API ------------------------------------------------------------
@@ -691,6 +713,7 @@ void ui_set_events(const hub_event_t *ev, int n)
     qsort(g_events, n, sizeof(hub_event_t), event_cmp);
     calendar_refresh(true);
     home_refresh_events();
+    ui_calendar_badge();
 }
 
 void ui_set_tiles(const hub_tile_t *tiles, int n)

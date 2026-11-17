@@ -141,6 +141,8 @@ That opens a menu to list, add and remove calendars. Restart the companion after
 
 The companion checks for new events every 10 minutes.
 
+When Home doesn't show the *Up next* widget, a small dot on the sidebar's Calendar tab tells you there's still an event today. It takes the colour of that event's calendar (the first one the Calendar page lists) and goes away once the day's last event ends.
+
 ## Choosing pages
 
 Home is always shown. To hide other pages, list the ones you want in `companion/config.toml`:

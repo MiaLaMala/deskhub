@@ -646,6 +646,12 @@ void home_apply_layout(void)
         if (!placed[i]) lv_obj_add_flag(s_w[i], LV_OBJ_FLAG_HIDDEN);
     }
     ui_alert_relayout();
+    ui_calendar_badge();
+}
+
+bool home_shows_events(void)
+{
+    return s_w[W_EVENTS] && !lv_obj_has_flag(s_w[W_EVENTS], LV_OBJ_FLAG_HIDDEN);
 }
 
 void home_set_layout(const char *spec)
