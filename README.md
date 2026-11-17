@@ -79,10 +79,11 @@ It asks these questions in order. When you run it again, each answer you gave be
 6. **Games**: whether to add games that aren't on Steam, such as Minecraft. See [Games that aren't on Steam](#games-that-arent-on-steam).
 7. **Pages**: a yes/no for each page, to choose which ones the sidebar shows (Home is always shown), then where the navigation bar goes: `left`, `right` or `bottom`. Moving it restarts the board once so every page is laid out for the new space; with the bar along the bottom, pages use a slightly more compact layout.
 8. **Home screen**: whether the time and date go in a slim top bar, then which widgets go in each column.
-9. **Claude Code limits**: whether to turn on live limits. See [Claude Code usage](#claude-code-usage).
-10. **Waiting alerts**: whether the board shows when a Claude Code session is waiting for you. Setup offers to add the hooks to Claude Code's settings, update hooks from an older version, or remove them when you turn alerts off. See [Waiting alerts](#waiting-alerts).
-11. **AI agent**: which agent the AI page shows: `auto`, `claude` or `codex`.
-12. **Build and flash**: setup asks before it builds. Then it finds the board's USB port, or asks for the COM port if it can't tell (Device Manager lists it under *Ports*), and installs the firmware. The first build takes a few minutes.
+9. **When the PC's screen sleeps**: whether the board goes dark (`off`), shows a dim clock (`clock`) or stays as it is (`none`). See [When the PC sleeps](#when-the-pc-sleeps).
+10. **Claude Code limits**: whether to turn on live limits. See [Claude Code usage](#claude-code-usage).
+11. **Waiting alerts**: whether the board shows when a Claude Code session is waiting for you. Setup offers to add the hooks to Claude Code's settings, update hooks from an older version, or remove them when you turn alerts off. See [Waiting alerts](#waiting-alerts).
+12. **AI agent**: which agent the AI page shows: `auto`, `claude` or `codex`.
+13. **Build and flash**: setup asks before it builds. Then it finds the board's USB port, or asks for the COM port if it can't tell (Device Manager lists it under *Ports*), and installs the firmware. The first build takes a few minutes.
 
 Setup also creates `companion/config.toml` and gives the board and the companion a shared random token, so they can trust each other.
 
@@ -150,6 +151,21 @@ enabled = ["home", "stats", "ai", "calendar", "weather", "media", "printer", "sh
 ```
 
 Remove a name to hide that page. Without a `[pages]` block everything is shown except the 3D printer page, which turns on by itself once you add a printer, and the Games page, which turns on when Steam is installed. Setup asks about each page too (the *Pages* step). The companion sends the list to the board every time it connects, so restart the companion after editing.
+
+## When the PC sleeps
+
+When Windows turns your monitor off, or the PC goes to sleep, the board follows it. Choose what it does in `companion/config.toml`:
+
+```toml
+[display]
+pc_sleep = "off"   # "off" (default), "clock" or "none"
+```
+
+- `off`: the board's screen goes dark.
+- `clock`: a dim clock with the date on black, moving to a new spot each minute.
+- `none`: the board stays as it is.
+
+Touch the board to bring it back for a minute; tap the clock to hide it. The board comes back by itself when the PC's screen wakes. Setup asks too (the *When the PC's screen sleeps* step). Restart the companion after editing.
 
 ## Steam
 

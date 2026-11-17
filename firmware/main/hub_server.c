@@ -268,6 +268,18 @@ static void on_layout(const cJSON *m)
     else if (!strcmp(nav, "right")) ui_set_nav(1);
     else if (!strcmp(nav, "bottom")) ui_set_nav(2);
     display_unlock();
+    // "pc_sleep": what the board does while the PC's display sleeps: "off" | "clock" | "none".
+    char sleep[8];
+    copy_str(sleep, sizeof(sleep), m, "pc_sleep");
+    if (!strcmp(sleep, "none")) display_set_pc_sleep_mode(PC_SLEEP_NONE);
+    else if (!strcmp(sleep, "clock")) display_set_pc_sleep_mode(PC_SLEEP_CLOCK);
+    else if (!strcmp(sleep, "off")) display_set_pc_sleep_mode(PC_SLEEP_OFF);
+}
+
+// The PC's display went to sleep or woke: {"type":"pc_power","asleep":true}.
+static void on_pc_power(const cJSON *m)
+{
+    display_set_pc_asleep(cJSON_IsTrue(cJSON_GetObjectItem(m, "asleep")));
 }
 
 // Home widgets: {"type":"home","left":["clock",...],"right":["weather",...]}.
@@ -435,6 +447,7 @@ static void on_text(int fd, char *text)
         else if (strcmp(type, "ai") == 0 || strcmp(type, "claude") == 0) on_claude(m);
         else if (strcmp(type, "printer") == 0) on_printer(m);
         else if (strcmp(type, "layout") == 0) on_layout(m);
+        else if (strcmp(type, "pc_power") == 0) on_pc_power(m);
         else if (strcmp(type, "home") == 0) on_home(m);
         else if (strcmp(type, "alert") == 0) on_alert(m);
         else if (strcmp(type, "tile_state") == 0) on_tile_state(m);

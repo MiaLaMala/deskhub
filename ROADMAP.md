@@ -87,3 +87,4 @@ Ideas for Desk Hub, roughly in order of value. Each item notes how it would work
 - [x] Steam: a Games page and Home widget with the game being played, its cover and session time, and the last 5 games to launch with a tap
 - [x] Steam extras with your own Web API key: friends in game and total playtime for every game
 - [x] Internet stats: a Network page and Home widget with latency, jitter, loss, outages, data used and a Cloudflare speed test
+- [x] The board sleeps with the PC: when Windows turns the monitor off, the board goes dark or shows a clock screensaver

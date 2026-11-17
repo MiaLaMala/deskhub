@@ -35,9 +35,20 @@ def nav_position(cfg: dict) -> str:
     return nav if nav in NAV_POSITIONS else "left"
 
 
+PC_SLEEP_MODES = ("off", "clock", "none")
+
+
+def pc_sleep_mode(cfg: dict) -> str:
+    """What the board does while the PC's display sleeps: [display] pc_sleep =
+    "off" (screen dark, default), "clock" (a screensaver clock) or "none"."""
+    mode = str((cfg.get("display") or {}).get("pc_sleep", "off")).strip().lower()
+    return mode if mode in PC_SLEEP_MODES else "off"
+
+
 def layout_message(cfg: dict) -> dict:
     # The board restarts when "nav" changes, so it always gets one.
-    return {"type": "layout", "pages": enabled_pages(cfg), "nav": nav_position(cfg)}
+    return {"type": "layout", "pages": enabled_pages(cfg), "nav": nav_position(cfg),
+            "pc_sleep": pc_sleep_mode(cfg)}
 
 
 # Home screen widgets, placed in two columns top to bottom. "events" stretches to

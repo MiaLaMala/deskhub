@@ -21,7 +21,8 @@ from .claude_usage import ClaudeUsage
 from .codex_usage import CodexUsage, codex_home
 from .media import Media
 from .netstats import NetStats
-from .pages import enabled_pages, home_message, layout_message
+from .pages import enabled_pages, home_message, layout_message, pc_sleep_mode
+from .pc_power import PowerWatch
 from .printer import PrinterService
 from .shortcuts import hub_view, lit_message, load_tiles, run_tile
 from .stats import Stats
@@ -121,6 +122,21 @@ class Companion:
         self.speedtest_at = -SPEEDTEST_MIN_GAP_S
         self.connected_once = False
         self.ws = None
+        self.loop = None
+        self.pc_asleep = False
+        self.power = PowerWatch(self.on_pc_power) if pc_sleep_mode(cfg) != "none" else None
+
+    def on_pc_power(self, asleep: bool):
+        """From the power-watch thread: tell the board the PC's display slept or woke."""
+        self.pc_asleep = asleep
+        if self.loop is None:
+            return
+        fut = asyncio.run_coroutine_threadsafe(self.send({"type": "pc_power", "asleep": asleep}), self.loop)
+        try:
+            # Before a suspend the network goes down soon after this returns.
+            fut.result(timeout=2)
+        except Exception:
+            pass
 
     async def send(self, msg: dict | bytes):
         ws = self.ws
@@ -313,6 +329,7 @@ class Companion:
             self.ws = ws
             # Everything the hub keeps in RAM, resent after each (re)connect.
             await self.send(layout_message(self.cfg))
+            await self.send({"type": "pc_power", "asleep": self.pc_asleep})
             await self.send(home_message(self.cfg))
             await self.send(hub_view(self.tiles))
             if self.lit_msg:
@@ -340,6 +357,9 @@ class Companion:
                     log.warning("bad message from hub: %s", e)
 
     async def run(self):
+        self.loop = asyncio.get_running_loop()
+        if self.power:
+            self.power.start()
         asyncio.create_task(self.stats_loop())
         asyncio.create_task(self.media_loop())
         asyncio.create_task(self.calendar_loop())

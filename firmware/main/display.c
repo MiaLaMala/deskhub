@@ -10,6 +10,7 @@
 #include "freertos/task.h"
 #include "lvgl.h"
 #include "sdkconfig.h"
+#include "ui.h"
 
 static const char *TAG = "display";
 
@@ -22,6 +23,9 @@ static bool s_swallow_touch;
 static volatile int64_t s_inject_until_us;
 static volatile uint16_t s_inject_x, s_inject_y, s_inject_x2;
 static volatile int64_t s_inject_start_us;
+static bool s_pc_asleep;
+static int s_pc_mode = PC_SLEEP_OFF;
+#define PC_WAKE_US (60LL * 1000000)   // how long a touch wakes the board while the PC sleeps
 
 static uint32_t tick_ms(void)
 {
@@ -114,10 +118,24 @@ static void touch_cb(lv_indev_t *indev, lv_indev_data_t *data)
     data->state = (down && !s_swallow_touch) ? LV_INDEV_STATE_PRESSED : LV_INDEV_STATE_RELEASED;
 }
 
+static bool pc_dark(void)
+{
+    return s_pc_asleep && s_pc_mode != PC_SLEEP_NONE;
+}
+
 static void idle_check(void)
 {
-#if CONFIG_HUB_SCREEN_OFF_MIN > 0
     int64_t idle = esp_timer_get_time() - s_last_activity_us;
+    // While the PC's display sleeps, a touch brings the board back for a minute.
+    if (pc_dark() && idle > PC_WAKE_US) {
+        if (s_pc_mode == PC_SLEEP_OFF && s_screen_on) {
+            board_backlight(false);
+            s_screen_on = false;
+        } else if (s_pc_mode == PC_SLEEP_CLOCK && !ui_saver_shown()) {
+            ui_saver_show(true);
+        }
+    }
+#if CONFIG_HUB_SCREEN_OFF_MIN > 0
     if (s_screen_on && idle > (int64_t)CONFIG_HUB_SCREEN_OFF_MIN * 60 * 1000000) {
         board_backlight(false);
         s_screen_on = false;
@@ -172,6 +190,34 @@ void display_wake(void)
         board_backlight(true);
         s_screen_on = true;
     }
+}
+
+static void pc_sleep_apply(bool was_dark)
+{
+    // Caller holds the display lock.
+    if (pc_dark() && !was_dark) {
+        s_last_activity_us = esp_timer_get_time() - PC_WAKE_US - 1;  // go dark now
+    }
+    if ((!pc_dark() || s_pc_mode != PC_SLEEP_CLOCK) && ui_saver_shown()) ui_saver_show(false);
+    if (!pc_dark() && was_dark) display_wake();
+}
+
+void display_set_pc_sleep_mode(int mode)
+{
+    display_lock();
+    bool was = pc_dark();
+    s_pc_mode = mode;
+    pc_sleep_apply(was);
+    display_unlock();
+}
+
+void display_set_pc_asleep(bool asleep)
+{
+    display_lock();
+    bool was = pc_dark();
+    s_pc_asleep = asleep;
+    pc_sleep_apply(was);
+    display_unlock();
 }
 
 esp_err_t display_start(void)

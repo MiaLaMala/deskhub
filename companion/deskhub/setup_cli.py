@@ -352,6 +352,26 @@ def step_pages(config_path: pathlib.Path):
     config_path.write_text(tomlkit.dumps(doc), encoding="utf-8")
 
 
+def step_display(config_path: pathlib.Path):
+    heading("When the PC's screen sleeps")
+    from .pages import PC_SLEEP_MODES, pc_sleep_mode
+
+    print("When Windows turns your monitor off, the board can go dark too, show a dim\n"
+          "clock, or stay as it is. A touch brings the board back for a minute.")
+    doc = tomlkit.parse(config_path.read_text(encoding="utf-8"))
+    current = pc_sleep_mode(doc.unwrap())
+    while True:
+        mode = ask("Board while the PC sleeps: off, clock or none", current).lower()
+        if mode in PC_SLEEP_MODES:
+            break
+        print("Type off, clock or none.")
+    if mode != current or "display" not in doc:
+        display = doc.get("display") or tomlkit.table()
+        display["pc_sleep"] = mode
+        doc["display"] = display
+        config_path.write_text(tomlkit.dumps(doc), encoding="utf-8")
+
+
 def step_home(config_path: pathlib.Path):
     heading("Home screen")
     from .pages import HOME_WIDGETS, home_columns, home_header
@@ -495,6 +515,7 @@ def main():
     step_games(config_path)
     step_pages(config_path)
     step_home(config_path)
+    step_display(config_path)
     step_live_limits(config_path)
     step_alerts(config_path)
     step_agent(config_path)

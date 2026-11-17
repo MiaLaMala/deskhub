@@ -1,6 +1,7 @@
 // Public UI API. Every function must be called with display_lock() held.
 #pragma once
 
+#include <stdbool.h>
 #include <stdint.h>
 #include "hub_model.h"
 
@@ -29,3 +30,6 @@ void ui_set_steam_art(uint32_t appid, int kind, uint16_t w, uint16_t h, const ui
 void ui_set_net(const hub_net_t *n);
 // Navigation bar position: 0 left, 1 right, 2 bottom. Saved to NVS; restarts the board on change.
 void ui_set_nav(int nav);
+// Screensaver (a drifting clock) shown while the PC's display is asleep. A tap hides it.
+void ui_saver_show(bool on);
+bool ui_saver_shown(void);

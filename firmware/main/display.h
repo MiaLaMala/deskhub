@@ -14,6 +14,12 @@ void display_unlock(void);
 // Screen power. A touch while the screen is off only wakes it.
 void display_wake(void);
 
+// Follow the PC's display: while it is asleep the board goes dark (backlight off) or
+// shows the clock screensaver. A touch brings the board back for a minute.
+enum { PC_SLEEP_NONE, PC_SLEEP_OFF, PC_SLEEP_CLOCK };
+void display_set_pc_sleep_mode(int mode);
+void display_set_pc_asleep(bool asleep);
+
 // Simulate a short tap at (x, y), for remote testing.
 void display_inject_tap(uint16_t x, uint16_t y);
 // Simulate a horizontal drag from x to x2 at height y, lasting ms.

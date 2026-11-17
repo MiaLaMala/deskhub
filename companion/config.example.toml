@@ -207,6 +207,12 @@ target = ""
 # configured and "games" when Steam is installed.
 enabled = ["home", "stats", "ai", "calendar", "weather", "media", "printer", "shortcuts", "timer", "games", "network"]
 
+[display]
+# What the board does while the PC's display is asleep: "off" (screen dark, the
+# default), "clock" (a dim clock screensaver) or "none" (stay as it is). A touch
+# brings the board back for a minute.
+pc_sleep = "off"
+
 # Bambu Lab 3D printers (A1, A1 mini, P1P, P1S, X1C, X1E, H2D). Easiest: run
 # `uv run deskhub-printers`. Access codes and cloud tokens live in the OS credential
 # store (service "deskhub-bambu"), never in this file. Up to 4 printers.
