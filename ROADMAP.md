@@ -19,13 +19,6 @@ Ideas for Desk Hub, roughly in order of value. Each item notes how it would work
   - **Apply live:** saving pushes layout, Home and tile changes to the board at once; settings that need firmware (Wi-Fi, city, units) offer **Build and flash**.
   - Opened from the tray icon (next to **Edit config**) and by `uv run deskhub-config`.
 
-## Publishing
-
-- [ ] **GitHub repository.**
-  - Make the first commit. The repo is already initialized, and the secrets check is clean.
-  - Create the GitHub repo and fill in the clone URL in the README.
-  - Add a GitHub Actions workflow that builds the firmware with ESP-IDF 5.5 and runs the companion tests.
-
 ## Done
 
 - [x] Sidebar navigation, configurable pages and Home widgets, slim top bar
@@ -49,3 +42,4 @@ Ideas for Desk Hub, roughly in order of value. Each item notes how it would work
 - [x] Tray icon for the companion: connection status, Edit config, Run setup, Restart, Open log and Quit; the login shortcut starts it with the icon
 - [x] Firmware updates over Wi-Fi: `deskhub-flash` (and setup) send new builds to the board, which asks Install / Deny and rolls back a build that can't start; USB as the fallback
 - [x] Home as a 5 × 3 grid: widgets placed by cell with sizes they support, checked by the companion; setup places them for you
+- [x] GitHub repository with CI: the firmware builds with ESP-IDF 5.5 and the companion tests run on Windows

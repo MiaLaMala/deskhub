@@ -55,7 +55,7 @@ In this README, `~` means your user folder, `C:\Users\<you>`.
 ### 2. Get the code
 
 ```powershell
-git clone https://github.com/<owner>/deskhub.git
+git clone https://github.com/zacharyinserra/deskhub.git
 cd deskhub\companion
 ```
 
