@@ -11,6 +11,13 @@ Ideas for Desk Hub, roughly in order of value. Each item notes how it would work
   - **Limits:** replying from the board isn't possible with this approach. Phone Link has no supported way for other apps to send messages, so replies stay on the phone or in Phone Link. iPhone support in Phone Link is more limited than Android.
   - **Alternative for Android:** the open KDE Connect protocol could give the companion texts, battery level and "find my phone" directly, without Phone Link. It's more work and Android-only.
 
+- [ ] **Plex and Jellyfin.**
+  - **Why:** the Media page only sees what plays on this PC, through Windows' media controls. A media server knows what's playing anywhere: the TV, a phone, someone else's stream.
+  - **Approach:** the companion asks the server on the LAN. For Plex, `GET /status/sessions` on port 32400 with an `X-Plex-Token`; for Jellyfin, `GET /Sessions` with an API key made in its dashboard. Poll every few seconds while something plays, less often otherwise. Covers come from the server's own image endpoints and go to the board like today's album art. Tokens and keys go in the Windows credential store, not `config.toml`.
+  - **On the board:** the Media page and Home widget show the server's sessions when nothing plays locally (or a picker between them): title, show and episode, poster, progress, the device and user. A small "Recently added" list could go on the same page. An optional server view shows active streams and how many are transcoding.
+  - **Controls:** Jellyfin can pause, resume, seek and stop a session through `/Sessions/{id}/Playing/{command}`, so the board's buttons would work. Plex can only reach players that support remote control, which many don't, so Plex may stay display-only at first.
+  - **Setup:** a *Media servers* step that finds Plex and Jellyfin on the network (both answer local discovery), signs in to get the token or takes the API key, and tests the connection.
+
 ## Day-to-day polish
 
 - [ ] **Configurator UI on the PC.** A settings window instead of editing `config.toml` and answering setup questions in a terminal.
