@@ -128,7 +128,7 @@ void printer_create(lv_obj_t *page)
     lv_obj_set_style_text_align(s_layer, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_align(s_layer, LV_ALIGN_BOTTOM_MID, 0, -40);
     s_error = ui_label(left, g_font_14, COL_BAD, "");
-    lv_label_set_long_mode(s_error, LV_LABEL_LONG_DOT);
+    ui_marquee(s_error);
     lv_obj_set_width(s_error, LEFT_W - 32);
     lv_obj_set_style_text_align(s_error, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_align(s_error, LV_ALIGN_BOTTOM_MID, 0, 0);
@@ -140,7 +140,7 @@ void printer_create(lv_obj_t *page)
     s_file_cap = ui_caption(job, "PRINTING");
     lv_obj_set_pos(s_file_cap, 0, 0);
     s_file = ui_label(job, g_font_24, COL_TEXT, "");
-    lv_label_set_long_mode(s_file, LV_LABEL_LONG_DOT);
+    ui_marquee(s_file);
     lv_obj_set_width(s_file, RIGHT_W - 32);
     lv_obj_set_pos(s_file, 0, UI_COMPACT ? 20 : 22);
     s_speed = ui_label(job, g_font_14, COL_MUTED, "");

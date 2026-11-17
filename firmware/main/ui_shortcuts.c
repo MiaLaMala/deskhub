@@ -107,7 +107,7 @@ void shortcuts_refresh(const hub_tile_t *tiles, int n)
         lv_obj_set_style_text_color(ic, lv_color_lighten(tint, 140), 0);
         lv_obj_align(ic, LV_ALIGN_CENTER, 0, -16);
         lv_obj_t *lb = ui_label(b, label_font, COL_TEXT, t->label);
-        lv_label_set_long_mode(lb, LV_LABEL_LONG_DOT);
+        ui_marquee(lb);
         lv_obj_set_width(lb, tw - 16);
         lv_obj_set_style_text_align(lb, LV_TEXT_ALIGN_CENTER, 0);
         lv_obj_align(lb, LV_ALIGN_BOTTOM_MID, 0, -14);

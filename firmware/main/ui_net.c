@@ -70,7 +70,7 @@ static lv_obj_t *top_card(lv_obj_t *page, int i, const char *caption)
 static lv_obj_t *line(lv_obj_t *parent, const lv_font_t *font, uint32_t color, int y)
 {
     lv_obj_t *l = ui_label(parent, font, color, "");
-    lv_label_set_long_mode(l, LV_LABEL_LONG_DOT);
+    ui_marquee(l);
     lv_obj_set_width(l, CARD_W - 32);
     lv_obj_set_pos(l, 0, y);
     return l;

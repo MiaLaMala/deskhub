@@ -179,7 +179,7 @@ void games_page_create(lv_obj_t *page)
     lv_obj_set_style_text_color(s_now_cap, lv_color_hex(COL_GOOD), 0);
     lv_obj_set_pos(s_now_cap, tx, 4);
     s_now_name = ui_label(s_now_box, g_font_24, COL_TEXT, "");
-    lv_label_set_long_mode(s_now_name, LV_LABEL_LONG_DOT);
+    ui_marquee(s_now_name);
     lv_obj_set_size(s_now_name, tw, UI_COMPACT ? 30 : 62);
     lv_obj_set_pos(s_now_name, tx, UI_COMPACT ? 24 : 30);
     s_now_time = ui_label(s_now_box, g_font_20, COL_TEXT, "");
@@ -205,11 +205,11 @@ void games_page_create(lv_obj_t *page)
     lv_obj_set_pos(s_fr_cap, fx, 0);
     for (int i = 0; i < HUB_STEAM_FRIENDS; i++) {
         s_fr_name[i] = ui_label(s_idle, g_font_16, COL_TEXT, "");
-        lv_label_set_long_mode(s_fr_name[i], LV_LABEL_LONG_DOT);
+        ui_marquee(s_fr_name[i]);
         lv_obj_set_size(s_fr_name[i], fw * 2 / 5, 20);
         lv_obj_set_pos(s_fr_name[i], fx, 24 + i * 27);
         s_fr_game[i] = ui_label(s_idle, g_font_14, COL_GOOD, "");
-        lv_label_set_long_mode(s_fr_game[i], LV_LABEL_LONG_DOT);
+        ui_marquee(s_fr_game[i]);
         lv_obj_set_size(s_fr_game[i], fw * 3 / 5 - 8, 18);
         lv_obj_set_pos(s_fr_game[i], fx + fw * 2 / 5 + 8, 26 + i * 27);
     }
@@ -247,7 +247,7 @@ void games_page_create(lv_obj_t *page)
         lv_obj_set_style_clip_corner(img, true, 0);
         lv_obj_align(img, LV_ALIGN_TOP_MID, 0, 0);
         lv_obj_t *name = ui_label(b, g_font_14, COL_MUTED, "");
-        lv_label_set_long_mode(name, LV_LABEL_LONG_DOT);
+        ui_marquee(name);
         lv_obj_set_size(name, step - 8, 18);
         lv_obj_set_style_text_align(name, LV_TEXT_ALIGN_CENTER, 0);
         lv_obj_align(name, LV_ALIGN_BOTTOM_MID, 0, 0);

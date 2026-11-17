@@ -69,15 +69,15 @@ void media_create(lv_obj_t *page)
     s_source = ui_label(s_body, g_font_14, COL_ACCENT, "");
     lv_obj_set_pos(s_source, COL_X, 52);
     s_title = ui_label(s_body, g_font_32, COL_TEXT, "");
-    lv_label_set_long_mode(s_title, LV_LABEL_LONG_SCROLL_CIRCULAR);
+    ui_marquee(s_title);
     lv_obj_set_width(s_title, COL_W);
     lv_obj_set_pos(s_title, COL_X, 76);
     s_artist = ui_label(s_body, g_font_24, COL_TEXT, "");
-    lv_label_set_long_mode(s_artist, LV_LABEL_LONG_DOT);
+    ui_marquee(s_artist);
     lv_obj_set_width(s_artist, COL_W);
     lv_obj_set_pos(s_artist, COL_X, 122);
     s_album = ui_label(s_body, g_font_16, COL_MUTED, "");
-    lv_label_set_long_mode(s_album, LV_LABEL_LONG_DOT);
+    ui_marquee(s_album);
     lv_obj_set_width(s_album, COL_W);
     lv_obj_set_pos(s_album, COL_X, 156);
 

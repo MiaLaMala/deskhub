@@ -14,6 +14,7 @@
 #include "nvs.h"
 #include "sdkconfig.h"
 #include "ui_internal.h"
+#include "src/widgets/label/lv_label_private.h"   // the text offset, for ui_marquee()
 
 static const char *TAG = "ui";
 
@@ -160,6 +161,88 @@ lv_obj_t *ui_card(lv_obj_t *parent)
     lv_obj_set_style_pad_all(c, 16, 0);
     lv_obj_remove_flag(c, LV_OBJ_FLAG_SCROLLABLE);
     return c;
+}
+
+// ---- marquee: readable scrolling for text that doesn't fit -------------------
+// The label clips its text, and our own animation moves the text inside it:
+// rest on the start, slide (easing in and out) until the end shows, rest, slide
+// back, repeat, at about 30 px/s whatever the distance. Text that fits doesn't
+// move. LVGL's own scroll mode isn't used because it restarts whenever the text
+// is set again, even to the same string, and caps a sweep at 10 s.
+#define MARQUEE_REST_MS 2500
+#define MARQUEE_PX_PER_S 30
+
+typedef struct {
+    uint32_t hash;   // text the animation was made for
+    int32_t width;   // and the label's width then
+} marquee_t;
+
+static uint32_t text_hash(const char *s)
+{
+    uint32_t h = 2166136261u;
+    while (*s) h = (h ^ (uint8_t)*s++) * 16777619u;
+    return h;
+}
+
+static void marquee_exec(void *obj, int32_t v)
+{
+    lv_label_t *l = obj;
+    if (l->offset.x == v) return;
+    l->offset.x = v;
+    lv_obj_invalidate(obj);
+}
+
+// Runs just before the label draws: (re)starts the motion when its text or
+// width changed. Nothing here may invalidate, so the offset is set directly.
+static void marquee_draw_cb(lv_event_t *e)
+{
+    lv_obj_t *obj = lv_event_get_target(e);
+    lv_label_t *l = (lv_label_t *)obj;
+    marquee_t *m = lv_event_get_user_data(e);
+    const char *text = lv_label_get_text(obj);
+    uint32_t h = text_hash(text);
+    int32_t w = lv_obj_get_content_width(obj);
+    if (h == m->hash && w == m->width) return;
+    m->hash = h;
+    m->width = w;
+    lv_anim_delete(obj, marquee_exec);
+    l->offset.x = 0;
+    lv_point_t size;
+    lv_text_get_size(&size, text, lv_obj_get_style_text_font(obj, 0),
+                     lv_obj_get_style_text_letter_space(obj, 0), 0, LV_COORD_MAX, LV_TEXT_FLAG_NONE);
+    int32_t over = size.x - w;
+    if (over <= 0) return;
+    uint32_t ms = LV_CLAMP(1500, (uint32_t)over * 1000 / MARQUEE_PX_PER_S, 30000);
+    lv_anim_t a;
+    lv_anim_init(&a);
+    lv_anim_set_var(&a, obj);
+    lv_anim_set_exec_cb(&a, marquee_exec);
+    lv_anim_set_values(&a, 0, -over);
+    lv_anim_set_path_cb(&a, lv_anim_path_ease_in_out);
+    lv_anim_set_duration(&a, ms);
+    lv_anim_set_playback_duration(&a, ms);
+    lv_anim_set_delay(&a, MARQUEE_REST_MS);           // rest on the start
+    lv_anim_set_playback_delay(&a, MARQUEE_REST_MS);  // rest at the end
+    lv_anim_set_repeat_delay(&a, MARQUEE_REST_MS);    // rest back at the start
+    lv_anim_set_repeat_count(&a, LV_ANIM_REPEAT_INFINITE);
+    lv_anim_set_early_apply(&a, false);
+    lv_anim_start(&a);
+}
+
+static void marquee_delete_cb(lv_event_t *e)
+{
+    lv_anim_delete(lv_event_get_target(e), marquee_exec);
+    lv_free(lv_event_get_user_data(e));
+}
+
+void ui_marquee(lv_obj_t *label)
+{
+    lv_label_set_long_mode(label, LV_LABEL_LONG_CLIP);
+    marquee_t *m = lv_malloc_zeroed(sizeof(marquee_t));
+    if (!m) return;
+    m->width = -1;
+    lv_obj_add_event_cb(label, marquee_draw_cb, LV_EVENT_DRAW_MAIN_BEGIN, m);
+    lv_obj_add_event_cb(label, marquee_delete_cb, LV_EVENT_DELETE, m);
 }
 
 lv_obj_t *ui_caption(lv_obj_t *parent, const char *text)

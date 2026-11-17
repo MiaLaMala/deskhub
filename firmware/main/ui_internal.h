@@ -61,6 +61,9 @@ extern bool g_pc_online;
 lv_obj_t *ui_card(lv_obj_t *parent);
 lv_obj_t *ui_label(lv_obj_t *parent, const lv_font_t *font, uint32_t color, const char *text);
 lv_obj_t *ui_bar(lv_obj_t *parent, uint32_t color);
+// Text too long for its label (which needs a fixed width) rests, slides slowly
+// to show the end, rests, and slides back. Use instead of LONG_DOT / SCROLL_CIRCULAR.
+void ui_marquee(lv_obj_t *label);
 void ui_bar_set_color(lv_obj_t *bar, uint32_t color);
 lv_obj_t *ui_caption(lv_obj_t *parent, const char *text);   // small spaced-out section title
 lv_obj_t *ui_round_button(lv_obj_t *parent, int size, uint32_t bg, const lv_font_t *icon_font,

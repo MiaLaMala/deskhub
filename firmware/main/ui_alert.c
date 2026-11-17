@@ -121,11 +121,11 @@ static void build_home(lv_obj_t *host)
     lv_obj_center(p->logo);
 
     p->kind = ui_label(p->root, g_font_14, COL_WARN, "");
-    lv_label_set_long_mode(p->kind, LV_LABEL_LONG_DOT);
+    ui_marquee(p->kind);
     lv_obj_set_height(p->kind, 18);   // one line, cut with "..."
     lv_obj_align(p->kind, LV_ALIGN_LEFT_MID, 52, -12);
     p->detail = ui_label(p->root, g_font_16, COL_TEXT, "");
-    lv_label_set_long_mode(p->detail, LV_LABEL_LONG_DOT);
+    ui_marquee(p->detail);
     lv_obj_set_height(p->detail, 20);
     lv_obj_align(p->detail, LV_ALIGN_LEFT_MID, 52, 12);
 
@@ -155,14 +155,14 @@ static void build_ai(lv_obj_t *host)
     p->kind = ui_caption(p->root, "");
     lv_obj_align(p->kind, LV_ALIGN_TOP_LEFT, 72, 4);
     p->project = ui_label(p->root, g_font_16, COL_MUTED, "");
-    lv_label_set_long_mode(p->project, LV_LABEL_LONG_DOT);
+    ui_marquee(p->project);
     lv_obj_align(p->project, LV_ALIGN_TOP_LEFT, 72, 28);
 
     p->title = ui_label(p->root, g_font_24, COL_TEXT, "");
-    lv_label_set_long_mode(p->title, LV_LABEL_LONG_DOT);
+    ui_marquee(p->title);
     lv_obj_align(p->title, LV_ALIGN_TOP_LEFT, 0, 68);
     p->detail = ui_label(p->root, g_font_16, COL_MUTED, "");
-    lv_label_set_long_mode(p->detail, LV_LABEL_LONG_DOT);
+    ui_marquee(p->detail);
     lv_obj_set_height(p->detail, 20);
     lv_obj_align(p->detail, LV_ALIGN_TOP_LEFT, 0, 100);
 

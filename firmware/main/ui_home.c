@@ -230,7 +230,7 @@ static void create_claude(lv_obj_t *page)
         lv_obj_set_style_text_align(s_cl_val[i], LV_TEXT_ALIGN_RIGHT, 0);
         s_cl_bar[i] = ui_bar(c, COL_GOOD);
         s_cl_sub[i] = ui_label(c, g_font_14, COL_MUTED, "");
-        lv_label_set_long_mode(s_cl_sub[i], LV_LABEL_LONG_DOT);
+        ui_marquee(s_cl_sub[i]);
     }
     s_w[W_CLAUDE] = c;
 }
@@ -277,7 +277,7 @@ static void create_events(lv_obj_t *page)
         lv_obj_set_style_bg_opa(s_ev_dot[i], LV_OPA_COVER, 0);
         lv_obj_align(s_ev_dot[i], LV_ALIGN_LEFT_MID, 0, 0);
         s_ev_title[i] = ui_label(row, g_font_20, COL_TEXT, "");
-        lv_label_set_long_mode(s_ev_title[i], LV_LABEL_LONG_DOT);
+        ui_marquee(s_ev_title[i]);
         lv_obj_set_pos(s_ev_title[i], 14, 2);
         s_ev_time[i] = ui_label(row, g_font_16, COL_MUTED, "");
         lv_obj_set_pos(s_ev_time[i], 14, 30);
@@ -339,10 +339,10 @@ static void create_media(lv_obj_t *page)
     lv_image_set_inner_align(s_md_art, LV_IMAGE_ALIGN_STRETCH);
     lv_obj_add_flag(s_md_art, LV_OBJ_FLAG_HIDDEN);
     s_md_title = ui_label(md, g_font_20, COL_TEXT, "Nothing playing");
-    lv_label_set_long_mode(s_md_title, LV_LABEL_LONG_SCROLL_CIRCULAR);
+    ui_marquee(s_md_title);
     lv_obj_set_pos(s_md_title, 76, 2);
     s_md_artist = ui_label(md, g_font_16, COL_MUTED, "");
-    lv_label_set_long_mode(s_md_artist, LV_LABEL_LONG_DOT);
+    ui_marquee(s_md_artist);
     lv_obj_set_pos(s_md_artist, 76, 30);
     s_md_btn = ui_round_button(md, 40, COL_CARD_HI, g_icon_24, ICON_PLAY_ARROW, play_cb, NULL);
     lv_obj_align(s_md_btn, LV_ALIGN_BOTTOM_RIGHT, 0, 0);
@@ -388,7 +388,7 @@ static void create_printer(lv_obj_t *page)
     s_pr_state = ui_label(c, g_font_14, COL_MUTED, "");
     lv_obj_align(s_pr_state, LV_ALIGN_TOP_RIGHT, 0, 0);
     s_pr_file = ui_label(c, g_font_20, COL_TEXT, "");
-    lv_label_set_long_mode(s_pr_file, LV_LABEL_LONG_DOT);
+    ui_marquee(s_pr_file);
     lv_obj_set_pos(s_pr_file, 0, 22);
     s_pr_bar = ui_bar(c, COL_ACCENT);
     lv_obj_set_height(s_pr_bar, 10);
@@ -439,13 +439,13 @@ static void create_game(lv_obj_t *page)
     lv_obj_set_style_radius(s_gm_img, 8, 0);
     lv_obj_set_style_clip_corner(s_gm_img, true, 0);
     s_gm_cap = ui_caption(c, "STEAM");
-    lv_label_set_long_mode(s_gm_cap, LV_LABEL_LONG_DOT);
+    ui_marquee(s_gm_cap);
     lv_obj_set_height(s_gm_cap, 18);
     s_gm_sub = ui_label(c, g_font_14, COL_MUTED, "");
-    lv_label_set_long_mode(s_gm_sub, LV_LABEL_LONG_DOT);
+    ui_marquee(s_gm_sub);
     lv_obj_set_height(s_gm_sub, 18);
     s_gm_name = ui_label(c, g_font_20, COL_TEXT, "");
-    lv_label_set_long_mode(s_gm_name, LV_LABEL_LONG_DOT);
+    ui_marquee(s_gm_name);
     lv_obj_set_height(s_gm_name, 24);
     // Play button (last game, nothing running) sits on the cover.
     s_gm_play = ui_round_button(c, 40, COL_ACCENT, g_icon_24, ICON_PLAY_ARROW, game_play_cb, NULL);
@@ -496,7 +496,7 @@ static void create_net(lv_obj_t *page)
     s_nt_lat = ui_label(c, g_font_32, COL_TEXT, "--");
     lv_obj_set_pos(s_nt_lat, 0, 22);
     s_nt_sub = ui_label(c, g_font_14, COL_MUTED, "");
-    lv_label_set_long_mode(s_nt_sub, LV_LABEL_LONG_DOT);
+    ui_marquee(s_nt_sub);
     lv_obj_set_height(s_nt_sub, 18);
     lv_obj_set_pos(s_nt_sub, 0, UI_COMPACT ? 62 : 66);
     s_w[W_NET] = c;

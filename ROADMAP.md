@@ -19,17 +19,6 @@ Ideas for Desk Hub, roughly in order of value. Each item notes how it would work
   - **Cell size:** computed from the space the navigation bar leaves (beside the rail or above the dock), with one gap value, so every widget lines up.
   - **Setup and Configurator:** pick a widget, then a size from its list. The Configurator UI gets a drag-and-drop grid editor.
 
-- [ ] **Readable scrolling for any text that doesn't fit.** Today long song and video titles scroll endlessly: they slide left, jump straight back to the start and never rest. Other long text is cut off with "…": event titles, file names, calendar locations, reset times, the printer's file name, shortcut labels.
-  - **One shared behaviour** for every label that overflows its space:
-    - rest on the start of the text for a few seconds;
-    - slide slowly left (easing in and out) until the end is fully visible;
-    - rest at the end;
-    - slide slowly back to the start, and repeat.
-  - **Text that fits doesn't move at all.** When the text changes (a new song, a new event), the motion restarts from the beginning.
-  - **Speed** depends on how far the text has to move, so long and short overflows both feel calm and stay readable.
-  - **Implementation:** a small helper, `ui_marquee()`. It's an LVGL animation on the label's position inside a clipping container, using `lv_anim` with start and playback delays and an ease path. Use it everywhere text can overflow, in place of `LV_LABEL_LONG_SCROLL_CIRCULAR` and `LV_LABEL_LONG_DOT`.
-  - **Redraw cost:** only the moving label's small area redraws, so it's cheap. Several moving at once on Home should still be measured with `/perf`.
-
 - [ ] **Night mode.** The screen goes dark on a schedule, for example 11 PM to 7 AM, and a touch wakes it for a minute.
   - The 4.3B backlight is on/off only, so options are: backlight off, or a black overlay with a tiny clock.
   - Set in `config.toml`. The board keeps the schedule in NVS, so it works without the PC.
@@ -78,3 +67,4 @@ Ideas for Desk Hub, roughly in order of value. Each item notes how it would work
 - [x] The board sleeps with the PC: when Windows turns the monitor off, the board goes dark or shows a clock screensaver
 - [x] Graphite design: flat near-black cards, an amber accent, cool data colours and the Inter font, on every page
 - [x] Calendar dot on the sidebar: an event still to come today, in its calendar's colour, when Home doesn't show Up next
+- [x] Readable scrolling: text that doesn't fit rests, eases slowly to its end, rests and comes back, everywhere text can overflow

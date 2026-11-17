@@ -83,7 +83,7 @@ static void add_event(const hub_event_t *e, time_t now)
     lv_obj_set_pos(tl, 4, 0);
 
     lv_obj_t *title = ui_label(row, g_font_20, COL_TEXT, e->title);
-    lv_label_set_long_mode(title, LV_LABEL_LONG_DOT);
+    ui_marquee(title);
     lv_obj_set_width(title, CONTENT_W - 160);
     lv_obj_set_pos(title, 116, 0);
 
@@ -92,7 +92,7 @@ static void add_event(const hub_event_t *e, time_t now)
     else snprintf(sub, sizeof(sub), "%s%s", e->location, e->calendar);
     if (sub[0]) {
         lv_obj_t *s = ui_label(row, g_font_14, COL_MUTED, sub);
-        lv_label_set_long_mode(s, LV_LABEL_LONG_DOT);
+        ui_marquee(s);
         lv_obj_set_width(s, CONTENT_W - 160);
         lv_obj_set_pos(s, 116, 26);
     } else {
