@@ -18,6 +18,7 @@ import re
 import secrets
 import subprocess
 import sys
+import textwrap
 
 import httpx
 import tomlkit
@@ -66,7 +67,7 @@ def save_section(config_path: pathlib.Path, section: str, values: dict) -> bool:
         table = tomlkit.table()
     changed = False
     for k, v in values.items():
-        if table.get(k) != v or k not in table:
+        if k not in table or table[k] != v:
             table[k] = v
             changed = True
     if changed:
@@ -390,7 +391,6 @@ def step_game_presets(config_path: pathlib.Path):
     names = [p["name"] for p in PRESETS]
     opts = section(config_path, "game_presets")
     print("\nPopular games are recognised without any setup:")
-    import textwrap
     print(textwrap.fill(", ".join(names), 78, initial_indent="  ", subsequent_indent="  "))
     on = yes("Recognise these games", bool(opts.get("enabled", True)))
     if not on:
@@ -843,7 +843,7 @@ def step_startup(config_path: pathlib.Path):
     was = startup.installed()
     print("The companion can start by itself, hidden, each time you sign in to Windows\n"
           "(its log goes to ~/.deskhub/companion.log).")
-    if yes("Start the companion with Windows", True if not was else was):
+    if yes("Start the companion with Windows", True):
         try:
             startup.install(config_path)
             print("Done. It starts at your next sign-in. Undo with: uv run deskhub-install --remove")
