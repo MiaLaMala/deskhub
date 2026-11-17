@@ -103,6 +103,9 @@ void claude_tick(void);
 void home_refresh_claude(void);
 void ui_fmt_tokens(char *buf, size_t n, double t);      // "1.2M"
 void ui_fmt_countdown(char *buf, size_t n, time_t reset); // "Resets in 2h 14m"
+// Plan limits measured more than 10 minutes ago are old: they can be well off.
+bool ui_limits_stale(time_t updated);
+void ui_fmt_asof(char *buf, size_t n, time_t updated);    // "as of 3:05 PM" / "as of Mon"
 uint32_t ui_level_color(float pct);
 
 void home_create(lv_obj_t *page);

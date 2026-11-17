@@ -824,7 +824,9 @@ static void claude_limit(int i, bool has, float pct, time_t reset)
     lv_obj_set_style_text_color(s_cl_val[i], lv_color_hex(color), 0);
     lv_bar_set_value(s_cl_bar[i], (int)(pct + 0.5f), LV_ANIM_ON);
     ui_bar_set_color(s_cl_bar[i], color);
-    ui_fmt_countdown(sub, sizeof(sub), reset);
+    // An old reading says so instead of counting down, so it isn't taken as current.
+    if (ui_limits_stale(g_claude.limits_updated)) ui_fmt_asof(sub, sizeof(sub), g_claude.limits_updated);
+    else ui_fmt_countdown(sub, sizeof(sub), reset);
     lv_label_set_text(s_cl_sub[i], sub);
 }
 
@@ -838,11 +840,16 @@ void home_refresh_claude(void)
     claude_limit(1, c->valid && c->has_7d, c->pct_7d, c->reset_7d);
     if (c->valid && !c->has_5h && c->has_7d && strcmp(c->provider, "codex") == 0) {
         lv_label_set_text(s_cl_sub[0], "No 5-hour limit");
-    } else if (c->valid && !c->has_5h && c->has_7d) {
-        // The 5-hour window expired; a new one starts at the next prompt.
+    } else if (c->valid && !c->has_5h && c->has_7d && !ui_limits_stale(c->limits_updated)) {
+        // The 5-hour window expired; a new one starts at the next prompt (only
+        // known from a recent reading).
         lv_label_set_text(s_cl_val[0], "0%");
         lv_obj_set_style_text_color(s_cl_val[0], lv_color_hex(COL_GOOD), 0);
         lv_label_set_text(s_cl_sub[0], "Fresh window ready");
+    } else if (c->valid && !c->has_5h && c->has_7d) {
+        char sub[40];
+        ui_fmt_asof(sub, sizeof(sub), c->limits_updated);
+        lv_label_set_text(s_cl_sub[0], sub);
     }
 }
 

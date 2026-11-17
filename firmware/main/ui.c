@@ -314,6 +314,24 @@ void ui_fmt_clock(char *buf, size_t n, time_t t)
 #endif
 }
 
+bool ui_limits_stale(time_t updated)
+{
+    return updated > 0 && time(NULL) - updated >= 10 * 60;
+}
+
+void ui_fmt_asof(char *buf, size_t n, time_t updated)
+{
+    char t[16];
+    if (time(NULL) - updated < 20 * 3600) {
+        ui_fmt_clock(t, sizeof(t), updated);
+        snprintf(buf, n, "as of %s", t);
+    } else {
+        struct tm tm;
+        localtime_r(&updated, &tm);
+        strftime(buf, n, "as of %a", &tm);
+    }
+}
+
 void ui_fmt_hour(char *buf, size_t n, time_t t)
 {
     struct tm tm;

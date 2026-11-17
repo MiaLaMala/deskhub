@@ -198,23 +198,11 @@ void claude_create(lv_obj_t *page)
 }
 
 // Claude Code only reports limits from an interactive session, so they can go
-// stale. Show when they were measured once they are more than 5 minutes old.
+// stale. Show when they were measured once they are old.
 static void set_asof(lv_obj_t *label, time_t updated)
 {
-    time_t now = time(NULL);
-    char buf[32], t[16];
-    if (updated <= 0 || now - updated < 5 * 60) {
-        lv_label_set_text(label, "");
-        return;
-    }
-    if (now - updated < 20 * 3600) {
-        ui_fmt_clock(t, sizeof(t), updated);
-        snprintf(buf, sizeof(buf), "as of %s", t);
-    } else {
-        struct tm tm;
-        localtime_r(&updated, &tm);
-        strftime(buf, sizeof(buf), "as of %a", &tm);
-    }
+    char buf[32] = "";
+    if (ui_limits_stale(updated)) ui_fmt_asof(buf, sizeof(buf), updated);
     lv_label_set_text(label, buf);
 }
 
@@ -234,8 +222,9 @@ static void refresh_limits(void)
         set_asof(s_5h.sub, c->limits_updated);
         ui_fmt_countdown(buf, sizeof(buf), c->reset_5h);
         lv_label_set_text(s_5h.reset, buf);
-    } else if (c->has_7d) {
-        // The 5-hour window expired; a new one starts at the next prompt.
+    } else if (c->has_7d && !ui_limits_stale(c->limits_updated)) {
+        // The 5-hour window expired; a new one starts at the next prompt. Only
+        // said from a recent reading: an old one can't know about prompts since.
         set_limit(&s_5h, 0);
         lv_label_set_text(s_5h.sub, "");
         lv_label_set_text(s_5h.reset, "Starts with next prompt");
