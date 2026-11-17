@@ -108,15 +108,16 @@ It asks these questions in order. When you run it again, each answer you gave be
 4. **Calendars**: setup asks whether you want to add Google or Apple calendars now. See [Calendars](#calendars).
 5. **3D printers**: whether to add or change Bambu Lab printers. See [3D printer](#3d-printer-bambu-lab).
 6. **Games**: whether to add games that aren't on Steam, such as Minecraft. See [Games that aren't on Steam](#games-that-arent-on-steam).
-7. **Pages**: a yes/no for each page, to choose which ones the sidebar shows (Home is always shown), then where the navigation bar goes: `left`, `right` or `bottom`. Moving it restarts the board once so every page is laid out for the new space; with the bar along the bottom, pages use a slightly more compact layout.
-8. **Home screen**: whether the time and date go in a slim top bar, then whether to keep the current layout. To change it, add widgets one at a time with a size each; `undo` takes the last one off and `clear` starts over. See [Customizing Home](#customizing-home).
-9. **Screen sleep and night mode**: whether the board goes dark (`off`), shows a dim clock (`clock`) or stays as it is (`none`) while the PC's screen sleeps, then night-mode hours such as `23:00-07:00` (or `off`) and what it shows at night. See [When the PC sleeps](#when-the-pc-sleeps).
-10. **Internet**: how often to run a speed test (`0`, the default, runs one only when you tap the button) and whether to show your public IP. See [Internet](#internet).
-11. **Claude Code limits**: whether to turn on live limits. See [Claude Code usage](#claude-code-usage).
-12. **Waiting alerts**: whether the board shows when a Claude Code session is waiting for you. Setup offers to add the hooks to Claude Code's settings, update hooks from an older version, or remove them when you turn alerts off. See [Waiting alerts](#waiting-alerts).
-13. **AI agent**: which agent the AI page shows: `auto`, `claude` or `codex`.
-14. **Build and flash**: setup asks before it builds. Once the board runs Desk Hub, the new firmware goes over Wi-Fi and the board asks you to tap **Install**. The first time, or when Wi-Fi can't work, it uses USB: setup finds the board's port, or asks for the COM port if it can't tell (Device Manager lists it under *Ports*). The first build takes a few minutes.
-15. **Start with Windows**: whether the companion starts by itself, hidden, when you sign in. See [Start the companion with Windows](#start-the-companion-with-windows).
+7. **Shortcuts**: whether to add, change, move or remove the buttons on the Shortcuts page. See [Shortcuts](#shortcuts).
+8. **Pages**: a yes/no for each page, to choose which ones the sidebar shows (Home is always shown), then where the navigation bar goes: `left`, `right` or `bottom`. Moving it restarts the board once so every page is laid out for the new space; with the bar along the bottom, pages use a slightly more compact layout.
+9. **Home screen**: whether the time and date go in a slim top bar, then whether to keep the current layout. To change it, add widgets one at a time with a size each; `undo` takes the last one off and `clear` starts over. See [Customizing Home](#customizing-home).
+10. **Screen sleep and night mode**: whether the board goes dark (`off`), shows a dim clock (`clock`) or stays as it is (`none`) while the PC's screen sleeps, then night-mode hours such as `23:00-07:00` (or `off`) and what it shows at night. See [When the PC sleeps](#when-the-pc-sleeps).
+11. **Internet**: how often to run a speed test (`0`, the default, runs one only when you tap the button) and whether to show your public IP. See [Internet](#internet).
+12. **Claude Code limits**: whether to turn on live limits. See [Claude Code usage](#claude-code-usage).
+13. **Waiting alerts**: whether the board shows when a Claude Code session is waiting for you. Setup offers to add the hooks to Claude Code's settings, update hooks from an older version, or remove them when you turn alerts off. See [Waiting alerts](#waiting-alerts).
+14. **AI agent**: which agent the AI page shows: `auto`, `claude` or `codex`.
+15. **Build and flash**: setup asks before it builds. Once the board runs Desk Hub, the new firmware goes over Wi-Fi and the board asks you to tap **Install**. The first time, or when Wi-Fi can't work, it uses USB: setup finds the board's port, or asks for the COM port if it can't tell (Device Manager lists it under *Ports*). The first build takes a few minutes.
+16. **Start with Windows**: whether the companion starts by itself, hidden, when you sign in. See [Start the companion with Windows](#start-the-companion-with-windows).
 
 Setup also creates `companion/config.toml` and gives the board and the companion a shared random token, so they can trust each other.
 
@@ -136,6 +137,7 @@ uv run deskhub-setup calendar
 | `printer` | opens the 3D printer menu (also `printers`) |
 | `games` | games that aren't on Steam, and the Steam Web API key |
 | `steam` | the Steam Web API key only |
+| `shortcuts` | the buttons on the Shortcuts page (also `tiles`) |
 | `pages` | which pages show, and where the navigation bar goes |
 | `home` | the Home grid and the top bar (also `grid`) |
 | `display` | screen sleep with the PC, and night mode (also `sleep`, `night`) |
@@ -470,7 +472,15 @@ Privacy: the hooks store only the session state, the project folder name and Cla
 
 ## Shortcuts
 
-Each `[[tiles]]` block in `companion/config.toml` is one button, in order. Up to 16 are allowed; 4, 6, 8, 12 or 16 make an even grid.
+The easiest way to set up the buttons is:
+
+```powershell
+uv run deskhub-setup shortcuts
+```
+
+It lists your buttons and lets you add, change, move or remove them. For each one it asks for a label, what it does (from the table below), the target, an icon (`?` lists them, and one is suggested for the action) and a colour. Key combinations are checked as you type them. Restart the companion afterwards to send the buttons to the board.
+
+To edit them by hand instead: each `[[tiles]]` block in `companion/config.toml` is one button, in order. Up to 16 are allowed; 4, 6, 8, 12 or 16 make an even grid.
 
 ```toml
 [[tiles]]

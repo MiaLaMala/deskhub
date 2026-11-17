@@ -300,6 +300,15 @@ def step_games(config_path: pathlib.Path, ask_first: bool = True):
     step_steam_key()
 
 
+def step_shortcuts(config_path: pathlib.Path, ask_first: bool = True):
+    heading("Shortcuts")
+    print("The Shortcuts page is a grid of up to 16 buttons that press keys, run programs,\n"
+          "open files or links, control media and volume, mute the mic or lock the PC.")
+    if not ask_first or yes("Add or change shortcut buttons", False):
+        from .shortcuts_cli import menu
+        menu(config_path)
+
+
 def step_internet(config_path: pathlib.Path):
     heading("Internet")
     print("The Internet view checks your connection every 2 seconds. A speed test moves about\n"
@@ -574,6 +583,7 @@ TOPICS = {
     "printer":  ("add and remove Bambu Lab printers", ["printers"]),
     "games":    ("games that aren't on Steam, and the Steam Web API key", ["game"]),
     "steam":    ("the Steam Web API key only", []),
+    "shortcuts": ("the buttons on the Shortcuts page", ["shortcut", "tiles", "buttons"]),
     "pages":    ("which pages show, and where the navigation bar goes", ["nav"]),
     "home":     ("the Home grid and the top bar", ["grid"]),
     "display":  ("screen sleep with the PC, and night mode", ["sleep", "night"]),
@@ -598,7 +608,7 @@ def topics_help() -> str:
     lines = ["topics (run one part of setup on its own):"]
     for name, (desc, aliases) in TOPICS.items():
         also = f" (also: {', '.join(aliases)})" if aliases else ""
-        lines.append(f"  {name:<10}{desc}{also}")
+        lines.append(f"  {name:<11}{desc}{also}")
     lines.append("\nWithout a topic, setup goes through everything in order.")
     return "\n".join(lines)
 
@@ -626,6 +636,7 @@ def run_topic(topic: str, config_path: pathlib.Path, firmware: pathlib.Path):
         "printer": lambda: step_printers(config_path, ask_first=False),
         "games": lambda: step_games(config_path, ask_first=False),
         "steam": step_steam_key,
+        "shortcuts": lambda: step_shortcuts(config_path, ask_first=False),
         "pages": lambda: step_pages(config_path),
         "home": lambda: step_home(config_path),
         "display": lambda: step_display(config_path),
@@ -684,6 +695,7 @@ def main():
     step_calendars(config_path)
     step_printers(config_path)
     step_games(config_path)
+    step_shortcuts(config_path)
     step_pages(config_path)
     step_home(config_path)
     step_display(config_path)

@@ -70,17 +70,33 @@ _KEY_ALIASES = {"win": "cmd", "windows": "cmd", "control": "ctrl", "escape": "es
                 "return": "enter", "del": "delete", "pgup": "page_up", "pgdn": "page_down"}
 
 
-def press_combo(combo: str):
-    kb, Key = _keyboard()
+def parse_combo(combo: str, Key) -> list:
+    """The keys in "ctrl+shift+m"; ValueError names one it doesn't know."""
     keys = []
     for part in combo.lower().replace(" ", "").split("+"):
         part = _KEY_ALIASES.get(part, part)
         if len(part) == 1:
             keys.append(part)
-        elif hasattr(Key, part):
+        elif part and hasattr(Key, part):
             keys.append(getattr(Key, part))
         else:
             raise ValueError(f"unknown key {part!r} in {combo!r}")
+    return keys
+
+
+def combo_problem(combo: str) -> str | None:
+    """Why a key combination can't be pressed, or None when it's fine."""
+    _, Key = _keyboard()
+    try:
+        parse_combo(combo, Key)
+    except ValueError as e:
+        return str(e)
+    return None
+
+
+def press_combo(combo: str):
+    kb, Key = _keyboard()
+    keys = parse_combo(combo, Key)
     for k in keys:
         kb.press(k)
     for k in reversed(keys):
