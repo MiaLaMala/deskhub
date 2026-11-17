@@ -6,7 +6,9 @@ import argparse
 import asyncio
 import json
 import logging
+import os
 import pathlib
+import subprocess
 import sys
 import time
 import tomllib
@@ -57,6 +59,16 @@ def single_instance() -> bool:
     return ctypes.get_last_error() != 183  # ERROR_ALREADY_EXISTS
 
 
+def release_instance():
+    """Let another companion start (before restarting this one)."""
+    global _instance_mutex
+    if _instance_mutex:
+        import ctypes
+
+        ctypes.windll.kernel32.CloseHandle(ctypes.c_void_p(_instance_mutex))
+        _instance_mutex = None
+
+
 def find_config(arg: str | None) -> pathlib.Path:
     candidates = [pathlib.Path(arg)] if arg else [
         pathlib.Path.cwd() / "config.toml",
@@ -93,7 +105,9 @@ class Companion:
     def __init__(self, cfg: dict):
         self.cfg = cfg
         hub = cfg.get("hub", {})
-        self.url = f"ws://{hub.get('host', 'deskhub.local')}/ws"
+        self.host = hub.get("host", "deskhub.local")
+        self.url = f"ws://{self.host}/ws"
+        self.on_status = None   # (connected, detail) -> None, e.g. the tray icon
         self.token = hub.get("token", "")
         self.stats = Stats()
         self.media = Media()
@@ -154,6 +168,13 @@ class Companion:
             fut.result(timeout=2)
         except Exception:
             pass
+
+    def status(self, connected: bool, detail: str):
+        if self.on_status:
+            try:
+                self.on_status(connected, detail)
+            except Exception as e:
+                log.debug("status callback failed: %s", e)
 
     async def send(self, msg: dict | bytes):
         ws = self.ws
@@ -343,6 +364,8 @@ class Companion:
                 raise RuntimeError(f"hub refused hello: {reply}")
             log.info("connected to hub (firmware %s)", reply.get("version", "?"))
             self.connected_once = True
+            peer = ws.remote_address[0] if ws.remote_address else ""
+            self.status(True, f"connected to {self.host}" + (f" ({peer})" if peer else ""))
             self.ws = ws
             # Everything the hub keeps in RAM, resent after each (re)connect.
             await self.send(layout_message(self.cfg))
@@ -403,6 +426,7 @@ class Companion:
                 log.info("hub not reachable at %s (%s), retrying in %ds", self.url, e, delay)
             finally:
                 self.ws = None
+                self.status(False, f"looking for {self.host}")
             # A link that came up and later dropped (e.g. the hub rebooted) retries fast.
             if self.connected_once:
                 self.connected_once = False
@@ -416,6 +440,7 @@ def main():
     ap.add_argument("--config")
     ap.add_argument("--verbose", "-v", action="store_true")
     ap.add_argument("--log", help=f"log to this file (default when started hidden: {LOG_FILE})")
+    ap.add_argument("--tray", action="store_true", help="show an icon in the notification area")
     args = ap.parse_args()
     fmt = "%(asctime)s %(levelname)s %(name)s: %(message)s"
     level = logging.DEBUG if args.verbose else logging.INFO
@@ -438,8 +463,26 @@ def main():
     path = find_config(args.config)
     cfg = tomllib.loads(path.read_text(encoding="utf-8"))
     log.info("using %s", path)
+    companion = Companion(cfg)
+    if args.tray:
+        from .tray import Tray
+
+        def restart():
+            # A fresh process re-reads config.toml and rebuilds everything cleanly.
+            log.info("restarting from the tray")
+            release_instance()
+            subprocess.Popen([sys.executable, "-m", "deskhub", *sys.argv[1:]], cwd=os.getcwd())
+            os._exit(0)
+
+        def quit_():
+            log.info("quit from the tray")
+            os._exit(0)
+
+        tray = Tray(path.resolve(), log_file, restart, quit_)
+        if tray.start():
+            companion.on_status = tray.set_status
     try:
-        asyncio.run(Companion(cfg).run())
+        asyncio.run(companion.run())
     except KeyboardInterrupt:
         pass
 

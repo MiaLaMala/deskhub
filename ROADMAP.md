@@ -23,13 +23,7 @@ Ideas for Desk Hub, roughly in order of value. Each item notes how it would work
   - **Sections:** Wi-Fi and city, pages (toggles and order), a drag-and-drop Home layout with a live preview at 800 × 480, calendars, printers, shortcut tiles (icon picker, colour, action), custom games (pick from open windows), Claude/Codex options, internet, and Steam key.
   - **How:** a small local web app served by the companion on `127.0.0.1` (no new install; opens in the default browser), editing `config.toml` with tomlkit so comments survive. Secrets still go to the Windows credential store.
   - **Apply live:** saving pushes layout, Home and tile changes to the board at once; settings that need firmware (Wi-Fi, city, units) offer **Build and flash**.
-  - Opened from the tray icon's **Edit config** and by `uv run deskhub-config`.
-
-- [ ] **Tray icon for the companion.** Show the companion running in the Windows taskbar's notification area instead of a terminal window, so it can run hidden and still be easy to control.
-  - The icon shows whether the board is connected (for example, coloured when connected and grey when it isn't), with a tooltip naming the board and its IP.
-  - Right-click menu: **Edit config** (opens `config.toml` in the default editor), **Run setup**, **Restart** (reloads config.toml and reconnects), **Open log**, and **Quit**.
-  - Built with `pystray` (plus Pillow for the icon) on its own thread next to the asyncio loop. Restart re-reads the config in place, without a new process.
-  - Pairs with **Start with Windows**: the login shortcut starts the tray version hidden (`pythonw -m deskhub --tray`).
+  - Opened from the tray icon (next to **Edit config**) and by `uv run deskhub-config`.
 
 - [ ] **Firmware updates over Wi-Fi.** Flash new builds without the USB cable.
   - Add OTA partitions (a one-time USB flash to change the partition table) and an authenticated `/firmware` upload endpoint, with an on-screen Allow/Deny prompt.
@@ -62,3 +56,4 @@ Ideas for Desk Hub, roughly in order of value. Each item notes how it would work
 - [x] Readable scrolling: text that doesn't fit rests, eases slowly to its end, rests and comes back, everywhere text can overflow
 - [x] Night mode: the board goes dark or shows a clock on a schedule kept on the board, and a touch wakes it for a minute
 - [x] Start with Windows: `deskhub-install` adds a hidden login shortcut (and `--remove` takes it away), offered as setup's last step
+- [x] Tray icon for the companion: connection status, Edit config, Run setup, Restart, Open log and Quit; the login shortcut starts it with the icon

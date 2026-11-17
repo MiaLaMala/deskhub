@@ -42,7 +42,7 @@ def install(config: pathlib.Path | None = None) -> pathlib.Path:
     link.parent.mkdir(parents=True, exist_ok=True)
     # Paths travel in environment variables, so no quoting games in the script.
     env = {**os.environ, "DH_LINK": str(link), "DH_EXE": str(pythonw()),
-           "DH_ARGS": f'-m deskhub --config "{config}"', "DH_DIR": str(COMPANION_DIR)}
+           "DH_ARGS": f'-m deskhub --tray --config "{config}"', "DH_DIR": str(COMPANION_DIR)}
     script = ("$s = (New-Object -ComObject WScript.Shell).CreateShortcut($env:DH_LINK); "
               "$s.TargetPath = $env:DH_EXE; $s.Arguments = $env:DH_ARGS; "
               "$s.WorkingDirectory = $env:DH_DIR; $s.Description = 'Desk Hub companion'; "

@@ -119,6 +119,8 @@ This puts a shortcut in your Startup folder that runs the companion hidden (with
 uv run deskhub-install --remove
 ```
 
+The hidden companion shows an icon in the notification area by the clock: amber while the board is connected, grey while it isn't, with the board's name and IP in its tooltip. Right-click it for **Edit config**, **Run setup**, **Restart** (picks up config changes), **Open log** and **Quit**; double-click opens the config. Run `uv run deskhub --tray` to get the icon from a terminal too.
+
 Only one companion runs at a time: if the hidden one is already running, starting another in a terminal stops with a message, because two would keep knocking each other off the board.
 
 ## Calendars
