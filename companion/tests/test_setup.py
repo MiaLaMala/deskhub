@@ -48,9 +48,9 @@ fw = root / "firmware"; fw.mkdir()
                               'CONFIG_HUB_FAHRENHEIT=y\n# CONFIG_HUB_24H is not set\n')
 conf = root / "config.toml"
 shutil.copy(pathlib.Path(__file__).parent.parent / "config.example.toml", conf)
-# Wi-Fi, city, pick, F, 24h, calendars, printers, games, 10 pages (hide Weather and Games), nav bar, top bar, home left+right, PC sleep, live limits, flash
+# Wi-Fi, city, pick, F, 24h, calendars, printers, games, 10 pages (hide Weather and Games), nav bar, top bar, home left+right, PC sleep, night (bad, good, style), live limits, flash
 answers = iter(["", "Charlotte, NC", "1", "", "", "n", "n", "n",
-                "", "", "", "n", "", "", "", "", "n", "", "bottom", "y", "clock, events", "media, bogus", "printer", "clock", "y", "", "", "codex", "n"])
+                "", "", "", "n", "", "", "", "", "n", "", "bottom", "y", "clock, events", "media, bogus", "printer", "clock", "25:00-7", "11pm-7:30am", "clock", "y", "", "", "codex", "n"])
 builtins.input = lambda prompt="": next(answers)
 # Never touch the real Claude Code settings: point the alerts step at a temp file.
 s.CLAUDE_SETTINGS = root / "claude_settings.json"
@@ -97,6 +97,16 @@ check(tomllib.loads(conf.read_text())["display"]["pc_sleep"] == "clock", "PC sle
 check(layout_message(tomllib.loads(conf.read_text()))["pc_sleep"] == "clock", "PC sleep mode sent to the board")
 check(layout_message({})["pc_sleep"] == "off" and layout_message({"display": {"pc_sleep": "nap"}})["pc_sleep"] == "off",
       "PC sleep defaults to off")
+_d = tomllib.loads(conf.read_text())["display"]
+check(_d.get("night") == "11pm-7:30am" and _d.get("night_style") == "clock", f"night mode saved: {_d}")
+_m = layout_message(tomllib.loads(conf.read_text()))
+check((_m["night_start"], _m["night_end"], _m["night_style"]) == (23 * 60, 7 * 60 + 30, "clock"), f"night sent: {_m}")
+_m = layout_message({})
+check((_m["night_start"], _m["night_end"], _m["night_style"]) == (-1, -1, "off"), "no night mode by default")
+from deskhub.pages import parse_hhmm
+check([parse_hhmm(s) for s in ("23:00", "7", "12am", "12pm", "7:05 p.m.", "24:00", "13pm", "x")]
+      == [1380, 420, 0, 720, 1145, None, None, None], "time parsing")
+check(layout_message({"display": {"night": "22:00-22:00"}})["night_start"] == -1, "empty night ignored")
 check(layout_message({})["nav"] == "left" and layout_message({"pages": {"nav": "top"}})["nav"] == "left", "nav defaults to left")
 shutil.rmtree(root)
 

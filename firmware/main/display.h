@@ -19,6 +19,10 @@ void display_wake(void);
 enum { PC_SLEEP_NONE, PC_SLEEP_OFF, PC_SLEEP_CLOCK };
 void display_set_pc_sleep_mode(int mode);
 void display_set_pc_asleep(bool asleep);
+// Night mode: dark (mode PC_SLEEP_OFF or PC_SLEEP_CLOCK) every day from start_min to
+// end_min (minutes after midnight, may cross midnight); start_min -1 turns it off.
+// Saved to NVS so it works without the PC.
+void display_set_night(int start_min, int end_min, int mode);
 
 // Simulate a short tap at (x, y), for remote testing.
 void display_inject_tap(uint16_t x, uint16_t y);

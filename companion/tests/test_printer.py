@@ -149,7 +149,8 @@ check("printer" in enabled_pages({"printers": [{"serial": "x"}]}), "printer auto
 check(enabled_pages({"pages": {"enabled": ["stats"]}, "printers": [{"serial": "x"}]}) == ["home", "stats"],
       "explicit pages win; home forced")
 check(layout_message({"pages": {"enabled": ["media", "home"]}}) == {"type": "layout", "pages": ["home", "media"], "nav": "left",
-                                                                      "pc_sleep": "off"},
+                                                                      "pc_sleep": "off", "night_start": -1, "night_end": -1,
+                                                                      "night_style": "off"},
       "layout message")
 
 

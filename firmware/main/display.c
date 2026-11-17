@@ -9,6 +9,8 @@
 #include "freertos/semphr.h"
 #include "freertos/task.h"
 #include "lvgl.h"
+#include "nvs.h"
+#include <time.h>
 #include "sdkconfig.h"
 #include "ui.h"
 
@@ -25,7 +27,7 @@ static volatile uint16_t s_inject_x, s_inject_y, s_inject_x2;
 static volatile int64_t s_inject_start_us;
 static bool s_pc_asleep;
 static int s_pc_mode = PC_SLEEP_OFF;
-#define PC_WAKE_US (60LL * 1000000)   // how long a touch wakes the board while the PC sleeps
+#define DARK_WAKE_US (60LL * 1000000)   // how long a touch wakes the board while it is dark
 
 static uint32_t tick_ms(void)
 {
@@ -118,20 +120,56 @@ static void touch_cb(lv_indev_t *indev, lv_indev_data_t *data)
     data->state = (down && !s_swallow_touch) ? LV_INDEV_STATE_PRESSED : LV_INDEV_STATE_RELEASED;
 }
 
-static bool pc_dark(void)
+// ---- going dark: while the PC's display sleeps, or at night ----------------
+// Either way the board turns its backlight off or shows the clock screensaver,
+// and a touch brings it back for a minute.
+static int s_night_start = -1, s_night_end = -1;   // minutes after midnight; -1 = no night mode
+static int s_night_mode = PC_SLEEP_OFF;
+static int s_dark_mode = PC_SLEEP_NONE;            // what the board is doing now
+static int64_t s_dark_eval_us;                     // when that was last worked out
+
+static bool night_now(void)
 {
-    return s_pc_asleep && s_pc_mode != PC_SLEEP_NONE;
+    if (s_night_start < 0 || s_night_end < 0 || s_night_start == s_night_end) return false;
+    time_t now = time(NULL);
+    struct tm tm;
+    localtime_r(&now, &tm);
+    if (tm.tm_year < 120) return false;   // clock not set yet
+    int m = tm.tm_hour * 60 + tm.tm_min;
+    return s_night_start < s_night_end ? (m >= s_night_start && m < s_night_end)
+                                       : (m >= s_night_start || m < s_night_end);
 }
 
+static int dark_mode(void)
+{
+    if (s_pc_asleep && s_pc_mode != PC_SLEEP_NONE) return s_pc_mode;
+    if (night_now()) return s_night_mode;
+    return PC_SLEEP_NONE;
+}
+
+// Caller holds the display lock.
 static void idle_check(void)
 {
-    int64_t idle = esp_timer_get_time() - s_last_activity_us;
-    // While the PC's display sleeps, a touch brings the board back for a minute.
-    if (pc_dark() && idle > PC_WAKE_US) {
-        if (s_pc_mode == PC_SLEEP_OFF && s_screen_on) {
+    int64_t now = esp_timer_get_time();
+    if (now - s_dark_eval_us >= 1000000) {
+        s_dark_eval_us = now;
+        int mode = dark_mode();
+        if (mode != s_dark_mode) {
+            if (mode != PC_SLEEP_NONE && s_dark_mode == PC_SLEEP_NONE) {
+                s_last_activity_us = now - DARK_WAKE_US - 1;   // go dark now
+            }
+            if (mode != PC_SLEEP_CLOCK && ui_saver_shown()) ui_saver_show(false);
+            int was = s_dark_mode;
+            s_dark_mode = mode;
+            if (mode == PC_SLEEP_NONE && was != PC_SLEEP_NONE) display_wake();
+        }
+    }
+    int64_t idle = now - s_last_activity_us;
+    if (s_dark_mode != PC_SLEEP_NONE && idle > DARK_WAKE_US) {
+        if (s_dark_mode == PC_SLEEP_OFF && s_screen_on) {
             board_backlight(false);
             s_screen_on = false;
-        } else if (s_pc_mode == PC_SLEEP_CLOCK && !ui_saver_shown()) {
+        } else if (s_dark_mode == PC_SLEEP_CLOCK && !ui_saver_shown()) {
             ui_saver_show(true);
         }
     }
@@ -142,7 +180,6 @@ static void idle_check(void)
     }
 #endif
 }
-
 static void lvgl_task(void *arg)
 {
     while (true) {
@@ -192,38 +229,64 @@ void display_wake(void)
     }
 }
 
-static void pc_sleep_apply(bool was_dark)
-{
-    // Caller holds the display lock.
-    if (pc_dark() && !was_dark) {
-        s_last_activity_us = esp_timer_get_time() - PC_WAKE_US - 1;  // go dark now
-    }
-    if ((!pc_dark() || s_pc_mode != PC_SLEEP_CLOCK) && ui_saver_shown()) ui_saver_show(false);
-    if (!pc_dark() && was_dark) display_wake();
-}
-
 void display_set_pc_sleep_mode(int mode)
 {
     display_lock();
-    bool was = pc_dark();
     s_pc_mode = mode;
-    pc_sleep_apply(was);
+    s_dark_eval_us = 0;   // re-check now
     display_unlock();
 }
 
 void display_set_pc_asleep(bool asleep)
 {
     display_lock();
-    bool was = pc_dark();
     s_pc_asleep = asleep;
-    pc_sleep_apply(was);
+    s_dark_eval_us = 0;
     display_unlock();
+}
+
+static void load_night(void)
+{
+    nvs_handle_t h;
+    if (nvs_open("hub", NVS_READONLY, &h) != ESP_OK) return;
+    int16_t start, end;
+    uint8_t mode;
+    if (nvs_get_i16(h, "n_start", &start) == ESP_OK && nvs_get_i16(h, "n_end", &end) == ESP_OK &&
+        nvs_get_u8(h, "n_mode", &mode) == ESP_OK) {
+        s_night_start = start;
+        s_night_end = end;
+        s_night_mode = mode;
+    }
+    nvs_close(h);
+}
+
+void display_set_night(int start_min, int end_min, int mode)
+{
+    if (start_min < -1 || start_min >= 1440 || end_min < -1 || end_min >= 1440) return;
+    display_lock();
+    bool same = start_min == s_night_start && end_min == s_night_end && mode == s_night_mode;
+    s_night_start = start_min;
+    s_night_end = end_min;
+    s_night_mode = mode;
+    s_dark_eval_us = 0;
+    display_unlock();
+    if (same) return;
+    // Kept on the board, so night mode works without the PC.
+    nvs_handle_t h;
+    if (nvs_open("hub", NVS_READWRITE, &h) == ESP_OK) {
+        nvs_set_i16(h, "n_start", (int16_t)start_min);
+        nvs_set_i16(h, "n_end", (int16_t)end_min);
+        nvs_set_u8(h, "n_mode", (uint8_t)mode);
+        nvs_commit(h);
+        nvs_close(h);
+    }
 }
 
 esp_err_t display_start(void)
 {
     s_lock = xSemaphoreCreateRecursiveMutex();
     s_last_activity_us = esp_timer_get_time();
+    load_night();
 
     lv_init();
     lv_tick_set_cb(tick_ms);

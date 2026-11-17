@@ -353,7 +353,7 @@ def step_pages(config_path: pathlib.Path):
 
 
 def step_display(config_path: pathlib.Path):
-    heading("When the PC's screen sleeps")
+    heading("Screen sleep and night mode")
     from .pages import PC_SLEEP_MODES, pc_sleep_mode
 
     print("When Windows turns your monitor off, the board can go dark too, show a dim\n"
@@ -365,9 +365,28 @@ def step_display(config_path: pathlib.Path):
         if mode in PC_SLEEP_MODES:
             break
         print("Type off, clock or none.")
-    if mode != current or "display" not in doc:
+    from .pages import NIGHT_STYLES, night_schedule, night_style
+
+    print("\nNight mode darkens the board on a schedule, PC or not (it keeps the hours itself).")
+    night = night_schedule(doc.unwrap())
+    current_night = f"{night[0] // 60:02d}:{night[0] % 60:02d}-{night[1] // 60:02d}:{night[1] % 60:02d}" if night else "off"
+    while True:
+        hours = ask("Night mode hours, like 23:00-07:00, or off", current_night).strip().lower()
+        if hours == "off" or night_schedule({"display": {"night": hours}}):
+            break
+        print("Type two times like 23:00-07:00, or off.")
+    style = night_style(doc.unwrap())
+    if hours != "off":
+        while True:
+            style = ask("At night the board goes dark (off) or shows a clock (clock)", style).lower()
+            if style in NIGHT_STYLES:
+                break
+            print("Type off or clock.")
+    if (mode, hours, style) != (current, current_night, night_style(doc.unwrap())) or "display" not in doc:
         display = doc.get("display") or tomlkit.table()
         display["pc_sleep"] = mode
+        display["night"] = "" if hours == "off" else hours
+        display["night_style"] = style
         doc["display"] = display
         config_path.write_text(tomlkit.dumps(doc), encoding="utf-8")
 

@@ -274,6 +274,14 @@ static void on_layout(const cJSON *m)
     if (!strcmp(sleep, "none")) display_set_pc_sleep_mode(PC_SLEEP_NONE);
     else if (!strcmp(sleep, "clock")) display_set_pc_sleep_mode(PC_SLEEP_CLOCK);
     else if (!strcmp(sleep, "off")) display_set_pc_sleep_mode(PC_SLEEP_OFF);
+    // Night mode: "night_start"/"night_end" in minutes after midnight (-1 = off),
+    // "night_style": "off" | "clock". Only companions that know about it send it.
+    if (cJSON_GetObjectItemCaseSensitive(m, "night_start")) {
+        char style[8];
+        copy_str(style, sizeof(style), m, "night_style");
+        display_set_night((int)get_num(m, "night_start", -1), (int)get_num(m, "night_end", -1),
+                          strcmp(style, "clock") == 0 ? PC_SLEEP_CLOCK : PC_SLEEP_OFF);
+    }
 }
 
 // The PC's display went to sleep or woke: {"type":"pc_power","asleep":true}.

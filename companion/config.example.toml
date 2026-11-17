@@ -212,6 +212,11 @@ enabled = ["home", "stats", "ai", "calendar", "weather", "media", "printer", "sh
 # default), "clock" (a dim clock screensaver) or "none" (stay as it is). A touch
 # brings the board back for a minute.
 pc_sleep = "off"
+# Night mode: dark every day between these times, with or without the PC (the
+# board keeps the schedule itself). Leave empty for no night mode.
+# night = "23:00-07:00"
+# What the board shows at night: "off" (screen dark) or "clock".
+# night_style = "off"
 
 # Bambu Lab 3D printers (A1, A1 mini, P1P, P1S, X1C, X1E, H2D). Easiest: run
 # `uv run deskhub-printers`. Access codes and cloud tokens live in the OS credential

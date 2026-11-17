@@ -19,10 +19,6 @@ Ideas for Desk Hub, roughly in order of value. Each item notes how it would work
   - **Cell size:** computed from the space the navigation bar leaves (beside the rail or above the dock), with one gap value, so every widget lines up.
   - **Setup and Configurator:** pick a widget, then a size from its list. The Configurator UI gets a drag-and-drop grid editor.
 
-- [ ] **Night mode.** The screen goes dark on a schedule, for example 11 PM to 7 AM, and a touch wakes it for a minute.
-  - The 4.3B backlight is on/off only, so options are: backlight off, or a black overlay with a tiny clock.
-  - Set in `config.toml`. The board keeps the schedule in NVS, so it works without the PC.
-
 - [ ] **Start with Windows.** A `deskhub-install` command that sets the companion to start at login, hidden (`pythonw`).
   - It creates the Startup-folder shortcut, and `--remove` undoes it.
   - Setup offers it as its last step.
@@ -68,3 +64,4 @@ Ideas for Desk Hub, roughly in order of value. Each item notes how it would work
 - [x] Graphite design: flat near-black cards, an amber accent, cool data colours and the Inter font, on every page
 - [x] Calendar dot on the sidebar: an event still to come today, in its calendar's colour, when Home doesn't show Up next
 - [x] Readable scrolling: text that doesn't fit rests, eases slowly to its end, rests and comes back, everywhere text can overflow
+- [x] Night mode: the board goes dark or shows a clock on a schedule kept on the board, and a touch wakes it for a minute
