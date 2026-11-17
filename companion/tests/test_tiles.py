@@ -3,6 +3,7 @@ message the board gets. Reads (never changes) the real mute states on Windows.
 
     uv run python tests/test_tiles.py
 """
+import os
 import sys
 
 from deskhub import audio_state
@@ -37,7 +38,10 @@ check(lit_message(tiles, {})["on"] == [], "no devices -> nothing lit")
 if sys.platform == "win32":
     audio_state.com_thread()
     st = audio_state.read_states()
-    check(isinstance(st.get("speaker_mute"), bool), f"speaker mute readable: {st}")
+    if st or not os.environ.get("CI"):
+        check(isinstance(st.get("speaker_mute"), bool), f"speaker mute readable: {st}")
+    else:
+        print("skip speaker mute: no audio device (CI runner)")
 
 print("\nPROBLEMS:" if problems else "\nOK", problems if problems else "")
 sys.exit(1 if problems else 0)
