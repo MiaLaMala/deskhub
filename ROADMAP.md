@@ -11,19 +11,13 @@ Ideas for Desk Hub, roughly in order of value. Each item notes how it would work
   - **Limits:** replying from the board isn't possible with this approach. Phone Link has no supported way for other apps to send messages, so replies stay on the phone or in Phone Link. iPhone support in Phone Link is more limited than Android.
   - **Alternative for Android:** the open KDE Connect protocol could give the companion texts, battery level and "find my phone" directly, without Phone Link. It's more work and Android-only.
 
-## Design
-
-- [ ] **A new, modern design language.** A deliberate visual system to replace today's midnight theme, which grew one screen at a time.
-  - **Define the foundations first:**
-    - colour tokens, with a dark theme and possibly a light one;
-    - a type scale (one family at fixed sizes via Tiny TTF);
-    - spacing and radius scales, and how surfaces get depth.
-  - **Build a small set of shared components on top:** card, chip, gauge, progress bar, list row, button, empty state.
-  - **Prototype in HTML first.** Mock up the screens at 800 × 480 on a PC so ideas can be compared quickly, then port the winner to LVGL.
-  - **Design for the hardware.** Full-screen redraws are limited by PSRAM bandwidth (about 150 ms), so flat surfaces and few overlapping layers are cheaper than gradients and transparency. Text must stay readable from arm's length, and colours need enough contrast on this panel.
-  - **Apply it everywhere:** every page, the Home widgets, the sidebar, alerts and empty states. Then refresh the README screenshots.
-
 ## Day-to-day polish
+
+- [ ] **Home as a 5 × 3 grid with sized widgets.** Replace today's two columns with a grid of 5 columns by 3 rows, so widgets fill the screen without odd gaps or squeezed cards.
+  - **Sizes per widget:** each widget lists the sizes it supports, such as 1×1, 2×1, 1×2 or 2×2, and lays itself out for each. For example, weather at 1×1 shows the temperature and icon, and at 2×1 adds high, low and conditions. The clock can be 2×1 or 3×1, and Up next 2×2 or 2×3.
+  - **Config:** `[home]` lists widgets with a position and size, for example `{ widget = "weather", x = 0, y = 0, w = 2, h = 1 }`. The companion checks for overlaps and unsupported sizes before sending.
+  - **Cell size:** computed from the space the navigation bar leaves (beside the rail or above the dock), with one gap value, so every widget lines up.
+  - **Setup and Configurator:** pick a widget, then a size from its list. The Configurator UI gets a drag-and-drop grid editor.
 
 - [ ] **Calendar dot on the sidebar.** When the calendar widget isn't on Home, a small dot on the sidebar's Calendar tab shows that there's an event coming up, like the dot the AI tab gets for waiting alerts.
   - **When:** an event today that hasn't ended yet (all-day events included). The dot goes away once the day's events are over.
@@ -75,7 +69,7 @@ Ideas for Desk Hub, roughly in order of value. Each item notes how it would work
 
 ## Done
 
-- [x] Midnight theme, sidebar navigation, configurable pages and Home widgets, slim top bar
+- [x] Sidebar navigation, configurable pages and Home widgets, slim top bar
 - [x] PC stats, media, weather, Google/Apple/ICS calendars, shortcuts
 - [x] Claude Code usage with live limits, the Claude logo on Home and in the sidebar
 - [x] Bambu Lab printers (cloud and local), including dual-nozzle models
@@ -88,3 +82,4 @@ Ideas for Desk Hub, roughly in order of value. Each item notes how it would work
 - [x] Steam extras with your own Web API key: friends in game and total playtime for every game
 - [x] Internet stats: a Network page and Home widget with latency, jitter, loss, outages, data used and a Cloudflare speed test
 - [x] The board sleeps with the PC: when Windows turns the monitor off, the board goes dark or shows a clock screensaver
+- [x] Graphite design: flat near-black cards, an amber accent, cool data colours and the Inter font, on every page

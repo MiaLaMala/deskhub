@@ -448,7 +448,7 @@ Planned features are listed in [ROADMAP.md](ROADMAP.md).
 ## Credits
 
 - [LVGL](https://lvgl.io) (MIT) and [ESP-IDF](https://github.com/espressif/esp-idf) (Apache 2.0).
-- [Montserrat](https://github.com/JulietaUla/Montserrat) (SIL OFL 1.1) and [Material Icons](https://github.com/google/material-design-icons) (Apache 2.0). See `firmware/main/fonts/`.
+- [Inter](https://github.com/rsms/inter) (SIL OFL 1.1), with LVGL's built-in Montserrat as a fallback, and [Material Icons](https://github.com/google/material-design-icons) (Apache 2.0). See `firmware/main/fonts/`.
 - Weather and city search by [Open-Meteo](https://open-meteo.com) (CC BY 4.0).
 - The Claude logo is a trademark of Anthropic and is shown only to label Claude Code usage. `firmware/tools/make_logos.py` generates it from the SVG; other agents' logos can be added there.
 - Inspired by [ClawPal](https://github.com/Kaayoos/ClawPal). No ClawPal code is used.

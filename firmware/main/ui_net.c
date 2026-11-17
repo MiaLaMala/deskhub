@@ -91,11 +91,12 @@ void net_page_create(lv_obj_t *page)
     // Label on the left, amount on the right, one row each.
     lv_obj_t *l = line(c, g_font_16, COL_MUTED, UI_COMPACT ? 28 : 34);
     lv_label_set_text(l, "Today");
-    s_today = line(c, g_font_24, COL_TEXT, UI_COMPACT ? 22 : 28);
+    // 20 px so "This month" and an amount like "412.0 GB" fit side by side.
+    s_today = line(c, g_font_20, COL_TEXT, UI_COMPACT ? 25 : 31);
     lv_obj_set_style_text_align(s_today, LV_TEXT_ALIGN_RIGHT, 0);
     l = line(c, g_font_16, COL_MUTED, UI_COMPACT ? 58 : 72);
     lv_label_set_text(l, "This month");
-    s_month = line(c, g_font_24, COL_TEXT, UI_COMPACT ? 52 : 66);
+    s_month = line(c, g_font_20, COL_TEXT, UI_COMPACT ? 55 : 69);
     lv_obj_set_style_text_align(s_month, LV_TEXT_ALIGN_RIGHT, 0);
 
     // Latency over the last two minutes.
