@@ -1,7 +1,7 @@
-// Home: a configurable set of widgets on a 5 x 3 grid (or, from older companions, two columns).
+// Home: widgets placed on a 5 x 3 grid from {"type":"home","grid":[...]}.
 //
-// The companion sends {"type":"home","left":[...],"right":[...]} with widget
-// names in order (top to bottom). Each widget has a natural height; "events"
+// Older companions send "left"/"right" columns of widget names instead (see
+// home_apply_layout); there each widget has a natural height and "events"
 // stretches to fill what is left of its column. Widgets that don't fit, or whose
 // page is turned off, are hidden. The layout is saved in NVS for the next boot.
 #include <math.h>
@@ -262,7 +262,6 @@ static void layout_claude(int w, int h)
     int colw = tiny ? w - 32 : (w - 32 - x0 - 14) / 2;
     for (int i = 0; i < (tiny ? 1 : 2); i++) {
         int x = x0 + i * (colw + 14);
-        // Narrow column: shorter captions so the percentage still fits.
         // Captions shrink with the column so they never run into the percentage.
         const char *cap = colw >= 175 ? (i ? "WEEKLY LIMIT" : "5-HOUR LIMIT")
                         : colw >= 110 ? (i ? "WEEKLY" : "5-HOUR") : (i ? "WEEK" : "5 HR");
@@ -305,8 +304,7 @@ static void create_events(lv_obj_t *page)
 
 static void layout_events(int w, int h)
 {
-    // As many 60 px rows as fit under the header.
-    // Card padding 32, header 26, then 56 px rows with 4 px between them.
+    // Card padding 32, header 26, then as many 56 px rows on a 60 px pitch as fit.
     s_ev_max = (h - 32 - 26 + 4) / 60;
     if (s_ev_max < 1) s_ev_max = 1;
     if (s_ev_max > EVENT_ROWS_MAX) s_ev_max = EVENT_ROWS_MAX;

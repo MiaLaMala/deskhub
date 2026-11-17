@@ -291,11 +291,10 @@ static void on_pc_power(const cJSON *m)
     display_set_pc_asleep(cJSON_IsTrue(cJSON_GetObjectItem(m, "asleep")));
 }
 
-// Home widgets: {"type":"home","left":["clock",...],"right":["weather",...]}.
+// Home widgets: {"type":"home","header":true,"grid":[{"widget":"weather","x":0,"y":0,"w":2,"h":1},...]}
+// or, from older companions, "left"/"right" columns of widget names.
 static void on_home(const cJSON *m)
 {
-    // {"type":"home","header":true,"grid":[{"widget":"weather","x":0,"y":0,"w":2,"h":1},...]}
-    // or, from older companions, "left"/"right" columns of widget names.
     char spec[256] = "";
     const cJSON *grid = cJSON_GetObjectItemCaseSensitive(m, "grid");
     if (cJSON_IsArray(grid)) strlcpy(spec, "grid;", sizeof(spec));

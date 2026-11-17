@@ -50,7 +50,7 @@ The board runs custom firmware (ESP-IDF + LVGL). A small Python app on your Wind
 | Home | Clock, date, Claude limits, next events, weather, now playing, CPU/GPU/RAM | everything below |
 | PC stats | CPU, GPU, RAM and VRAM gauges, GPU temperature, a one-minute history chart, network and disk | companion |
 | AI | Claude Code or Codex 5-hour and weekly limits with reset times, tokens today, a 7-day chart, usage per model | companion, from Claude Code or Codex |
-| Calendar | Up to 16 upcoming events in the next 7 days, grouped by day | companion, from Google, Apple iCloud, Outlook or any ICS feed |
+| Calendar | Up to 16 upcoming events, grouped by day, from the next 7 days or as many as you set | companion, from Google, Apple iCloud, Outlook or any ICS feed |
 | Weather | Current conditions, the next 24 hours and 6 days | the board itself, from [Open-Meteo](https://open-meteo.com) |
 | Media | Whatever Windows lists as playing (Spotify, YouTube in a browser, VLC…) with the cover, a seek bar and controls | companion |
 | Shortcuts | Up to 16 buttons: key combos, apps, folders, URLs, volume, media, lock PC | companion |
@@ -59,7 +59,12 @@ The board runs custom firmware (ESP-IDF + LVGL). A small Python app on your Wind
 | Stats: Internet view | Online status, latency, jitter and packet loss with a one-minute chart, uptime and the last drop, data used today and this month, and an on-demand speed test | companion |
 | Timer | Countdown with presets from 1 to 45 minutes, pause and reset, and a full-screen "Time's up" card. The time left shows on its sidebar tab | the board itself, works without the PC |
 
-Home is a 5 × 3 grid you arrange yourself, with widgets in the sizes you choose ([Customizing Home](#customizing-home)). The board also tells you when a Claude Code session is waiting for a permission or a reply ([Waiting alerts](#waiting-alerts)), and goes dark or shows a dim clock while the PC's screen sleeps or during night hours ([When the PC sleeps](#when-the-pc-sleeps)). New firmware goes over Wi-Fi and installs only after you tap the board ([Updating the firmware](#updating-the-firmware)). The companion can start hidden with Windows, with an icon in the notification area ([Start the companion with Windows](#start-the-companion-with-windows)).
+Home is a 5 × 3 grid you arrange yourself, with widgets in the sizes you choose ([Customizing Home](#customizing-home)). Beyond the pages:
+
+- [Waiting alerts](#waiting-alerts) show when a Claude Code session needs a permission or a reply.
+- The board goes dark or shows a dim clock while the PC's screen sleeps or during night hours ([When the PC sleeps](#when-the-pc-sleeps)).
+- New firmware goes over Wi-Fi and installs only after you tap the board ([Updating the firmware](#updating-the-firmware)).
+- The companion can start hidden with Windows, with an icon in the notification area ([Start the companion with Windows](#start-the-companion-with-windows)).
 
 ## What you need
 
@@ -79,7 +84,7 @@ Home is a 5 × 3 grid you arrange yourself, with widgets in the sizes you choose
    powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
    ```
 
-3. **ESP-IDF v5.5**, Espressif's toolchain for building the firmware. The easiest route is the [ESP-IDF Windows installer](https://dl.espressif.com/dl/esp-idf/). Choose version **5.5**, target **ESP32-S3**, and keep the default install folder. Setup looks for ESP-IDF in `C:\Espressif\frameworks\esp-idf-*`, `C:\esp\v5.5\esp-idf`, `%USERPROFILE%\esp\esp-idf-*`, and the folder named by the `IDF_PATH` environment variable.
+3. **ESP-IDF v5.5**, Espressif's toolchain for building the firmware. Use the [ESP-IDF Windows installer](https://dl.espressif.com/dl/esp-idf/). Choose version **5.5**, target **ESP32-S3**, and keep the default install folder. Setup looks for ESP-IDF in `C:\Espressif\frameworks\esp-idf-*`, `C:\esp\v5.5\esp-idf`, `%USERPROFILE%\esp\esp-idf-*`, and the folder named by the `IDF_PATH` environment variable.
 
 In this README, `~` means your user folder, `C:\Users\<you>`.
 
@@ -133,21 +138,24 @@ uv run deskhub-setup calendar
 | --- | --- |
 | `wifi` | Wi-Fi network and password |
 | `weather` | city, time zone and units (also `city`, `units`) |
-| `calendar` | opens the calendar menu (also `calendars`) |
+| `clock` | 12- or 24-hour clock (also `time`) |
+| `screen` | turn the screen off after so many idle minutes, or never (also `timeout`) |
+| `hub` | the board's address, for when `deskhub.local` doesn't work; checks that the board answers |
+| `calendar` | opens the calendar menu, then how many days ahead to show (also `calendars`, `events`) |
 | `printer` | opens the 3D printer menu (also `printers`) |
-| `games` | games that aren't on Steam, and the Steam Web API key |
-| `steam` | the Steam Web API key only |
+| `games` | games that aren't on Steam, which [built-in games](#games-that-arent-on-steam) to recognise, and the Steam Web API key (also `presets`) |
+| `steam` | Steam games on or off, and the Steam Web API key |
 | `shortcuts` | the buttons on the Shortcuts page (also `tiles`) |
 | `pages` | which pages show, and where the navigation bar goes |
 | `home` | the Home grid and the top bar (also `grid`) |
 | `display` | screen sleep with the PC, and night mode (also `sleep`, `night`) |
-| `internet` | speed test schedule and public IP (also `network`) |
-| `claude` | live limits, waiting alerts and the AI page's agent (also `ai`) |
-| `alerts` | waiting alerts only |
+| `internet` | connection checks on or off, speed test schedule and public IP (also `network`) |
+| `claude` | live limits, waiting alerts and the AI page's agent (also `ai`, `codex`) |
+| `alerts` | waiting alerts, and how long a finished session waits before it alerts |
 | `flash` | builds the firmware and installs it on the board |
 | `startup` | starting the companion with Windows |
 
-`wifi` and `weather` live in the firmware, so after them setup offers to build and install it. The others change `config.toml`; restart the companion afterwards (tray icon → **Restart**) to use them. `uv run deskhub-setup --help` lists the topics too.
+Media, PC stats and the timer have nothing to set. `wifi`, `weather`, `clock` and `screen` live in the firmware, so after them setup offers to build and install it. The others change `config.toml`; restart the companion afterwards (tray icon → **Restart**) to use them. `uv run deskhub-setup --help` lists the topics too.
 
 If setup says it can't find ESP-IDF, or the flash fails, you can flash by hand. Open PowerShell in the repo's `firmware\` folder and run these two lines, changing the path to match your ESP-IDF version and the port to match your board:
 
@@ -286,13 +294,15 @@ The Games page shows the game you're playing, with its cover and how long this s
 
 Everything comes from Steam's local files on your PC: the registry (which game is running), the library manifests and your `localconfig.vdf` (recent games and playtime). Cover art comes from Steam's public image CDN, and the names of recent games you've uninstalled from the public Store API. Only the game's appid is sent, and both are cached in `~/.deskhub`. Launching opens `steam://rungameid/<appid>`, and only for games in the recent list. Steam only keeps total playtime in that file for some games, so the total shows when it's there and is left out otherwise.
 
-**Friends and playtime (optional).** With your own Steam Web API key, the Games page also lists friends who are in a game, and shows total playtime for every game. Get a key at [steamcommunity.com/dev/apikey](https://steamcommunity.com/dev/apikey) (any domain name works), then run `uv run deskhub-setup` and add it in the Games step. Setup checks the key with Steam and keeps it in the Windows credential store (service `deskhub-steam`), not in `config.toml`. The companion then asks `api.steampowered.com` for your friends every minute and your playtime every 30 minutes, using your key and your Steam ID, which comes from Steam's local files. Your own **Friends List** must be set to Public in Steam (Profile > Edit Profile > Privacy Settings), or Steam refuses the friends list; playtime still works without it. Friends only show if their game details are public. Playtime shows as a small badge on each recent game's cover and on the Home widget. To stop, run setup again and choose not to keep the key. To turn this off, set `enabled = false` under `[steam]` in `config.toml`.
+**Friends and playtime (optional).** With your own Steam Web API key, the Games page also lists friends who are in a game, and shows total playtime for every game. Get a key at [steamcommunity.com/dev/apikey](https://steamcommunity.com/dev/apikey) (any domain name works), then run `uv run deskhub-setup` and add it in the Games step. Setup checks the key with Steam and keeps it in the Windows credential store (service `deskhub-steam`), not in `config.toml`. The companion then asks `api.steampowered.com` for your friends every minute and your playtime every 30 minutes, using your key and your Steam ID, which comes from Steam's local files. Your own **Friends List** must be set to Public in Steam (Profile > Edit Profile > Privacy Settings), or Steam refuses the friends list; playtime still works without it. Friends only show if their game details are public. Playtime shows as a small badge on each recent game's cover and on the Home widget.
+
+To stop using the key, run setup again and choose not to keep it. To turn Steam off entirely, set `enabled = false` under `[steam]` in `config.toml`.
 
 ### Games that aren't on Steam
 
 Popular games are recognised without any setup: League of Legends, Teamfight Tactics, VALORANT, Fortnite, Rocket League, Minecraft, Minecraft Bedrock, Roblox, Overwatch 2, World of Warcraft, Diablo IV, Hearthstone, StarCraft II, Call of Duty, Genshin Impact, Honkai: Star Rail, Zenless Zone Zero, Grand Theft Auto V, Apex Legends, EA SPORTS FC, The Sims 4, Halo Infinite, Escape from Tarkov, osu!. League of Legends and Teamfight Tactics run as the same program, so the companion asks the League client's local API, on your PC only, which one you're in. Riot, Epic and Battle.net games launch through their own launcher when you tap them, and games also sold on Steam get their Steam cover. To turn the built-in list off, set `enabled = false` under `[game_presets]` in `config.toml`, or skip some with `disabled = ["Roblox"]`. Your own `[[games]]` entry with the same name replaces a built-in one.
 
-For anything else, such as emulators, modpacks or games from other launchers, the easiest way to add one is to start the game, then run:
+For anything else, such as emulators, modpacks or games from other launchers, start the game, then run:
 
 ```powershell
 uv run deskhub-games
@@ -319,7 +329,8 @@ name = "GT: New Horizons"
 title = "GT: New Horizons"
 process = ["java.exe", "javaw.exe"]
 ```
- Images can be any shape: they're cropped to fit. Without one the board shows a placeholder. A Steam game that's running takes priority, and custom games work with `[steam] enabled = false` or without Steam installed. Restart the companion after editing.
+
+Images can be any shape: they're cropped to fit. Without one the board shows a placeholder. A Steam game that's running takes priority, and custom games work with `[steam] enabled = false` or without Steam installed. Restart the companion after editing.
 
 ## Internet
 
@@ -447,7 +458,9 @@ The AI page has two parts:
   live_limits = true
   ```
 
-  The companion then asks Anthropic for your current limits every minute while you're using Claude Code, and every 5 minutes otherwise. It uses the sign-in that the `claude` CLI saved in `~/.claude/.credentials.json`. It sends no messages to Claude, so it uses no tokens or API credits. The sign-in token stays in memory: it isn't logged and isn't sent to the board. The Claude desktop app and IDE extensions don't renew that sign-in, so when it expires (every few hours) the companion runs `claude auth status`, which has Claude Code renew it the way it does on its own use. That sends no message, and the companion never touches the token itself. If renewing fails, live limits pause until the next time you use `claude`. Be aware that this endpoint is undocumented and Anthropic could change it, in which case the board goes back to the status line readings. The numbers then update while a session is running, after its first reply. When a 5-hour window expires, the board shows 0% and "Starts with next prompt" until your next prompt opens a new one.
+  The companion then asks Anthropic for your current limits every minute while you're using Claude Code, and every 5 minutes otherwise. It uses the sign-in that the `claude` CLI saved in `~/.claude/.credentials.json`. It sends no messages to Claude, so it uses no tokens or API credits. The sign-in token stays in memory: it isn't logged and isn't sent to the board. The Claude desktop app and IDE extensions don't renew that sign-in, so when it expires (every few hours) the companion runs `claude auth status`, which has Claude Code renew it the way it does on its own use. That sends no message, and the companion never touches the token itself. If renewing fails, live limits pause until the next time you use `claude`.
+
+  The endpoint is undocumented, so Anthropic could change it. If that happens, the board falls back to status-line readings, which update after a session's first reply. When a 5-hour window expires, the board shows 0% and "Starts with next prompt" until your next prompt opens a new one.
 - **Token totals**: tokens today, in the last hour, over the last 7 days and per model. The companion reads them from Claude Code's local session files in `~/.claude/projects/`, using only token counts, model names and timestamps. Claude Code says that file format can change between releases, so this part may need an update after a Claude Code update.
 
 ### Codex
@@ -472,7 +485,7 @@ Privacy: the hooks store only the session state, the project folder name and Cla
 
 ## Shortcuts
 
-The easiest way to set up the buttons is:
+To set up the buttons, run:
 
 ```powershell
 uv run deskhub-setup shortcuts
@@ -509,8 +522,8 @@ The board's fonts only cover Latin letters. Accented letters in labels, event ti
 ## Troubleshooting
 
 - **Flashing won't start**: hold **BOOT**, tap **RESET**, let go of **BOOT**, and run setup again. Also try a different cable, since some only carry power.
-- **The board never joins Wi-Fi**: check that the network is 2.4 GHz and that the password is right. Run setup again to change either.
-- **The companion says "hub not reachable"**: your network may not resolve `deskhub.local`. Find the board's IP address in your router's list of devices, where it appears as `deskhub`, and put it in `config.toml`:
+- **The board never joins Wi-Fi**: check that the network is 2.4 GHz and that the password is right. Run `uv run deskhub-setup wifi` to change either.
+- **The companion says "hub not reachable"**: your network may not resolve `deskhub.local`. Find the board's IP address in your router's list of devices, where it appears as `deskhub`, then run `uv run deskhub-setup hub` and enter it, or put it in `config.toml`:
 
   ```toml
   [hub]
@@ -518,7 +531,7 @@ The board's fonts only cover Latin letters. Accented letters in labels, event ti
   ```
 - **"python" opens the Microsoft Store, or ESP-IDF scripts fail**: Windows' built-in `python` alias is getting in the way. Setup works around it. If you run `idf.py` yourself, disable the alias under *Settings → Apps → Advanced app settings → App execution aliases*.
 - **Errors mentioning "filename too long"**: clone the repo to a short path such as `C:\Code\deskhub`.
-- **Other settings** (screen-off timeout, hostname): in `firmware\`, load ESP-IDF as shown in [Run setup](#3-run-setup), then run `idf.py menuconfig`, open the **Desk Hub** menu, and run `idf.py -p COM5 flash`.
+- **The board's host name**: in `firmware\`, load ESP-IDF as shown in [Run setup](#3-run-setup), then run `idf.py menuconfig`, open the **Desk Hub** menu, and run `idf.py -p COM5 flash`.
 
 ## How it works
 
