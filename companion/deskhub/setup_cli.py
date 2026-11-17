@@ -1,6 +1,8 @@
 """One-stop setup for the desk hub: Wi-Fi, location, units, calendars, printers, pages, then flash.
 
-    uv run deskhub-setup [--config companion/config.toml] [--firmware ../firmware]
+    uv run deskhub-setup [topic] [--config companion/config.toml] [--firmware ../firmware]
+
+With a topic (calendar, weather, home, ...), only that part runs.
 
 Every question shows the current value; press Enter to keep it. Run it again
 any time to change something.
@@ -272,23 +274,55 @@ def step_agent(config_path: pathlib.Path):
         config_path.write_text(tomlkit.dumps(doc), encoding="utf-8")
 
 
-def step_printers(config_path: pathlib.Path):
+def step_calendars(config_path: pathlib.Path, ask_first: bool = True):
+    heading("Calendars")
+    if not ask_first or yes("Add or change calendars (Google, Apple, links)", False):
+        from .calendars_cli import menu
+        menu(config_path)
+
+
+def step_printers(config_path: pathlib.Path, ask_first: bool = True):
     heading("3D printers")
     print("Show the status of Bambu Lab printers (A1, P1, X1, H2D) on the board.")
-    if yes("Add or change 3D printers", False):
+    if not ask_first or yes("Add or change 3D printers", False):
         from .printers_cli import menu
         menu(config_path)
 
 
-def step_games(config_path: pathlib.Path):
+def step_games(config_path: pathlib.Path, ask_first: bool = True):
     heading("Games")
     print("The Games page shows your Steam games by itself. Games from elsewhere, like\n"
           "Minecraft, emulators or other launchers, can show there too. Start the game\n"
           "first, then pick its window from the list.")
-    if yes("Add or change games that aren't on Steam", False):
+    if not ask_first or yes("Add or change games that aren't on Steam", False):
         from .games_cli import menu
         menu(config_path)
     step_steam_key()
+
+
+def step_internet(config_path: pathlib.Path):
+    heading("Internet")
+    print("The Internet view checks your connection every 2 seconds. A speed test moves about\n"
+          "35 MB through speed.cloudflare.com, so by default it only runs when you tap it.")
+    doc = tomlkit.parse(config_path.read_text(encoding="utf-8"))
+    net = doc.get("internet") or tomlkit.table()
+    current = net.get("speedtest_hours", 0)
+    while True:
+        raw = ask("Run a speed test every how many hours (0 = only when you tap it)", str(current))
+        try:
+            hours = float(raw)
+        except ValueError:
+            hours = -1
+        if hours >= 0:
+            break
+        print("Type a number of hours, or 0.")
+    hours = int(hours) if hours == int(hours) else hours
+    show_ip = yes("Show your public IP address", bool(net.get("show_ip", False)))
+    if (net.get("speedtest_hours"), net.get("show_ip")) != (hours, show_ip):
+        net["speedtest_hours"] = hours
+        net["show_ip"] = show_ip
+        doc["internet"] = net
+        config_path.write_text(tomlkit.dumps(doc), encoding="utf-8")
 
 
 def step_steam_key():
@@ -531,11 +565,95 @@ def step_flash(firmware: pathlib.Path, config_path: pathlib.Path, board_token: s
             ask_port=lambda: ask("Board's COM port (Device Manager > Ports)", ""))
 
 
+# One part of setup on its own: `uv run deskhub-setup <topic>`.
+# (description, aliases); the steps run in run_topic().
+TOPICS = {
+    "wifi":     ("Wi-Fi network and password (rebuilds the firmware)", []),
+    "weather":  ("city, time zone and units (rebuilds the firmware)", ["city", "location", "units"]),
+    "calendar": ("add, list and remove calendars", ["calendars"]),
+    "printer":  ("add and remove Bambu Lab printers", ["printers"]),
+    "games":    ("games that aren't on Steam, and the Steam Web API key", ["game"]),
+    "steam":    ("the Steam Web API key only", []),
+    "pages":    ("which pages show, and where the navigation bar goes", ["nav"]),
+    "home":     ("the Home grid and the top bar", ["grid"]),
+    "display":  ("screen sleep with the PC, and night mode", ["sleep", "night"]),
+    "internet": ("speed test schedule and public IP", ["network", "net"]),
+    "claude":   ("live limits, waiting alerts and which agent the AI page shows", ["ai"]),
+    "alerts":   ("waiting alerts only", []),
+    "flash":    ("build the firmware and install it on the board", []),
+    "startup":  ("start the companion with Windows", []),
+}
+FIRMWARE_TOPICS = {"wifi", "weather"}
+
+
+def topic_name(word: str) -> str | None:
+    word = word.lower()
+    for name, (_, aliases) in TOPICS.items():
+        if word == name or word in aliases:
+            return name
+    return None
+
+
+def topics_help() -> str:
+    lines = ["topics (run one part of setup on its own):"]
+    for name, (desc, aliases) in TOPICS.items():
+        also = f" (also: {', '.join(aliases)})" if aliases else ""
+        lines.append(f"  {name:<10}{desc}{also}")
+    lines.append("\nWithout a topic, setup goes through everything in order.")
+    return "\n".join(lines)
+
+
+def run_topic(topic: str, config_path: pathlib.Path, firmware: pathlib.Path):
+    sdk = firmware / "sdkconfig"
+    if topic in FIRMWARE_TOPICS:
+        cfg = sdk.read_text(encoding="utf-8") if sdk.is_file() else ""
+        board_token = read_kconfig(cfg, "HUB_TOKEN")
+        if topic == "wifi":
+            new = step_wifi(cfg)
+        else:
+            new, country = step_location(cfg)
+            new = step_units(new, country)
+        new = step_token(new, config_path)
+        if new == cfg:
+            print("\nNothing changed.")
+            return
+        sdk.write_text(new, encoding="utf-8")
+        print(f"\nSaved to {sdk}. The board picks this up once it has new firmware.")
+        step_flash(firmware, config_path, board_token)
+        return
+    steps = {
+        "calendar": lambda: step_calendars(config_path, ask_first=False),
+        "printer": lambda: step_printers(config_path, ask_first=False),
+        "games": lambda: step_games(config_path, ask_first=False),
+        "steam": step_steam_key,
+        "pages": lambda: step_pages(config_path),
+        "home": lambda: step_home(config_path),
+        "display": lambda: step_display(config_path),
+        "internet": lambda: step_internet(config_path),
+        "claude": lambda: (step_live_limits(config_path), step_alerts(config_path), step_agent(config_path)),
+        "alerts": lambda: step_alerts(config_path),
+        "flash": lambda: step_flash(firmware, config_path),
+        "startup": lambda: step_startup(config_path),
+    }
+    before = config_path.read_text(encoding="utf-8")
+    steps[topic]()
+    if topic not in ("flash", "startup") and config_path.read_text(encoding="utf-8") != before:
+        print("\nSaved. Restart the companion to use it (tray icon > Restart, or stop and start\n"
+              "uv run python -m deskhub).")
+
+
 def main():
-    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0], epilog=topics_help(),
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("topic", nargs="?", help="one part of setup to run on its own (see below)")
     ap.add_argument("--config", help="companion config.toml")
     ap.add_argument("--firmware", help="firmware folder (default: ../firmware)")
     args = ap.parse_args()
+    topic = None
+    if args.topic:
+        topic = topic_name(args.topic)
+        if not topic:
+            ap.exit(2, f"Unknown topic: {args.topic}\n\n{topics_help()}\n")
 
     here = pathlib.Path(__file__).resolve().parents[1]
     if not args.config and not (here / "config.toml").is_file() and (here / "config.example.toml").is_file():
@@ -546,10 +664,15 @@ def main():
     config_path = find_config(args.config)
     firmware = pathlib.Path(args.firmware) if args.firmware else \
         pathlib.Path(__file__).resolve().parents[2] / "firmware"
+    if topic:
+        print("Press Enter to keep the value shown in brackets.")
+        run_topic(topic, config_path, firmware)
+        return
     sdk = firmware / "sdkconfig"
     cfg = sdk.read_text(encoding="utf-8") if sdk.is_file() else ""
 
-    print("Desk Hub setup. Press Enter to keep the value shown in brackets.")
+    print("Desk Hub setup. Press Enter to keep the value shown in brackets.\n"
+          "To change one thing later, run: uv run deskhub-setup <topic> (see --help).")
     cfg = step_wifi(cfg)
     cfg, country = step_location(cfg)
     cfg = step_units(cfg, country)
@@ -558,16 +681,13 @@ def main():
     sdk.write_text(cfg, encoding="utf-8")
     print(f"\nSaved hub settings to {sdk}.")
 
-    heading("Calendars")
-    if yes("Add or change calendars (Google, Apple, links)", False):
-        from .calendars_cli import menu
-        menu(config_path)
-
+    step_calendars(config_path)
     step_printers(config_path)
     step_games(config_path)
     step_pages(config_path)
     step_home(config_path)
     step_display(config_path)
+    step_internet(config_path)
     step_live_limits(config_path)
     step_alerts(config_path)
     step_agent(config_path)

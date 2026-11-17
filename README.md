@@ -22,6 +22,7 @@ The board runs custom firmware (ESP-IDF + LVGL). A small Python app on your Wind
   - [1. Install the tools](#1-install-the-tools)
   - [2. Get the code](#2-get-the-code)
   - [3. Run setup](#3-run-setup)
+  - [Changing one thing](#changing-one-thing)
   - [Updating the firmware](#updating-the-firmware)
   - [4. Start the companion](#4-start-the-companion)
   - [Start the companion with Windows](#start-the-companion-with-windows)
@@ -108,13 +109,41 @@ It asks these questions in order. When you run it again, each answer you gave be
 7. **Pages**: a yes/no for each page, to choose which ones the sidebar shows (Home is always shown), then where the navigation bar goes: `left`, `right` or `bottom`. Moving it restarts the board once so every page is laid out for the new space; with the bar along the bottom, pages use a slightly more compact layout.
 8. **Home screen**: whether the time and date go in a slim top bar, then whether to keep the current layout. To change it, add widgets one at a time with a size each; `undo` takes the last one off and `clear` starts over. See [Customizing Home](#customizing-home).
 9. **Screen sleep and night mode**: whether the board goes dark (`off`), shows a dim clock (`clock`) or stays as it is (`none`) while the PC's screen sleeps, then night-mode hours such as `23:00-07:00` (or `off`) and what it shows at night. See [When the PC sleeps](#when-the-pc-sleeps).
-10. **Claude Code limits**: whether to turn on live limits. See [Claude Code usage](#claude-code-usage).
-11. **Waiting alerts**: whether the board shows when a Claude Code session is waiting for you. Setup offers to add the hooks to Claude Code's settings, update hooks from an older version, or remove them when you turn alerts off. See [Waiting alerts](#waiting-alerts).
-12. **AI agent**: which agent the AI page shows: `auto`, `claude` or `codex`.
-13. **Build and flash**: setup asks before it builds. Once the board runs Desk Hub, the new firmware goes over Wi-Fi and the board asks you to tap **Install**. The first time, or when Wi-Fi can't work, it uses USB: setup finds the board's port, or asks for the COM port if it can't tell (Device Manager lists it under *Ports*). The first build takes a few minutes.
-14. **Start with Windows**: whether the companion starts by itself, hidden, when you sign in. See [Start the companion with Windows](#start-the-companion-with-windows).
+10. **Internet**: how often to run a speed test (`0`, the default, runs one only when you tap the button) and whether to show your public IP. See [Internet](#internet).
+11. **Claude Code limits**: whether to turn on live limits. See [Claude Code usage](#claude-code-usage).
+12. **Waiting alerts**: whether the board shows when a Claude Code session is waiting for you. Setup offers to add the hooks to Claude Code's settings, update hooks from an older version, or remove them when you turn alerts off. See [Waiting alerts](#waiting-alerts).
+13. **AI agent**: which agent the AI page shows: `auto`, `claude` or `codex`.
+14. **Build and flash**: setup asks before it builds. Once the board runs Desk Hub, the new firmware goes over Wi-Fi and the board asks you to tap **Install**. The first time, or when Wi-Fi can't work, it uses USB: setup finds the board's port, or asks for the COM port if it can't tell (Device Manager lists it under *Ports*). The first build takes a few minutes.
+15. **Start with Windows**: whether the companion starts by itself, hidden, when you sign in. See [Start the companion with Windows](#start-the-companion-with-windows).
 
 Setup also creates `companion/config.toml` and gives the board and the companion a shared random token, so they can trust each other.
+
+#### Changing one thing
+
+To change one part without going through all of setup, name it:
+
+```powershell
+uv run deskhub-setup calendar
+```
+
+| Topic | What it changes |
+| --- | --- |
+| `wifi` | Wi-Fi network and password |
+| `weather` | city, time zone and units (also `city`, `units`) |
+| `calendar` | opens the calendar menu (also `calendars`) |
+| `printer` | opens the 3D printer menu (also `printers`) |
+| `games` | games that aren't on Steam, and the Steam Web API key |
+| `steam` | the Steam Web API key only |
+| `pages` | which pages show, and where the navigation bar goes |
+| `home` | the Home grid and the top bar (also `grid`) |
+| `display` | screen sleep with the PC, and night mode (also `sleep`, `night`) |
+| `internet` | speed test schedule and public IP (also `network`) |
+| `claude` | live limits, waiting alerts and the AI page's agent (also `ai`) |
+| `alerts` | waiting alerts only |
+| `flash` | builds the firmware and installs it on the board |
+| `startup` | starting the companion with Windows |
+
+`wifi` and `weather` live in the firmware, so after them setup offers to build and install it. The others change `config.toml`; restart the companion afterwards (tray icon → **Restart**) to use them. `uv run deskhub-setup --help` lists the topics too.
 
 If setup says it can't find ESP-IDF, or the flash fails, you can flash by hand. Open PowerShell in the repo's `firmware\` folder and run these two lines, changing the path to match your ESP-IDF version and the port to match your board:
 
@@ -147,7 +176,7 @@ Options: `--config <path>` uses another config file, `--tray` shows the notifica
 
 Start it with `python -m deskhub` as shown, not `uv run deskhub`. The `deskhub.exe` launcher stays locked while the companion runs, so any later `uv run` that needs to update the project fails with "Access is denied".
 
-To change anything later, run `uv run deskhub-setup` again.
+To change anything later, run `uv run deskhub-setup` again, or just one part of it, such as `uv run deskhub-setup home` (see [Changing one thing](#changing-one-thing)).
 
 ### Start the companion with Windows
 
@@ -173,6 +202,7 @@ Run these in `companion/`.
 | --- | --- |
 | `uv run python -m deskhub` | Runs the companion. |
 | `uv run deskhub-setup` | Walks through every setting, then builds and flashes the firmware. |
+| `uv run deskhub-setup <topic>` | Runs one part of setup, such as `calendar`, `weather` or `home`. See [Changing one thing](#changing-one-thing). |
 | `uv run deskhub-flash` | Builds the firmware and sends it to the board over Wi-Fi, or USB. |
 | `uv run deskhub-install` | Starts the companion with Windows; `--remove` stops that. |
 | `uv run deskhub-calendars` | Lists, adds and removes calendars. |

@@ -48,9 +48,9 @@ fw = root / "firmware"; fw.mkdir()
                               'CONFIG_HUB_FAHRENHEIT=y\n# CONFIG_HUB_24H is not set\n')
 conf = root / "config.toml"
 shutil.copy(pathlib.Path(__file__).parent.parent / "config.example.toml", conf)
-# Wi-Fi, city, pick, F, 24h, calendars, printers, games, 10 pages (hide Weather and Games), nav bar, top bar, home (keep? no; events 2x2, a bad name, weather default, events again, stats with a bad size), PC sleep, night (bad, good, style), live limits, flash, start with Windows
+# Wi-Fi, city, pick, F, 24h, calendars, printers, games, 10 pages (hide Weather and Games), nav bar, top bar, home (keep? no; events 2x2, a bad name, weather default, events again, stats with a bad size), PC sleep, night (bad, good, style), internet (speed test hours, IP), live limits, flash, start with Windows
 answers = iter(["", "Charlotte, NC", "1", "", "", "n", "n", "n",
-                "", "", "", "n", "", "", "", "", "n", "", "bottom", "y", "n", "events", "2x2", "bogus", "weather", "", "events", "stats", "9x9", "3x1", "", "clock", "25:00-7", "11pm-7:30am", "clock", "y", "", "", "codex", "n", "y"])
+                "", "", "", "n", "", "", "", "", "n", "", "bottom", "y", "n", "events", "2x2", "bogus", "weather", "", "events", "stats", "9x9", "3x1", "", "clock", "25:00-7", "11pm-7:30am", "clock", "", "", "y", "", "", "codex", "n", "y"])
 builtins.input = lambda prompt="": next(answers)
 # Never touch the real Claude Code settings: point the alerts step at a temp file.
 s.CLAUDE_SETTINGS = root / "claude_settings.json"
