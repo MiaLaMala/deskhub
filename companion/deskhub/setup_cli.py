@@ -45,6 +45,40 @@ def heading(text: str):
     print(f"\n== {text} ==")
 
 
+def ask_number(prompt: str, current, lo: float, hi: float, whole: bool = True):
+    """A number from lo to hi; Enter keeps `current`."""
+    while True:
+        raw = ask(f"{prompt} ({lo:g}-{hi:g})", f"{current:g}" if isinstance(current, (int, float)) else str(current))
+        try:
+            value = float(raw)
+        except ValueError:
+            value = None
+        if value is not None and lo <= value <= hi and (not whole or value == int(value)):
+            return int(value) if value == int(value) else value
+        print(f"Type {'a whole number' if whole else 'a number'} from {lo:g} to {hi:g}.")
+
+
+def save_section(config_path: pathlib.Path, section: str, values: dict) -> bool:
+    """Set keys in one [section] of config.toml, keeping comments. True if anything changed."""
+    doc = tomlkit.parse(config_path.read_text(encoding="utf-8"))
+    table = doc.get(section)
+    if table is None:
+        table = tomlkit.table()
+    changed = False
+    for k, v in values.items():
+        if table.get(k) != v or k not in table:
+            table[k] = v
+            changed = True
+    if changed:
+        doc[section] = table
+        config_path.write_text(tomlkit.dumps(doc), encoding="utf-8")
+    return changed
+
+
+def section(config_path: pathlib.Path, name: str) -> dict:
+    return tomlkit.parse(config_path.read_text(encoding="utf-8")).unwrap().get(name) or {}
+
+
 # ---- sdkconfig -------------------------------------------------------------
 
 def read_kconfig(text: str, key: str) -> str | None:
@@ -58,10 +92,12 @@ def read_kconfig(text: str, key: str) -> str | None:
 
 
 def set_kconfig(text: str, key: str, value) -> str:
-    """Set CONFIG_<key>. Strings are quoted; booleans become y / '# is not set'."""
+    """Set CONFIG_<key>. Strings are quoted, ints aren't; booleans become y / '# is not set'."""
     pattern = re.compile(rf"^(CONFIG_{key}=.*|# CONFIG_{key} is not set)$", re.M)
     if isinstance(value, bool):
         line = f"CONFIG_{key}=y" if value else f"# CONFIG_{key} is not set"
+    elif isinstance(value, int):
+        line = f"CONFIG_{key}={value}"
     else:
         line = 'CONFIG_%s="%s"' % (key, str(value).replace("\\", "\\\\").replace('"', '\\"'))
     if pattern.search(text):
@@ -172,9 +208,44 @@ def step_units(cfg: str, country: str) -> str:
     is_f = read_kconfig(cfg, "HUB_FAHRENHEIT")
     default_f = (is_f == "y") if is_f is not None else country in ("US", "LR", "MM", "")
     cfg = set_kconfig(cfg, "HUB_FAHRENHEIT", yes("Fahrenheit and mph", default_f))
+    return step_clock(cfg, heading_too=False)
+
+
+def step_clock(cfg: str, heading_too: bool = True) -> str:
+    if heading_too:
+        heading("Clock")
+        print("The time zone comes from your city (uv run deskhub-setup weather).")
     is_24 = read_kconfig(cfg, "HUB_24H") == "y"
-    cfg = set_kconfig(cfg, "HUB_24H", yes("24-hour clock", is_24))
-    return cfg
+    return set_kconfig(cfg, "HUB_24H", yes("24-hour clock", is_24))
+
+
+def step_screen(cfg: str) -> str:
+    heading("Screen timeout")
+    print("The board can turn its screen off when nobody has touched it for a while; a touch,\n"
+          "or new media starting, turns it back on. This is apart from screen sleep with the\n"
+          "PC and night mode (uv run deskhub-setup display).")
+    current = int(read_kconfig(cfg, "HUB_SCREEN_OFF_MIN") or 0)
+    minutes = ask_number("Turn the screen off after this many idle minutes, 0 = never", current, 0, 240)
+    return set_kconfig(cfg, "HUB_SCREEN_OFF_MIN", int(minutes)) if minutes != current else cfg
+
+
+def step_hub(config_path: pathlib.Path):
+    heading("Board address")
+    print("The companion finds the board as deskhub.local. If your network doesn't resolve\n"
+          "that name, use the board's IP address from your router's device list.")
+    current = str(section(config_path, "hub").get("host", "deskhub.local"))
+    while True:
+        host = ask("Board address", current).strip()
+        if host and " " not in host and "/" not in host:
+            break
+        print("Type a host name or IP address, like deskhub.local or 192.168.1.50.")
+    try:
+        ok = httpx.get(f"http://{host}/", timeout=4).status_code < 500
+    except httpx.HTTPError:
+        ok = False
+    print(f"The board answers at {host}." if ok else
+          f"Nothing answered at {host} just now; saved anyway. Check that the board is on.")
+    save_section(config_path, "hub", {"host": host})
 
 
 def step_token(cfg: str, config_path: pathlib.Path) -> str:
@@ -254,6 +325,13 @@ def step_alerts(config_path: pathlib.Path):
     elif not on and installed:
         if yes("Remove the hooks from Claude Code too", True):
             run_installer("hooks", "--remove")
+    if on:
+        print("A finished session only alerts once it has waited a while, so the board doesn't\n"
+              "nag while you're still at the PC. Questions and permission requests alert at once.")
+        current = section(config_path, "claude").get("idle_alert_seconds", 30)
+        secs = ask_number("Seconds a finished session waits before it alerts", current, 0, 3600)
+        if secs != current:
+            save_section(config_path, "claude", {"idle_alert_seconds": secs})
 
 
 def step_agent(config_path: pathlib.Path):
@@ -279,6 +357,10 @@ def step_calendars(config_path: pathlib.Path, ask_first: bool = True):
     if not ask_first or yes("Add or change calendars (Google, Apple, links)", False):
         from .calendars_cli import menu
         menu(config_path)
+        current = section(config_path, "calendar").get("days", 7)
+        days = ask_number("Show events for how many days ahead", current, 1, 60)
+        if days != current:
+            save_section(config_path, "calendar", {"days": days})
 
 
 def step_printers(config_path: pathlib.Path, ask_first: bool = True):
@@ -297,7 +379,52 @@ def step_games(config_path: pathlib.Path, ask_first: bool = True):
     if not ask_first or yes("Add or change games that aren't on Steam", False):
         from .games_cli import menu
         menu(config_path)
+    if not ask_first:
+        step_game_presets(config_path)
     step_steam_key()
+
+
+def step_game_presets(config_path: pathlib.Path):
+    from .game_presets import PRESETS
+
+    names = [p["name"] for p in PRESETS]
+    opts = section(config_path, "game_presets")
+    print("\nPopular games are recognised without any setup:")
+    import textwrap
+    print(textwrap.fill(", ".join(names), 78, initial_indent="  ", subsequent_indent="  "))
+    on = yes("Recognise these games", bool(opts.get("enabled", True)))
+    if not on:
+        save_section(config_path, "game_presets", {"enabled": False})
+        return
+    lower = {n.lower(): n for n in names}
+    current = [lower.get(str(n).lower(), str(n)) for n in opts.get("disabled", []) or []]
+    while True:
+        raw = ask("Leave any out? Names separated by commas, or 'none'", ", ".join(current) or "none")
+        picked = [] if raw.strip().lower() == "none" else [s.strip() for s in raw.split(",") if s.strip()]
+        unknown = [p for p in picked if p.lower() not in lower]
+        if not unknown:
+            break
+        print(f"Not in the list: {', '.join(unknown)}.")
+    disabled = [lower[p.lower()] for p in picked]
+    values = {}
+    if "enabled" in opts:
+        values["enabled"] = True
+    if disabled or "disabled" in opts:
+        values["disabled"] = disabled
+    if values:
+        save_section(config_path, "game_presets", values)
+
+
+def step_steam(config_path: pathlib.Path):
+    heading("Steam")
+    print("The Games page and the game widget read Steam's local files to show what you're\n"
+          "playing and your recent games.")
+    current = bool(section(config_path, "steam").get("enabled", True))
+    on = yes("Show Steam games", current)
+    if on != current:
+        save_section(config_path, "steam", {"enabled": on})
+    if on:
+        step_steam_key()
 
 
 def step_shortcuts(config_path: pathlib.Path, ask_first: bool = True):
@@ -313,25 +440,17 @@ def step_internet(config_path: pathlib.Path):
     heading("Internet")
     print("The Internet view checks your connection every 2 seconds. A speed test moves about\n"
           "35 MB through speed.cloudflare.com, so by default it only runs when you tap it.")
-    doc = tomlkit.parse(config_path.read_text(encoding="utf-8"))
-    net = doc.get("internet") or tomlkit.table()
-    current = net.get("speedtest_hours", 0)
-    while True:
-        raw = ask("Run a speed test every how many hours (0 = only when you tap it)", str(current))
-        try:
-            hours = float(raw)
-        except ValueError:
-            hours = -1
-        if hours >= 0:
-            break
-        print("Type a number of hours, or 0.")
-    hours = int(hours) if hours == int(hours) else hours
+    net = section(config_path, "internet")
+    if not yes("Check the internet connection", bool(net.get("enabled", True))):
+        save_section(config_path, "internet", {"enabled": False})
+        return
+    hours = ask_number("Run a speed test every how many hours, 0 = only when you tap it",
+                       net.get("speedtest_hours", 0), 0, 168, whole=False)
     show_ip = yes("Show your public IP address", bool(net.get("show_ip", False)))
-    if (net.get("speedtest_hours"), net.get("show_ip")) != (hours, show_ip):
-        net["speedtest_hours"] = hours
-        net["show_ip"] = show_ip
-        doc["internet"] = net
-        config_path.write_text(tomlkit.dumps(doc), encoding="utf-8")
+    values = {"speedtest_hours": hours, "show_ip": show_ip}
+    if "enabled" in net:
+        values["enabled"] = True
+    save_section(config_path, "internet", values)
 
 
 def step_steam_key():
@@ -577,23 +696,26 @@ def step_flash(firmware: pathlib.Path, config_path: pathlib.Path, board_token: s
 # One part of setup on its own: `uv run deskhub-setup <topic>`.
 # (description, aliases); the steps run in run_topic().
 TOPICS = {
-    "wifi":     ("Wi-Fi network and password (rebuilds the firmware)", []),
-    "weather":  ("city, time zone and units (rebuilds the firmware)", ["city", "location", "units"]),
-    "calendar": ("add, list and remove calendars", ["calendars"]),
-    "printer":  ("add and remove Bambu Lab printers", ["printers"]),
-    "games":    ("games that aren't on Steam, and the Steam Web API key", ["game"]),
-    "steam":    ("the Steam Web API key only", []),
+    "wifi":      ("Wi-Fi network and password (rebuilds the firmware)", []),
+    "weather":   ("city, time zone and units (rebuilds the firmware)", ["city", "location", "units"]),
+    "clock":     ("12- or 24-hour clock (rebuilds the firmware)", ["time"]),
+    "screen":    ("turn the screen off after idle minutes (rebuilds the firmware)", ["timeout"]),
+    "hub":       ("the board's address, if deskhub.local doesn't work", ["board", "host"]),
+    "calendar":  ("add, list and remove calendars, and how many days ahead", ["calendars", "events"]),
+    "printer":   ("add and remove Bambu Lab printers", ["printers"]),
+    "games":     ("games that aren't on Steam, built-in games, Steam key", ["game", "presets"]),
+    "steam":     ("Steam games on or off, and the Steam Web API key", []),
     "shortcuts": ("the buttons on the Shortcuts page", ["shortcut", "tiles", "buttons"]),
-    "pages":    ("which pages show, and where the navigation bar goes", ["nav"]),
-    "home":     ("the Home grid and the top bar", ["grid"]),
-    "display":  ("screen sleep with the PC, and night mode", ["sleep", "night"]),
-    "internet": ("speed test schedule and public IP", ["network", "net"]),
-    "claude":   ("live limits, waiting alerts and which agent the AI page shows", ["ai"]),
-    "alerts":   ("waiting alerts only", []),
-    "flash":    ("build the firmware and install it on the board", []),
-    "startup":  ("start the companion with Windows", []),
+    "pages":     ("which pages show, and where the navigation bar goes", ["nav"]),
+    "home":      ("the Home grid and the top bar", ["grid"]),
+    "display":   ("screen sleep with the PC, and night mode", ["sleep", "night"]),
+    "internet":  ("connection checks, speed test schedule and public IP", ["network", "net"]),
+    "claude":    ("live limits, waiting alerts and which agent the AI page shows", ["ai", "codex"]),
+    "alerts":    ("waiting alerts only", []),
+    "flash":     ("build the firmware and install it on the board", []),
+    "startup":   ("start the companion with Windows", []),
 }
-FIRMWARE_TOPICS = {"wifi", "weather"}
+FIRMWARE_TOPICS = {"wifi", "weather", "clock", "screen"}
 
 
 def topic_name(word: str) -> str | None:
@@ -620,6 +742,10 @@ def run_topic(topic: str, config_path: pathlib.Path, firmware: pathlib.Path):
         board_token = read_kconfig(cfg, "HUB_TOKEN")
         if topic == "wifi":
             new = step_wifi(cfg)
+        elif topic == "clock":
+            new = step_clock(cfg)
+        elif topic == "screen":
+            new = step_screen(cfg)
         else:
             new, country = step_location(cfg)
             new = step_units(new, country)
@@ -635,7 +761,8 @@ def run_topic(topic: str, config_path: pathlib.Path, firmware: pathlib.Path):
         "calendar": lambda: step_calendars(config_path, ask_first=False),
         "printer": lambda: step_printers(config_path, ask_first=False),
         "games": lambda: step_games(config_path, ask_first=False),
-        "steam": step_steam_key,
+        "steam": lambda: step_steam(config_path),
+        "hub": lambda: step_hub(config_path),
         "shortcuts": lambda: step_shortcuts(config_path, ask_first=False),
         "pages": lambda: step_pages(config_path),
         "home": lambda: step_home(config_path),

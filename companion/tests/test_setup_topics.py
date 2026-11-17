@@ -57,13 +57,13 @@ with tempfile.TemporaryDirectory() as d:
     out, code = run(["radio", *base], [])
     check(code == 2 and "Unknown topic: radio" in out, "unknown topic explained")
 
-    out, _ = run(["internet", *base], ["6", "y"])
+    out, _ = run(["internet", *base], ["", "6", "y"])
     net = tomlkit.parse(config.read_text(encoding="utf-8"))["internet"]
     check(net["speedtest_hours"] == 6 and net["show_ip"] is True, f"internet saved: {dict(net)}")
     check("Restart the companion" in out, "says to restart the companion")
     check("Wi-Fi" not in out and "Calendars" not in out, "only that topic runs")
 
-    out, _ = run(["internet", *base], ["", ""])
+    out, _ = run(["internet", *base], ["", "", ""])
     check("Restart the companion" not in out, "nothing changed, no restart note")
 
     out, _ = run(["grid", *base], ["y", "n", "weather", "2x1", ""])
@@ -78,10 +78,66 @@ with tempfile.TemporaryDirectory() as d:
     out, _ = run(["weather", *base], ["", "", "y"])
     check("Nothing changed" in out and "Build and flash" not in out, "no change, no flash")
 
-    # The calendar topic goes straight to the menu, with no "Add or change" question.
+    # The calendar topic goes straight to the menu, with no "Add or change" question,
+    # then asks how many days ahead (a bad answer first).
     opened = []
     calendars_cli.menu = lambda path: opened.append(path)
-    run(["calendar", *base], [])
+    run(["calendar", *base], ["99", "14"])
     check(opened == [config], "calendar opens the calendar menu directly")
+    check(tomlkit.parse(config.read_text(encoding="utf-8"))["calendar"]["days"] == 14, "calendar days saved")
+
+    def cfg():
+        return tomlkit.parse(config.read_text(encoding="utf-8")).unwrap()
+
+    # Firmware topics on their own: the clock and the screen timeout.
+    run(["time", *base], ["n", "n"])
+    check("# CONFIG_HUB_24H is not set" in sdk.read_text(encoding="utf-8"), "clock topic: back to 12-hour")
+    out, _ = run(["screen", *base], ["abc", "15", "n"])
+    check("CONFIG_HUB_SCREEN_OFF_MIN=15" in sdk.read_text(encoding="utf-8") and "Build and flash" in out,
+          "screen timeout saved, flash offered")
+
+    # The board's address, checked (no network in tests).
+    import httpx
+    real_get = httpx.get
+
+    class R:
+        status_code = 200
+    httpx.get = lambda url, **kw: R()
+    try:
+        out, _ = run(["hub", *base], ["192.168.1.50"])
+    finally:
+        httpx.get = real_get
+    check(cfg()["hub"] == {"token": "abc", "host": "192.168.1.50"} and "answers at 192.168.1.50" in out,
+          f"hub address saved: {cfg()['hub']}")
+
+    # Internet off.
+    run(["net", *base], ["n"])
+    check(cfg()["internet"]["enabled"] is False, "internet checks turned off")
+
+    # Built-in games: leave two out (one misspelt first), then none.
+    import deskhub.games_cli as games_cli
+    games_cli.menu = lambda path: None
+    s.step_steam_key = lambda: None
+    run(["presets", *base], ["", "roblox, minecraft, Pong", "roblox, minecraft"])
+    check(cfg()["game_presets"] == {"disabled": ["Roblox", "Minecraft"]}, f"presets left out: {cfg().get('game_presets')}")
+    run(["games", *base], ["", "none"])
+    check(cfg()["game_presets"] == {"disabled": []}, "none clears the list")
+    run(["games", *base], ["n"])
+    check(cfg()["game_presets"]["enabled"] is False, "built-in games off")
+
+    # Steam on and off.
+    run(["steam", *base], ["n"])
+    check(cfg()["steam"] == {"enabled": False}, "Steam off")
+
+    # Alerts: the wait before a finished session alerts.
+    s.hook_events_installed = lambda: {"x"}
+    s.hook_events_wanted = lambda: {"x"}
+    run(["alerts", *base], ["", "45"])
+    check(cfg()["claude"]["idle_alert_seconds"] == 45, "idle alert seconds saved")
+
+    # Every topic has a step behind it.
+    for name in s.TOPICS:
+        check(name in s.FIRMWARE_TOPICS or name in ("calendar", "printer", "games", "steam", "hub", "shortcuts",
+              "pages", "home", "display", "internet", "claude", "alerts", "flash", "startup"), f"{name} runs")
 
 print("\nPROBLEMS:" if problems else "\nOK", problems if problems else "")
