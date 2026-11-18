@@ -29,11 +29,13 @@ static lv_obj_t *s_offline, *s_hist;
 static int s_models_h, s_models_x;
 
 // Model rows (name, tokens, bar) spread from under the caption down to the
-// card's bottom edge, however many models there are.
+// card's bottom edge. One or two models sit packed under the caption on the
+// pitch four would use, so they don't end up far apart.
 static void place_model(int i, int count)
 {
     const int first = 28, row = 28;   // name on top, its bar 22 px lower
-    int pitch = count > 1 ? (s_models_h - first - row) / (count - 1) : 0;
+    int slots = count < 3 ? HUB_CLAUDE_MODELS : count;
+    int pitch = (s_models_h - first - row) / (slots - 1);
     int y = first + i * pitch;
     lv_obj_set_pos(s_model_name[i], s_models_x, y);
     lv_obj_set_pos(s_model_val[i], s_models_x + lv_obj_get_width(s_model_bar[i]) - 80, y + 2);
