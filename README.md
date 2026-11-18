@@ -2,9 +2,7 @@
 
 A desk display for the **Waveshare ESP32-S3-Touch-LCD-4.3B**. It shows the time, weather, your calendar, what's playing on your PC, CPU and GPU load, and your Claude Code usage. It also gives you a grid of buttons that run things on your PC.
 
-[![Desk Hub walkthrough video](docs/screenshots/walkthrough-poster.png)](docs/walkthrough.mp4)
-
-▶ [Watch the 27-second walkthrough](docs/walkthrough.mp4): the Home screen, every page, and a Home layout being rearranged.
+https://github.com/user-attachments/assets/2b18951c-0adb-42aa-9e92-08439c5763bc
 
 The board runs custom firmware (ESP-IDF + LVGL). A small Python app on your Windows PC, the *companion*, sends it PC data over your Wi-Fi. The clock and weather keep working when the PC is off.
 
