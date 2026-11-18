@@ -260,6 +260,18 @@ static void layout_claude(int w, int h)
     lv_obj_align(s_cl_badge, LV_ALIGN_LEFT_MID, 0, 0);
     int x0 = tiny ? 0 : badge + (narrow ? 8 : 12);
     int colw = tiny ? w - 32 : (w - 32 - x0 - 14) / 2;
+    // Fill the card's height: caption and value on the first line, the reset line
+    // at the bottom, the bar centred between them.
+    lv_obj_t *card = lv_obj_get_parent(s_cl_cap[0]);
+    int inner_h = h - lv_obj_get_style_pad_top(card, 0) - lv_obj_get_style_pad_bottom(card, 0)
+                - 2 * lv_obj_get_style_border_width(card, 0);
+    int val_h = lv_font_get_line_height(g_font_20), sub_h = lv_font_get_line_height(g_font_14);
+    int sub_y = inner_h - sub_h;
+    int bar_y = (val_h + sub_y) / 2 - 5;
+    if (sub_y < val_h + 14) {   // too short for three lines: keep them packed
+        bar_y = val_h + 4;
+        sub_y = bar_y + 14;
+    }
     for (int i = 0; i < (tiny ? 1 : 2); i++) {
         int x = x0 + i * (colw + 14);
         // Captions shrink with the column so they never run into the percentage.
@@ -269,9 +281,9 @@ static void layout_claude(int w, int h)
         lv_obj_set_pos(s_cl_cap[i], x, 3);
         lv_obj_set_pos(s_cl_val[i], x + colw - 64, 0);
         lv_obj_set_size(s_cl_bar[i], colw, 10);
-        lv_obj_set_pos(s_cl_bar[i], x, 28);
+        lv_obj_set_pos(s_cl_bar[i], x, bar_y);
         lv_obj_set_width(s_cl_sub[i], colw);
-        lv_obj_set_pos(s_cl_sub[i], x, 46);
+        lv_obj_set_pos(s_cl_sub[i], x, sub_y);
     }
 }
 

@@ -8,7 +8,6 @@
 
 #define CARD_W ((CONTENT_W - 2 * 12) / 3)
 #define TOP_H (UI_COMPACT ? 150 : 166)
-#define ROW (UI_COMPACT ? 24 : 27)   // Today rows
 #define HIST_CHART_H (CONTENT_H - TOP_H - 12 - 32 - 24 - 32)   // 174 beside a rail, 122 above the dock
 #define CHART_W 400
 
@@ -18,6 +17,7 @@ hub_claude_t g_claude;
 // muted line ("as of ...", or what an estimate means).
 typedef struct {
     lv_obj_t *bar, *pct, *big, *sub, *reset;
+    int inner_h;
 } limit_card_t;
 
 static limit_card_t s_5h, s_7d;
@@ -86,11 +86,29 @@ static void make_limit_card(lv_obj_t *page, limit_card_t *c, int x, const char *
     c->reset = ui_label(card, g_font_16, COL_TEXT, "");
     lv_obj_set_width(c->reset, inner);
     lv_label_set_long_mode(c->reset, LV_LABEL_LONG_DOT);
-    lv_obj_set_pos(c->reset, 0, 78);
     c->sub = ui_label(card, g_font_14, COL_MUTED, "");
     lv_obj_set_width(c->sub, inner);
     lv_label_set_long_mode(c->sub, LV_LABEL_LONG_DOT);
-    lv_obj_set_pos(c->sub, 0, UI_COMPACT ? 100 : 104);
+    lv_obj_update_layout(card);
+    c->inner_h = lv_obj_get_content_height(card);
+}
+
+// Fill the card's height: caption at the top, the reset line (and the muted line
+// under it, when there is one) at the bottom, percentage and bar centred between.
+static void place_limit(limit_card_t *c)
+{
+    const int cap_h = lv_font_get_line_height(g_font_14), pct_h = lv_font_get_line_height(g_font_28);
+    const int reset_h = lv_font_get_line_height(g_font_16), sub_h = lv_font_get_line_height(g_font_14);
+    bool has_sub = lv_label_get_text(c->sub)[0] != 0;
+    int sub_y = c->inner_h - sub_h;
+    int reset_y = has_sub ? sub_y - reset_h : c->inner_h - reset_h;
+    int block = pct_h + 6 + 8;   // percentage, gap, bar
+    int top = cap_h + (reset_y - cap_h - block) / 2;
+    lv_obj_set_y(c->pct, top);
+    lv_obj_set_y(c->big, top);
+    lv_obj_set_y(c->bar, top + pct_h + 6);
+    lv_obj_set_y(c->reset, reset_y);
+    lv_obj_set_y(c->sub, sub_y);
 }
 
 static void show_bar(limit_card_t *c, bool on)
@@ -128,14 +146,18 @@ void claude_create(lv_obj_t *page)
     lv_obj_set_pos(today, 2 * (CARD_W + 12), 0);
     lv_obj_t *t = ui_caption(today, "TODAY");
     lv_obj_set_pos(t, 0, 0);
+    // Rows spread from under the caption to the card's bottom edge.
+    lv_obj_update_layout(today);
+    const int row_h = lv_font_get_line_height(g_font_16), first = lv_font_get_line_height(g_font_14) + 6;
+    const int pitch = (lv_obj_get_content_height(today) - first - row_h) / 3;
     static const char *names[4] = {"Tokens", "Output", "Messages", "Last hour"};
     for (int i = 0; i < 4; i++) {
         lv_obj_t *n = ui_label(today, g_font_16, COL_MUTED, names[i]);
-        lv_obj_set_pos(n, 0, 24 + i * ROW);
+        lv_obj_set_pos(n, 0, first + i * pitch);
         s_today_val[i] = ui_label(today, g_font_16, COL_TEXT, "--");
         lv_obj_set_width(s_today_val[i], 90);
         lv_obj_set_style_text_align(s_today_val[i], LV_TEXT_ALIGN_RIGHT, 0);
-        lv_obj_set_pos(s_today_val[i], CARD_W - 32 - 90, 24 + i * ROW);
+        lv_obj_set_pos(s_today_val[i], CARD_W - 32 - 90, first + i * pitch);
     }
 
     lv_obj_t *hist = ui_card(page);
@@ -252,6 +274,8 @@ static void refresh_limits(void)
         lv_label_set_text(s_7d.reset, c->valid ? "No limit data yet" : "");
         lv_label_set_text(s_7d.sub, c->valid ? buf : "");
     }
+    place_limit(&s_5h);
+    place_limit(&s_7d);
 }
 
 void claude_refresh(void)
