@@ -7,15 +7,17 @@
 #include "ui_internal.h"
 
 #define CARD_W ((CONTENT_W - 2 * 12) / 3)
-#define TOP_H (UI_COMPACT ? 168 : 200)
-#define ARC_D (UI_COMPACT ? 96 : 112)
-#define HIST_CHART_H (CONTENT_H - TOP_H - 12 - 32 - 24 - 32)   // 140 beside a rail, 104 above the dock
+#define TOP_H (UI_COMPACT ? 150 : 166)
+#define ROW (UI_COMPACT ? 24 : 27)   // Today rows
+#define HIST_CHART_H (CONTENT_H - TOP_H - 12 - 32 - 24 - 32)   // 174 beside a rail, 122 above the dock
 #define CHART_W 400
 
 hub_claude_t g_claude;
 
+// A limit card, all left-aligned: caption, percentage, bar, reset time, then a
+// muted line ("as of ...", or what an estimate means).
 typedef struct {
-    lv_obj_t *arc, *pct, *big, *sub, *reset;
+    lv_obj_t *bar, *pct, *big, *sub, *reset;
 } limit_card_t;
 
 static limit_card_t s_5h, s_7d;
@@ -67,48 +69,38 @@ static void make_limit_card(lv_obj_t *page, limit_card_t *c, int x, const char *
     lv_obj_t *card = ui_card(page);
     lv_obj_set_size(card, CARD_W, TOP_H);
     lv_obj_set_pos(card, x, 0);
-    lv_obj_t *t = ui_label(card, g_font_14, COL_MUTED, title);
-    lv_obj_align(t, LV_ALIGN_TOP_LEFT, 0, 0);
+    const int inner = CARD_W - 32;
+    lv_obj_t *t = ui_caption(card, title);
+    lv_obj_set_pos(t, 0, 0);
 
-    c->arc = lv_arc_create(card);
-    lv_obj_set_size(c->arc, ARC_D, ARC_D);
-    lv_obj_align(c->arc, LV_ALIGN_TOP_MID, 0, UI_COMPACT ? 20 : 22);
-    lv_arc_set_rotation(c->arc, 135);
-    lv_arc_set_bg_angles(c->arc, 0, 270);
-    lv_arc_set_range(c->arc, 0, 100);
-    lv_obj_remove_style(c->arc, NULL, LV_PART_KNOB);
-    lv_obj_remove_flag(c->arc, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_set_style_arc_width(c->arc, 11, LV_PART_MAIN);
-    lv_obj_set_style_arc_width(c->arc, 11, LV_PART_INDICATOR);
-    lv_obj_set_style_arc_rounded(c->arc, true, LV_PART_INDICATOR);
-    lv_obj_set_style_arc_color(c->arc, lv_color_hex(COL_CARD_HI), LV_PART_MAIN);
-    c->pct = ui_label(card, g_font_32, COL_TEXT, "");
-    lv_obj_set_width(c->pct, ARC_D);
-    lv_obj_set_style_text_align(c->pct, LV_TEXT_ALIGN_CENTER, 0);
-    lv_obj_align_to(c->pct, c->arc, LV_ALIGN_CENTER, 0, -2);
+    c->pct = ui_label(card, g_font_28, COL_TEXT, "");
+    lv_obj_set_pos(c->pct, 0, 22);
+    // Shown instead of the percentage and bar when there is no limit data.
+    c->big = ui_label(card, g_font_28, COL_TEXT, "");
+    lv_obj_set_pos(c->big, 0, 22);
 
-    // Shown instead of the arc when there is no limit data.
-    c->big = ui_label(card, g_font_32, COL_TEXT, "");
-    lv_obj_align(c->big, LV_ALIGN_TOP_MID, 0, 50);
+    c->bar = ui_bar(card, COL_GOOD);
+    lv_obj_set_size(c->bar, inner, 8);
+    lv_obj_set_pos(c->bar, 0, 62);
 
-    c->sub = ui_label(card, g_font_14, COL_MUTED, "");
-    lv_obj_set_width(c->sub, CARD_W - 32);
-    lv_obj_set_style_text_align(c->sub, LV_TEXT_ALIGN_CENTER, 0);
-    lv_obj_align(c->sub, LV_ALIGN_BOTTOM_MID, 0, -20);
     c->reset = ui_label(card, g_font_16, COL_TEXT, "");
-    lv_obj_set_width(c->reset, CARD_W - 32);
-    lv_obj_set_style_text_align(c->reset, LV_TEXT_ALIGN_CENTER, 0);
-    lv_obj_align(c->reset, LV_ALIGN_BOTTOM_MID, 0, 2);
+    lv_obj_set_width(c->reset, inner);
+    lv_label_set_long_mode(c->reset, LV_LABEL_LONG_DOT);
+    lv_obj_set_pos(c->reset, 0, 78);
+    c->sub = ui_label(card, g_font_14, COL_MUTED, "");
+    lv_obj_set_width(c->sub, inner);
+    lv_label_set_long_mode(c->sub, LV_LABEL_LONG_DOT);
+    lv_obj_set_pos(c->sub, 0, UI_COMPACT ? 100 : 104);
 }
 
-static void show_arc(limit_card_t *c, bool on)
+static void show_bar(limit_card_t *c, bool on)
 {
     if (on) {
-        lv_obj_remove_flag(c->arc, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_flag(c->bar, LV_OBJ_FLAG_HIDDEN);
         lv_obj_remove_flag(c->pct, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(c->big, LV_OBJ_FLAG_HIDDEN);
     } else {
-        lv_obj_add_flag(c->arc, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(c->bar, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(c->pct, LV_OBJ_FLAG_HIDDEN);
         lv_obj_remove_flag(c->big, LV_OBJ_FLAG_HIDDEN);
     }
@@ -117,11 +109,13 @@ static void show_arc(limit_card_t *c, bool on)
 static void set_limit(limit_card_t *c, float pct)
 {
     char buf[12];
-    show_arc(c, true);
-    lv_arc_set_value(c->arc, (int)(pct + 0.5f));
-    lv_obj_set_style_arc_color(c->arc, lv_color_hex(ui_level_color(pct)), LV_PART_INDICATOR);
+    uint32_t color = ui_level_color(pct);
+    show_bar(c, true);
+    lv_bar_set_value(c->bar, (int)(pct + 0.5f), LV_ANIM_ON);
+    ui_bar_set_color(c->bar, color);
     snprintf(buf, sizeof(buf), "%d%%", (int)(pct + 0.5f));
     lv_label_set_text(c->pct, buf);
+    lv_obj_set_style_text_color(c->pct, lv_color_hex(color), 0);
 }
 
 void claude_create(lv_obj_t *page)
@@ -137,11 +131,11 @@ void claude_create(lv_obj_t *page)
     static const char *names[4] = {"Tokens", "Output", "Messages", "Last hour"};
     for (int i = 0; i < 4; i++) {
         lv_obj_t *n = ui_label(today, g_font_16, COL_MUTED, names[i]);
-        lv_obj_set_pos(n, 0, 30 + i * (UI_COMPACT ? 30 : 36));
-        s_today_val[i] = ui_label(today, i == 0 ? g_font_20 : g_font_16, COL_TEXT, "--");
+        lv_obj_set_pos(n, 0, 24 + i * ROW);
+        s_today_val[i] = ui_label(today, g_font_16, COL_TEXT, "--");
         lv_obj_set_width(s_today_val[i], 90);
         lv_obj_set_style_text_align(s_today_val[i], LV_TEXT_ALIGN_RIGHT, 0);
-        lv_obj_set_pos(s_today_val[i], CARD_W - 32 - 90, 28 + i * (UI_COMPACT ? 30 : 36));
+        lv_obj_set_pos(s_today_val[i], CARD_W - 32 - 90, 24 + i * ROW);
     }
 
     lv_obj_t *hist = ui_card(page);
@@ -191,8 +185,9 @@ void claude_create(lv_obj_t *page)
         lv_obj_set_pos(s_model_bar[i], mx, 50 + i * 44);
     }
 
-    s_offline = ui_label(page, g_font_16, COL_DIM, "Start the companion app on your PC");
-    lv_obj_align(s_offline, LV_ALIGN_BOTTOM_MID, 0, -6);
+    // In the history card's header, where it can't sit on the chart.
+    s_offline = ui_label(hist, g_font_14, COL_DIM, "Start the companion app on your PC");
+    lv_obj_align(s_offline, LV_ALIGN_TOP_RIGHT, 0, 0);
 
     claude_refresh();
 }
@@ -213,7 +208,7 @@ static void refresh_limits(void)
 
     if (!c->has_5h && c->has_7d && strcmp(c->provider, "codex") == 0) {
         // Some Codex plans only have a weekly limit.
-        show_arc(&s_5h, false);
+        show_bar(&s_5h, false);
         lv_label_set_text(s_5h.big, "--");
         lv_label_set_text(s_5h.sub, "This plan has no 5-hour limit");
         lv_label_set_text(s_5h.reset, "");
@@ -230,11 +225,11 @@ static void refresh_limits(void)
         lv_label_set_text(s_5h.reset, "Starts with next prompt");
     } else {
         // No plan data: show the local estimate of the current window.
-        show_arc(&s_5h, false);
+        show_bar(&s_5h, false);
         if (c->block_active) {
             ui_fmt_tokens(tok, sizeof(tok), c->block_tokens);
             lv_label_set_text(s_5h.big, tok);
-            snprintf(buf, sizeof(buf), "tokens in %d messages (estimate)", c->block_msgs);
+            snprintf(buf, sizeof(buf), "tokens, %d messages (estimate)", c->block_msgs);
             lv_label_set_text(s_5h.sub, buf);
             ui_fmt_countdown(buf, sizeof(buf), c->block_reset);
             lv_label_set_text(s_5h.reset, buf);
@@ -251,11 +246,11 @@ static void refresh_limits(void)
         ui_fmt_countdown(buf, sizeof(buf), c->reset_7d);
         lv_label_set_text(s_7d.reset, buf);
     } else {
-        show_arc(&s_7d, false);
+        show_bar(&s_7d, false);
         lv_label_set_text(s_7d.big, "--");
-        snprintf(buf, sizeof(buf), "No limit data yet. It appears after a\n%s reply.", ui_agent_name());
+        snprintf(buf, sizeof(buf), "Appears after a %s reply", ui_agent_name());
+        lv_label_set_text(s_7d.reset, c->valid ? "No limit data yet" : "");
         lv_label_set_text(s_7d.sub, c->valid ? buf : "");
-        lv_label_set_text(s_7d.reset, "");
     }
 }
 
@@ -267,8 +262,14 @@ void claude_refresh(void)
     lv_chart_set_series_color(s_chart, s_ser, lv_color_hex(col));
     lv_obj_set_style_bg_grad_color(s_chart, lv_color_lighten(lv_color_hex(col), 110), LV_PART_ITEMS);
     for (int i = 0; i < HUB_CLAUDE_MODELS; i++) ui_bar_set_color(s_model_bar[i], col);
-    if (g_pc_online) lv_obj_add_flag(s_offline, LV_OBJ_FLAG_HIDDEN);
-    else lv_obj_remove_flag(s_offline, LV_OBJ_FLAG_HIDDEN);
+    // Offline, the note takes the header's right side in place of the peak.
+    if (g_pc_online) {
+        lv_obj_add_flag(s_offline, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_flag(s_peak, LV_OBJ_FLAG_HIDDEN);
+    } else {
+        lv_obj_remove_flag(s_offline, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(s_peak, LV_OBJ_FLAG_HIDDEN);
+    }
     refresh_limits();
 
     char buf[32];

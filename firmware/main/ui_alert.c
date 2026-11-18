@@ -64,8 +64,8 @@ static lv_obj_t *pill(lv_obj_t *parent, const char *text, bool primary, lv_event
 {
     lv_obj_t *b = lv_button_create(parent);
     lv_obj_remove_style_all(b);
-    lv_obj_set_size(b, 180, 52);
-    lv_obj_set_style_radius(b, 26, 0);
+    lv_obj_set_size(b, 168, 46);
+    lv_obj_set_style_radius(b, 23, 0);
     lv_obj_set_style_bg_color(b, lv_color_hex(primary ? COL_ACCENT : COL_CARD_HI), 0);
     lv_obj_set_style_bg_opa(b, LV_OPA_COVER, 0);
     lv_obj_set_style_border_color(b, lv_color_hex(COL_BORDER), 0);
@@ -152,17 +152,19 @@ static void build_home(lv_obj_t *host)
     lv_obj_align(close, LV_ALIGN_RIGHT_MID, -48, 0);
 }
 
-// AI page: a roomier panel over the 7-day history card.
+// AI page: a panel over the 7-day history card. Everything is left-aligned: a
+// header (logo, kind, project), the message, an optional second line, and the
+// buttons on their own row at the bottom so the text never runs under them.
 static void build_ai(lv_obj_t *host)
 {
     panel_t *p = &s_ai;
     p->root = cover(host);
-    lv_obj_set_style_pad_all(p->root, 22, 0);
+    lv_obj_set_style_pad_all(p->root, 18, 0);
 
     lv_obj_t *badge = lv_obj_create(p->root);
     lv_obj_remove_style_all(badge);
-    lv_obj_set_size(badge, 56, 56);
-    lv_obj_set_style_radius(badge, LV_RADIUS_CIRCLE, 0);
+    lv_obj_set_size(badge, 40, 40);
+    lv_obj_set_style_radius(badge, 12, 0);
     lv_obj_set_style_bg_color(badge, lv_color_hex(COL_CARD_HI), 0);
     lv_obj_set_style_bg_opa(badge, LV_OPA_COVER, 0);
     lv_obj_align(badge, LV_ALIGN_TOP_LEFT, 0, 0);
@@ -170,23 +172,23 @@ static void build_ai(lv_obj_t *host)
     lv_obj_center(p->logo);
 
     p->kind = ui_caption(p->root, "");
-    lv_obj_align(p->kind, LV_ALIGN_TOP_LEFT, 72, 4);
-    p->project = ui_label(p->root, g_font_16, COL_MUTED, "");
+    lv_obj_align(p->kind, LV_ALIGN_TOP_LEFT, 52, 0);
+    p->project = ui_label(p->root, g_font_14, COL_MUTED, "");
     ui_marquee(p->project);
-    lv_obj_align(p->project, LV_ALIGN_TOP_LEFT, 72, 28);
+    lv_obj_align(p->project, LV_ALIGN_TOP_LEFT, 52, 21);
 
     p->title = ui_label(p->root, g_font_24, COL_TEXT, "");
     ui_marquee(p->title);
-    lv_obj_align(p->title, LV_ALIGN_TOP_LEFT, 0, 68);
+    lv_obj_align(p->title, LV_ALIGN_TOP_LEFT, 0, 54);
     p->detail = ui_label(p->root, g_font_16, COL_MUTED, "");
     ui_marquee(p->detail);
     lv_obj_set_height(p->detail, 20);
-    lv_obj_align(p->detail, LV_ALIGN_TOP_LEFT, 0, 100);
+    lv_obj_align(p->detail, LV_ALIGN_TOP_LEFT, 0, 86);
 
     lv_obj_t *show = pill(p->root, "Show on PC", true, on_focus);
     lv_obj_align(show, LV_ALIGN_BOTTOM_RIGHT, 0, 0);
     lv_obj_t *later = pill(p->root, "Not now", false, on_dismiss);
-    lv_obj_align(later, LV_ALIGN_BOTTOM_RIGHT, -192, 0);
+    lv_obj_align(later, LV_ALIGN_BOTTOM_RIGHT, -180, 0);
 }
 
 // The Home strip has room for one short line: drop the leading "Claude " and
@@ -207,7 +209,7 @@ static void fill(panel_t *p, const hub_alert_t *a, bool compact)
     if (!p->root) return;
     bool perm = strcmp(a->kind, "permission") == 0;
     const char *kind = perm ? "NEEDS PERMISSION" : "WAITING FOR YOU";
-    lv_image_set_src(p->logo, ui_agent_logo(compact ? 24 : 32));
+    lv_image_set_src(p->logo, ui_agent_logo(24));
     fit(p->root);
     lv_obj_update_layout(p->root);   // so the width below is the new one
     int inner = lv_obj_get_width(p->root) - 2 * lv_obj_get_style_pad_left(p->root, 0) - 4;
@@ -222,9 +224,12 @@ static void fill(panel_t *p, const hub_alert_t *a, bool compact)
     } else {
         lv_label_set_text(p->kind, kind);
         lv_label_set_text(p->project, a->project);
-        lv_label_set_text(p->title, a->title[0] ? a->title : "Claude is waiting for you");
-        lv_label_set_text(p->detail, a->detail);
-        lv_obj_set_width(p->project, inner - 72);
+        const char *title = a->title[0] ? a->title : "Claude is waiting for you";
+        lv_label_set_text(p->title, title);
+        // A second line only when it adds something (older companions sent the
+        // same message as both).
+        lv_label_set_text(p->detail, strcmp(a->detail, title) == 0 ? "" : a->detail);
+        lv_obj_set_width(p->project, inner - 52);
         lv_obj_set_width(p->title, inner);
         lv_obj_set_width(p->detail, inner);
     }

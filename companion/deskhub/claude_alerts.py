@@ -61,10 +61,18 @@ class ClaudeAlerts:
             return None
         sid, d = best
         kind = "permission" if d["state"] == "permission" else "input"
-        if kind == "permission":
-            title, detail = "Claude needs your permission", d.get("message")
+        # Claude Code's own message ("Claude needs your permission to use Bash") is
+        # the most specific line, so it's the title on its own. A message that
+        # isn't a sentence about Claude (an answer choice, say) goes under a
+        # generic title instead.
+        message = (d.get("message") or "").strip()
+        generic = "Claude needs your permission" if kind == "permission" else "Claude is waiting for you"
+        if message.startswith("Claude "):
+            title, detail = message, ""
+        elif message:
+            title, detail = generic, message
         else:
-            title, detail = "Claude is waiting for you", d.get("message") or "Finished. Waiting for your reply"
+            title, detail = generic, "" if kind == "permission" else "Finished. Waiting for your reply"
         return {"type": "alert", "id": sid, "kind": kind, "agent": "claude",
                 "title": ascii_fold(title, 60), "detail": ascii_fold(detail, 120),
                 "project": ascii_fold(d.get("project"), 40)}

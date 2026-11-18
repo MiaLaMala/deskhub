@@ -147,7 +147,7 @@ check(a.poll() is None and a.msg is None, "nothing waiting -> nothing sent at st
 put("a", "permission", age=20, message="Claude needs your permission to use Bash", project="alpha")
 m = a.poll()
 check(m == {"type": "alert", "id": "a", "kind": "permission", "agent": "claude",
-            "title": "Claude needs your permission", "detail": "Claude needs your permission to use Bash",
+            "title": "Claude needs your permission to use Bash", "detail": "",
             "project": "alpha"}, f"permission alert: {m}")
 check(a.poll() is None, "unchanged alert is not resent")
 

@@ -27,7 +27,7 @@ extern const uint8_t clock_ttf_start[] asm("_binary_Inter_SemiBold_ttf_start");
 extern const uint8_t clock_ttf_end[] asm("_binary_Inter_SemiBold_ttf_end");
 
 lv_font_t *g_icon_20, *g_icon_24, *g_icon_32, *g_icon_48, *g_icon_80, *g_font_clock;
-lv_font_t *g_font_14, *g_font_16, *g_font_20, *g_font_24, *g_font_32, *g_font_48;
+lv_font_t *g_font_14, *g_font_16, *g_font_20, *g_font_24, *g_font_28, *g_font_32, *g_font_48;
 
 // Inter at one size. Glyphs Inter lacks come from the built-in Montserrat of
 // that size, which is also used outright if the TTF can't be loaded.
@@ -711,6 +711,7 @@ void ui_init(void)
     g_font_16 = inter(16, false, &lv_font_montserrat_16);
     g_font_20 = inter(20, false, &lv_font_montserrat_20);
     g_font_24 = inter(24, false, &lv_font_montserrat_24);
+    g_font_28 = inter(28, true, &lv_font_montserrat_32);
     g_font_32 = inter(32, true, &lv_font_montserrat_32);
     g_font_48 = inter(48, true, &lv_font_montserrat_48);
     size_t icon_len = icons_ttf_end - icons_ttf_start;
