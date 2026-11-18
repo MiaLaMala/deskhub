@@ -54,6 +54,7 @@ extern hub_media_t g_media;
 extern hub_weather_t g_weather;
 extern hub_event_t g_events[HUB_MAX_EVENTS];
 extern int g_event_count;
+extern int g_event_days;   // how many days ahead the events cover
 extern lv_image_dsc_t g_art;     // valid when g_art_id != 0
 extern uint32_t g_art_id;
 extern bool g_pc_online;

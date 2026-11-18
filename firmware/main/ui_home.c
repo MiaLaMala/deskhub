@@ -42,7 +42,8 @@ static lv_obj_t *s_hdr, *s_hdr_time, *s_hdr_ampm, *s_hdr_date;
 static lv_obj_t *s_ampm, *s_date, *s_date_dot;
 static lv_obj_t *s_ev_hdr, *s_ev_rows[EVENT_ROWS_MAX], *s_ev_dot[EVENT_ROWS_MAX], *s_ev_time[EVENT_ROWS_MAX],
     *s_ev_title[EVENT_ROWS_MAX], *s_ev_empty;
-static int s_ev_max = 2;
+static int s_ev_max = 2, s_ev_inner;
+#define EV_PITCH 60   // a 56 px event row and the gap under it
 static lv_obj_t *s_wx_icon, *s_wx_temp, *s_wx_text, *s_wx_range;
 static lv_obj_t *s_md_art, *s_md_frame, *s_md_ph, *s_md_title, *s_md_artist, *s_md_btn;
 static lv_obj_t *s_st_name[3], *s_st_bar[3], *s_st_val[3];
@@ -314,27 +315,26 @@ static void create_events(lv_obj_t *page)
         lv_obj_set_pos(s_ev_time[i], 14, 30);
         s_ev_rows[i] = row;
     }
-    s_ev_empty = ui_label(ev, g_font_20, COL_DIM, "Nothing scheduled");
-    lv_obj_center(s_ev_empty);
+    // Under the last row when there's room: "No more events in the next 7 days".
+    s_ev_empty = ui_label(ev, g_font_16, COL_MUTED, "");
+    ui_marquee(s_ev_empty);
     s_w[W_EVENTS] = ev;
 }
 
 static void layout_events(int w, int h)
 {
-    // Header 26, then as many 56 px rows as fit with 4 px between them. The rows
-    // spread down to the bottom edge; a single row sits centred under the header.
-    int inner = inner_height(s_w[W_EVENTS], h);
-    s_ev_max = (inner - 26 + 4) / 60;
+    // Header 26, then as many 56 px rows as fit with 4 px between them, stacked
+    // from the top. Space left under the rows gets the "no more events" line.
+    s_ev_inner = inner_height(s_w[W_EVENTS], h);
+    s_ev_max = (s_ev_inner - 26 + 4) / EV_PITCH;
     if (s_ev_max < 1) s_ev_max = 1;
     if (s_ev_max > EVENT_ROWS_MAX) s_ev_max = EVENT_ROWS_MAX;
-    int room = inner - 26 - 56;
-    int pitch = s_ev_max > 1 ? room / (s_ev_max - 1) : 0;
-    int y0 = 26 + (s_ev_max > 1 || room < 0 ? 0 : room / 2);
     for (int i = 0; i < EVENT_ROWS_MAX; i++) {
         lv_obj_set_size(s_ev_rows[i], w - 32, 56);
-        lv_obj_set_pos(s_ev_rows[i], 0, y0 + i * pitch);
+        lv_obj_set_pos(s_ev_rows[i], 0, 26 + i * EV_PITCH);
         lv_obj_set_width(s_ev_title[i], w - 52);
     }
+    lv_obj_set_width(s_ev_empty, w - 32 - 14);
     home_refresh_events();
 }
 
@@ -1081,8 +1081,25 @@ void home_refresh_events(void)
     for (int i = shown; i < EVENT_ROWS_MAX; i++) {
         lv_obj_add_flag(s_ev_rows[i], LV_OBJ_FLAG_HIDDEN);
     }
-    if (shown) lv_obj_add_flag(s_ev_empty, LV_OBJ_FLAG_HIDDEN);
-    else lv_obj_remove_flag(s_ev_empty, LV_OBJ_FLAG_HIDDEN);
+
+    // The line under the rows: how many more there are, or that there are none.
+    int more = 0;
+    for (int i = 0; i < g_event_count; i++) {
+        if (g_events[i].end > now) more++;
+    }
+    more -= shown;
+    char span[24], msg[64];
+    if (g_event_days == 1) snprintf(span, sizeof(span), "the next day");
+    else snprintf(span, sizeof(span), "the next %d days", g_event_days);
+    if (more > 0) snprintf(msg, sizeof(msg), "%d more in %s", more, span);
+    else if (shown) snprintf(msg, sizeof(msg), "No more events in %s", span);
+    else snprintf(msg, sizeof(msg), "Nothing scheduled in %s", span);
+    lv_label_set_text(s_ev_empty, msg);
+    int y = 26 + shown * EV_PITCH + 2;
+    lv_obj_set_pos(s_ev_empty, shown ? 14 : 0, y);
+    if (y + lv_font_get_line_height(g_font_16) <= s_ev_inner)
+        lv_obj_remove_flag(s_ev_empty, LV_OBJ_FLAG_HIDDEN);
+    else lv_obj_add_flag(s_ev_empty, LV_OBJ_FLAG_HIDDEN);
 }
 
 void home_refresh_weather(void)

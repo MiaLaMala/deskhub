@@ -129,7 +129,7 @@ static void on_events(const cJSON *m)
         copy_str(e->calendar, sizeof(e->calendar), it, "cal");
     }
     display_lock();
-    ui_set_events(ev, n);
+    ui_set_events(ev, n, (int)get_num(m, "days", 7));
     display_unlock();
 }
 

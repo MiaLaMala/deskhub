@@ -10,7 +10,8 @@ void ui_init(void);
 void ui_set_stats(const hub_stats_t *s);
 void ui_set_media(const hub_media_t *m);
 void ui_set_art(uint32_t id, uint16_t w, uint16_t h, const uint8_t *rgb565);
-void ui_set_events(const hub_event_t *ev, int n);
+// days: how far ahead the companion looked for events.
+void ui_set_events(const hub_event_t *ev, int n, int days);
 void ui_set_tiles(const hub_tile_t *tiles, int n);
 void ui_set_weather(const hub_weather_t *w);
 void ui_set_claude(const hub_claude_t *c);

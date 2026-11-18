@@ -245,13 +245,18 @@ class Companion:
                 log.warning("claude alerts failed: %s", e)
             await asyncio.sleep(1)
 
+    def events_message(self) -> dict:
+        # "days" lets the hub say how far ahead it looked ("No more events in the next 7 days").
+        days = int(self.cfg.get("calendar", {}).get("days", 7))
+        return {"type": "events", "events": self.events, "days": days}
+
     async def calendar_loop(self):
         cal = self.cfg.get("calendar", {})
         feeds, days = cal.get("feeds", []), int(cal.get("days", 7))
         while True:
             self.events = await fetch_events(feeds, days)
             log.info("calendar: %d upcoming events", len(self.events))
-            await self.send({"type": "events", "events": self.events})
+            await self.send(self.events_message())
             await asyncio.sleep(CALENDAR_REFRESH_S)
 
     async def printer_loop(self):
@@ -374,7 +379,7 @@ class Companion:
             await self.send(hub_view(self.tiles))
             if self.lit_msg:
                 await self.send(self.lit_msg)
-            await self.send({"type": "events", "events": self.events})
+            await self.send(self.events_message())
             if self.claude_msg:
                 await self.send(self.claude_msg)
             if self.alerts and self.alerts.msg:

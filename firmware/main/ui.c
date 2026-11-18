@@ -51,6 +51,7 @@ hub_media_t g_media;
 hub_weather_t g_weather;
 hub_event_t g_events[HUB_MAX_EVENTS];
 int g_event_count;
+int g_event_days = 7;
 lv_image_dsc_t g_art;
 uint32_t g_art_id;
 bool g_pc_online;
@@ -820,10 +821,11 @@ static int event_cmp(const void *a, const void *b)
     return (int)y->all_day - (int)x->all_day; // all-day first on the same start
 }
 
-void ui_set_events(const hub_event_t *ev, int n)
+void ui_set_events(const hub_event_t *ev, int n, int days)
 {
     memcpy(g_events, ev, sizeof(hub_event_t) * n);
     g_event_count = n;
+    g_event_days = days > 0 ? days : 7;
     // The companion sends them sorted; sort anyway so day grouping can't break.
     qsort(g_events, n, sizeof(hub_event_t), event_cmp);
     calendar_refresh(true);
