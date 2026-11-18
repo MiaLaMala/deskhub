@@ -65,6 +65,13 @@ static void open_page_cb(lv_event_t *e)
     ui_show_page((int)(intptr_t)lv_event_get_user_data(e));
 }
 
+// Height inside a widget card of outer height h (padding and border taken off).
+static int inner_height(lv_obj_t *card, int h)
+{
+    return h - lv_obj_get_style_pad_top(card, 0) - lv_obj_get_style_pad_bottom(card, 0)
+         - 2 * lv_obj_get_style_border_width(card, 0);
+}
+
 static lv_obj_t *widget_card(lv_obj_t *parent, int page)
 {
     lv_obj_t *c = ui_card(parent);
@@ -262,9 +269,7 @@ static void layout_claude(int w, int h)
     int colw = tiny ? w - 32 : (w - 32 - x0 - 14) / 2;
     // Fill the card's height: caption and value on the first line, the reset line
     // at the bottom, the bar centred between them.
-    lv_obj_t *card = lv_obj_get_parent(s_cl_cap[0]);
-    int inner_h = h - lv_obj_get_style_pad_top(card, 0) - lv_obj_get_style_pad_bottom(card, 0)
-                - 2 * lv_obj_get_style_border_width(card, 0);
+    int inner_h = inner_height(s_w[W_CLAUDE], h);
     int val_h = lv_font_get_line_height(g_font_20), sub_h = lv_font_get_line_height(g_font_14);
     int sub_y = inner_h - sub_h;
     int bar_y = (val_h + sub_y) / 2 - 5;
@@ -316,13 +321,18 @@ static void create_events(lv_obj_t *page)
 
 static void layout_events(int w, int h)
 {
-    // Card padding 32, header 26, then as many 56 px rows on a 60 px pitch as fit.
-    s_ev_max = (h - 32 - 26 + 4) / 60;
+    // Header 26, then as many 56 px rows as fit with 4 px between them. The rows
+    // spread down to the bottom edge; a single row sits centred under the header.
+    int inner = inner_height(s_w[W_EVENTS], h);
+    s_ev_max = (inner - 26 + 4) / 60;
     if (s_ev_max < 1) s_ev_max = 1;
     if (s_ev_max > EVENT_ROWS_MAX) s_ev_max = EVENT_ROWS_MAX;
+    int room = inner - 26 - 56;
+    int pitch = s_ev_max > 1 ? room / (s_ev_max - 1) : 0;
+    int y0 = 26 + (s_ev_max > 1 || room < 0 ? 0 : room / 2);
     for (int i = 0; i < EVENT_ROWS_MAX; i++) {
         lv_obj_set_size(s_ev_rows[i], w - 32, 56);
-        lv_obj_set_pos(s_ev_rows[i], 0, 26 + i * 60);
+        lv_obj_set_pos(s_ev_rows[i], 0, y0 + i * pitch);
         lv_obj_set_width(s_ev_title[i], w - 52);
     }
     home_refresh_events();
@@ -376,6 +386,14 @@ static void create_media(lv_obj_t *page)
 
 static void layout_media(int w, int h)
 {
+    // Cover, title and artist centred in the card's height.
+    int inner = inner_height(s_w[W_MEDIA], h);
+    int art_y = inner > 64 ? (inner - 64) / 2 : 0;
+    int text_y = inner > 50 ? (inner - 50) / 2 : 0;
+    lv_obj_set_pos(s_md_ph, 0, art_y);
+    lv_obj_set_pos(s_md_frame, 0, art_y);
+    lv_obj_set_pos(s_md_title, 76, text_y + 2);
+    lv_obj_set_pos(s_md_artist, 76, text_y + 30);
     lv_obj_set_width(s_md_title, w - 32 - 76);
     lv_obj_set_width(s_md_artist, w - 32 - 76);
 }
@@ -399,8 +417,8 @@ static void create_stats(lv_obj_t *page)
 static void layout_stats(int w, int h)
 {
     // Rows fill the card's height; one cell wide drops the bars (names and values only).
-    int inner = h - lv_obj_get_style_pad_top(s_w[W_STATS], 0) - lv_obj_get_style_pad_bottom(s_w[W_STATS], 0);
-    int step = inner >= 90 ? 30 : inner / 3;
+    int inner = inner_height(s_w[W_STATS], h);
+    int step = (inner - lv_font_get_line_height(g_font_16)) / 2;
     bool bars = w >= 200;
     for (int i = 0; i < 3; i++) {
         lv_obj_set_pos(s_st_name[i], 0, i * step);
@@ -425,13 +443,18 @@ static void layout_weather(int w, int h)
         lv_obj_add_flag(s_wx_text, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(s_wx_range, LV_OBJ_FLAG_HIDDEN);
     } else {
+        // Temperature, condition and range as one block, centred in the height
+        // (the 48 px font's own top space puts the digits at the block's top).
+        int block = UI_COMPACT ? 80 : 85;
+        int y0 = (inner_height(wx, h) - block) / 2;
+        if (y0 < 0) y0 = 0;
         lv_obj_set_align(s_wx_temp, LV_ALIGN_TOP_LEFT);
-        lv_obj_set_pos(s_wx_temp, 96, -8);
+        lv_obj_set_pos(s_wx_temp, 96, y0 - 8);
+        lv_obj_set_pos(s_wx_text, 98, y0 + (UI_COMPACT ? 42 : 46));
+        lv_obj_set_pos(s_wx_range, 98, y0 + (UI_COMPACT ? 61 : 66));
         lv_obj_remove_flag(s_wx_text, LV_OBJ_FLAG_HIDDEN);
         lv_obj_remove_flag(s_wx_range, LV_OBJ_FLAG_HIDDEN);
     }
-    (void)wx;
-    (void)h;
 }
 
 static void create_printer(lv_obj_t *page)
@@ -460,6 +483,17 @@ static void layout_printer(int w, int h)
     lv_obj_align(s_pr_state, w < 340 ? LV_ALIGN_TOP_LEFT : LV_ALIGN_TOP_RIGHT, 0, 0);
     lv_obj_set_width(s_pr_file, w - 32);
     lv_obj_set_width(s_pr_bar, w - 32);
+    // Caption on top, progress line on the bottom edge, file name and bar
+    // centred between them.
+    int inner = inner_height(s_w[W_PRINTER], h);
+    int cap_h = lv_font_get_line_height(g_font_14), file_h = lv_font_get_line_height(g_font_20);
+    int info_y = inner - cap_h;
+    int block = file_h + 4 + 10;
+    int top = cap_h + (info_y - cap_h - block) / 2;
+    if (top < cap_h) top = cap_h;
+    lv_obj_set_pos(s_pr_file, 0, top);
+    lv_obj_set_pos(s_pr_bar, 0, top + file_h + 4);
+    lv_obj_set_pos(s_pr_info, 0, info_y);
 }
 
 // ---- game (Steam) ---------------------------------------------------------
@@ -558,7 +592,14 @@ static void create_net(lv_obj_t *page)
 
 static void layout_net(int w, int h)
 {
-    (void)h;
+    // Caption on top, the speed line on the bottom edge, latency centred between.
+    int inner = inner_height(s_w[W_NET], h);
+    int cap_h = lv_font_get_line_height(g_font_14), lat_h = lv_font_get_line_height(g_font_32);
+    int sub_y = inner - 18;
+    int lat_y = cap_h + (sub_y - cap_h - lat_h) / 2;
+    if (lat_y < cap_h) lat_y = cap_h;
+    lv_obj_set_pos(s_nt_lat, 0, lat_y);
+    lv_obj_set_pos(s_nt_sub, 0, sub_y);
     // One cell wide: the caption and latency; the status shows as the latency's colour.
     bool tiny = w < 200;
     if (tiny) {

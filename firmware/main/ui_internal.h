@@ -66,6 +66,8 @@ lv_obj_t *ui_bar(lv_obj_t *parent, uint32_t color);
 void ui_marquee(lv_obj_t *label);
 void ui_bar_set_color(lv_obj_t *bar, uint32_t color);
 lv_obj_t *ui_caption(lv_obj_t *parent, const char *text);   // small spaced-out section title
+// Stack rows down a card: first at the top, last on the bottom edge, equal gaps.
+void ui_spread(lv_obj_t *card, lv_obj_t *const *rows, int n);
 lv_obj_t *ui_round_button(lv_obj_t *parent, int size, uint32_t bg, const lv_font_t *icon_font,
                           const char *glyph, lv_event_cb_t cb, void *user);
 void ui_fmt_clock(char *buf, size_t n, time_t t);   // "3:05 PM" / "15:05"

@@ -26,6 +26,19 @@ static lv_obj_t *s_chart, *s_day_lbl[HUB_CLAUDE_DAYS], *s_peak;
 static lv_chart_series_t *s_ser;
 static lv_obj_t *s_model_name[HUB_CLAUDE_MODELS], *s_model_bar[HUB_CLAUDE_MODELS], *s_model_val[HUB_CLAUDE_MODELS];
 static lv_obj_t *s_offline, *s_hist;
+static int s_models_h, s_models_x;
+
+// Model rows (name, tokens, bar) spread from under the caption down to the
+// card's bottom edge, however many models there are.
+static void place_model(int i, int count)
+{
+    const int first = 28, row = 28;   // name on top, its bar 22 px lower
+    int pitch = count > 1 ? (s_models_h - first - row) / (count - 1) : 0;
+    int y = first + i * pitch;
+    lv_obj_set_pos(s_model_name[i], s_models_x, y);
+    lv_obj_set_pos(s_model_val[i], s_models_x + lv_obj_get_width(s_model_bar[i]) - 80, y + 2);
+    lv_obj_set_pos(s_model_bar[i], s_models_x, y + 22);
+}
 
 lv_obj_t *claude_history_card(void)
 {
@@ -195,16 +208,17 @@ void claude_create(lv_obj_t *page)
     const int mx = CHART_W + 28, mw = CONTENT_W - 32 - mx;
     lv_obj_t *mt = ui_caption(hist, "MODELS TODAY");
     lv_obj_set_pos(mt, mx, 0);
+    lv_obj_update_layout(hist);
+    s_models_h = lv_obj_get_content_height(hist);
+    s_models_x = mx;
     for (int i = 0; i < HUB_CLAUDE_MODELS; i++) {
         s_model_name[i] = ui_label(hist, g_font_16, COL_TEXT, "");
-        lv_obj_set_pos(s_model_name[i], mx, 28 + i * 44);
         s_model_val[i] = ui_label(hist, g_font_14, COL_MUTED, "");
         lv_obj_set_width(s_model_val[i], 80);
         lv_obj_set_style_text_align(s_model_val[i], LV_TEXT_ALIGN_RIGHT, 0);
-        lv_obj_set_pos(s_model_val[i], mx + mw - 80, 30 + i * 44);
         s_model_bar[i] = ui_bar(hist, ui_agent_color());
         lv_obj_set_size(s_model_bar[i], mw, 6);
-        lv_obj_set_pos(s_model_bar[i], mx, 50 + i * 44);
+        place_model(i, 1);
     }
 
     // In the history card's header, where it can't sit on the chart.
@@ -330,6 +344,7 @@ void claude_refresh(void)
     double top = c->model_count ? c->model_tokens[0] : 1;
     for (int i = 0; i < HUB_CLAUDE_MODELS; i++) {
         bool on = i < c->model_count;
+        place_model(i, c->model_count);
         if (on) {
             lv_obj_remove_flag(s_model_name[i], LV_OBJ_FLAG_HIDDEN);
             lv_obj_remove_flag(s_model_val[i], LV_OBJ_FLAG_HIDDEN);

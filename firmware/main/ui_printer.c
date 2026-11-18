@@ -310,8 +310,8 @@ void printer_refresh(void)
         }
     }
 
-    // Spread the slots over the card: 4 slots get wide labels, 8 get narrow ones.
-    int slots = p->ams_count > 4 ? p->ams_count : 4;
+    // Spread the loaded slots over the card's full width.
+    int slots = p->ams_count > 1 ? p->ams_count : 1;
     int step = (RIGHT_W - 32) / slots;
     for (int i = 0; i < HUB_MAX_AMS; i++) {
         bool on = i < p->ams_count;

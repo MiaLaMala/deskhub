@@ -18,7 +18,7 @@
 
 hub_net_t g_net;
 
-static lv_obj_t *s_lat, *s_lat_sub, *s_status, *s_up, *s_drop, *s_today, *s_month;
+static lv_obj_t *s_lat, *s_lat_sub, *s_status, *s_drop, *s_today, *s_month;
 static lv_obj_t *s_chart, *s_chart_max, *s_offline;
 static lv_chart_series_t *s_ser;
 static lv_obj_t *s_down, *s_upl, *s_sp_sub, *s_now, *s_run, *s_run_lbl;
@@ -57,53 +57,57 @@ static void run_cb(lv_event_t *e)
     lv_label_set_text(s_run_lbl, "Starting...");
 }
 
-static lv_obj_t *top_card(lv_obj_t *page, int i, const char *caption)
+static lv_obj_t *top_card(lv_obj_t *page, int i, const char *caption, lv_obj_t **cap)
 {
     lv_obj_t *c = ui_card(page);
     lv_obj_set_size(c, CARD_W, TOP_H);
     lv_obj_set_pos(c, i * (CARD_W + 12), 0);
-    lv_obj_t *cap = ui_caption(c, caption);
-    lv_obj_set_pos(cap, 0, 0);
+    *cap = ui_caption(c, caption);
     return c;
 }
 
-static lv_obj_t *line(lv_obj_t *parent, const lv_font_t *font, uint32_t color, int y)
+static lv_obj_t *line(lv_obj_t *parent, const lv_font_t *font, uint32_t color)
 {
     lv_obj_t *l = ui_label(parent, font, color, "");
     ui_marquee(l);
     lv_obj_set_width(l, CARD_W - 32);
-    lv_obj_set_pos(l, 0, y);
     return l;
 }
 
 void net_page_create(lv_obj_t *page)
 {
-    lv_obj_t *c = top_card(page, 0, "LATENCY");
-    s_lat = line(c, UI_COMPACT ? g_font_32 : g_font_48, COL_TEXT, UI_COMPACT ? 24 : 20);
-    s_lat_sub = line(c, g_font_14, COL_MUTED, UI_COMPACT ? 64 : 78);
+    // Each card: caption at the top, its last line on the bottom edge.
+    lv_obj_t *cap;
+    lv_obj_t *c = top_card(page, 0, "LATENCY", &cap);
+    s_lat = line(c, UI_COMPACT ? g_font_32 : g_font_48, COL_TEXT);
+    s_lat_sub = line(c, g_font_14, COL_MUTED);
+    ui_spread(c, (lv_obj_t *[]){cap, s_lat, s_lat_sub}, 3);
 
-    c = top_card(page, 1, "STATUS");
-    s_status = line(c, g_font_32, COL_GOOD, 22);
-    s_up = line(c, g_font_16, COL_TEXT, UI_COMPACT ? 54 : 60);
-    s_drop = line(c, g_font_14, COL_MUTED, UI_COMPACT ? 70 : 80);
+    c = top_card(page, 1, "STATUS", &cap);
+    s_status = line(c, g_font_32, COL_GOOD);
+    s_drop = line(c, g_font_14, COL_MUTED);   // uptime and the last drop
+    ui_spread(c, (lv_obj_t *[]){cap, s_status, s_drop}, 3);
 
-    c = top_card(page, 2, "DATA USED");
-    // Label on the left, amount on the right, one row each.
-    lv_obj_t *l = line(c, g_font_16, COL_MUTED, UI_COMPACT ? 28 : 34);
-    lv_label_set_text(l, "Today");
+    c = top_card(page, 2, "DATA USED", &cap);
+    // Label on the left, amount on the right, one row each. The amounts are
     // 20 px so "This month" and an amount like "412.0 GB" fit side by side.
-    s_today = line(c, g_font_20, COL_TEXT, UI_COMPACT ? 25 : 31);
+    lv_obj_t *today = line(c, g_font_16, COL_MUTED);
+    lv_label_set_text(today, "Today");
+    lv_obj_t *month = line(c, g_font_16, COL_MUTED);
+    lv_label_set_text(month, "This month");
+    ui_spread(c, (lv_obj_t *[]){cap, today, month}, 3);
+    s_today = line(c, g_font_20, COL_TEXT);
     lv_obj_set_style_text_align(s_today, LV_TEXT_ALIGN_RIGHT, 0);
-    l = line(c, g_font_16, COL_MUTED, UI_COMPACT ? 58 : 72);
-    lv_label_set_text(l, "This month");
-    s_month = line(c, g_font_20, COL_TEXT, UI_COMPACT ? 55 : 69);
+    lv_obj_align_to(s_today, today, LV_ALIGN_RIGHT_MID, 0, 0);
+    s_month = line(c, g_font_20, COL_TEXT);
     lv_obj_set_style_text_align(s_month, LV_TEXT_ALIGN_RIGHT, 0);
+    lv_obj_align_to(s_month, month, LV_ALIGN_RIGHT_MID, 0, 0);
 
     // Latency over the last two minutes.
     lv_obj_t *ch = ui_card(page);
     lv_obj_set_size(ch, CONTENT_W, CHART_H);
     lv_obj_set_pos(ch, 0, TOP_H + 12);
-    lv_obj_t *cap = ui_caption(ch, "LATENCY, LAST 2 MINUTES");
+    cap = ui_caption(ch, "LATENCY, LAST 2 MINUTES");
     lv_obj_set_pos(cap, 0, 0);
     s_chart_max = ui_label(ch, g_font_14, COL_DIM, "");
     lv_obj_align(s_chart_max, LV_ALIGN_TOP_RIGHT, 0, 0);
@@ -174,7 +178,7 @@ void net_refresh(void)
 {
     if (!s_lat) return;
     const hub_net_t *n = &g_net;
-    char buf[64], t[24];
+    char buf[112], t[24];
     if (g_pc_online) lv_obj_add_flag(s_offline, LV_OBJ_FLAG_HIDDEN);
     else lv_obj_remove_flag(s_offline, LV_OBJ_FLAG_HIDDEN);
 
@@ -197,21 +201,22 @@ void net_refresh(void)
 
     lv_label_set_text(s_status, n->online ? "Online" : "Offline");
     lv_obj_set_style_text_color(s_status, lv_color_hex(n->online ? COL_GOOD : COL_BAD), 0);
+    // One line under the status: uptime, then the last drop (or the IP address).
+    char up[32] = "", drop[64];
     if (n->online && n->up_since > 0) {
         fmt_dur(t, sizeof(t), (long)(time(NULL) - n->up_since));
-        snprintf(buf, sizeof(buf), "Up %s", t);
-    } else {
-        buf[0] = 0;
+        snprintf(up, sizeof(up), "Up %s", t);
     }
-    lv_label_set_text(s_up, buf);
     if (n->drop_at > 0) {
         char ago[24];
         ui_fmt_ago(ago, sizeof(ago), n->drop_at);
         fmt_dur(t, sizeof(t), n->drop_dur_s);
-        snprintf(buf, sizeof(buf), "Last drop %s, %s", ago, t);
+        snprintf(drop, sizeof(drop), "Last drop %s, %s", ago, t);
     } else {
-        strlcpy(buf, n->ip[0] ? n->ip : "No drops seen", sizeof(buf));
+        strlcpy(drop, n->ip[0] ? n->ip : "No drops seen", sizeof(drop));
     }
+    if (up[0]) snprintf(buf, sizeof(buf), "%s  " "•" "  %s", up, drop);
+    else strlcpy(buf, drop, sizeof(buf));
     lv_label_set_text(s_drop, buf);
 
     ui_fmt_bytes(buf, sizeof(buf), n->today_bytes);

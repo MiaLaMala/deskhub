@@ -245,6 +245,19 @@ void ui_marquee(lv_obj_t *label)
     lv_obj_add_event_cb(label, marquee_delete_cb, LV_EVENT_DELETE, m);
 }
 
+void ui_spread(lv_obj_t *card, lv_obj_t *const *rows, int n)
+{
+    lv_obj_update_layout(card);
+    int sum = 0;
+    for (int i = 0; i < n; i++) sum += lv_obj_get_height(rows[i]);
+    int gap = n > 1 ? (lv_obj_get_content_height(card) - sum) / (n - 1) : 0;
+    if (gap < 0) gap = 0;
+    for (int i = 0, y = 0; i < n; i++) {
+        lv_obj_set_y(rows[i], y);
+        y += lv_obj_get_height(rows[i]) + gap;
+    }
+}
+
 lv_obj_t *ui_caption(lv_obj_t *parent, const char *text)
 {
     lv_obj_t *l = ui_label(parent, g_font_14, COL_MUTED, text);
