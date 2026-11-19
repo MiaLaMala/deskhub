@@ -141,6 +141,19 @@ void calendar_refresh(bool force)
         add_event(e, now);
         shown++;
     }
+    char span[24], msg[64];
+    if (g_event_days == 1) snprintf(span, sizeof(span), "the next day");
+    else snprintf(span, sizeof(span), "the next %d days", g_event_days);
+    if (shown) {
+        // Closes the list, so a short one doesn't just stop above empty space.
+        snprintf(msg, sizeof(msg), "No more events in %s", span);
+        lv_obj_t *end = ui_label(s_list, g_font_16, COL_MUTED, msg);
+        lv_obj_set_style_pad_top(end, 6, 0);
+    } else {
+        snprintf(msg, sizeof(msg), "Nothing scheduled in %s", span);
+        lv_label_set_text(s_empty, msg);
+        lv_obj_align(s_empty, LV_ALIGN_CENTER, 0, 0);
+    }
     if (shown) {
         lv_obj_add_flag(s_empty, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(s_empty_sub, LV_OBJ_FLAG_HIDDEN);
