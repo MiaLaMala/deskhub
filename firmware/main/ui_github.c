@@ -392,12 +392,12 @@ void github_page_refresh(void)
         lv_label_set_text(s_rp_empty, why);
         lv_obj_remove_flag(s_rp_empty, LV_OBJ_FLAG_HIDDEN);
     } else {
-        // "1,019 contributions  •  842 commits  •  61 PRs  •  40 reviews  •  12 issues"
+        // "1,019 contributions  •  842 commits  •  120 private  •  61 PRs  •  40 reviews  •  12 issues"
         github_fmt_count(a, sizeof(a), g->total);
         int len = snprintf(buf, sizeof(buf), "%s contributions", a);
-        const int nums[4] = {g->commits, g->prs, g->reviews, g->issues};
-        static const char *const what[4] = {"commits", "PRs", "reviews", "issues"};
-        for (int i = 0; i < 4 && len < (int)sizeof(buf); i++) {
+        const int nums[5] = {g->commits, g->private_count, g->prs, g->reviews, g->issues};
+        static const char *const what[5] = {"commits", "private", "PRs", "reviews", "issues"};
+        for (int i = 0; i < 5 && len < (int)sizeof(buf); i++) {
             if (nums[i] <= 0) continue;
             github_fmt_count(a, sizeof(a), nums[i]);
             len += snprintf(buf + len, sizeof(buf) - len, "  " "•" "  %s %s", a, what[i]);

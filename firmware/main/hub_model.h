@@ -176,6 +176,7 @@ typedef struct {
     int week_day_count;
     int last_week_days[7];
     int commits, prs, reviews, issues;
+    int private_count;      // contributions in private repositories (GitHub won't break these down)
     int repo_count;
     char repo_name[HUB_GH_REPOS][32];   // most commits in the year first
     int repo_commits[HUB_GH_REPOS];

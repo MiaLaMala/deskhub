@@ -43,11 +43,17 @@ total = sum(x["contributionCount"] for x in days)
 posts = []
 
 
-def fake_post(token, query):
+def fake_post(token, query, variables=None):
     posts.append(token)
     if token == "bad":
         raise RuntimeError("Bad credentials")
-    return {"viewer": {"login": "octo", "contributionsCollection": {
+    if query == gh.PRIVATE_QUERY:
+        assert variables["id"] == "U_1" and variables["since"].endswith("Z"), variables
+        return {"viewer": {"repositories": {"nodes": [
+            {"name": "secret-game", "defaultBranchRef": {"target": {"history": {"totalCount": 120}}}},
+            {"name": "empty", "defaultBranchRef": None},
+            {"name": "quiet", "defaultBranchRef": {"target": {"history": {"totalCount": 0}}}}]}}}
+    return {"viewer": {"id": "U_1", "login": "octo", "contributionsCollection": {
         "totalCommitContributions": 300, "totalPullRequestContributions": 40,
         "totalPullRequestReviewContributions": 12, "totalIssueContributions": None,
         "restrictedContributionsCount": 7,
@@ -76,8 +82,9 @@ check(gh.message(cal, accent=True)["accent"] is True, "accent colours option")
 
 # For the GitHub page.
 check(m["kinds"] == {"commits": 300, "prs": 40, "reviews": 12, "issues": 0, "private": 7}, f"kinds: {m['kinds']}")
-check(m["repos"] == [{"name": "deskhub", "count": 200}, {"name": "Cafe", "count": 50},
-                     {"name": "dots", "count": 20}, {"name": "old", "count": 10}], f"top 4 repos: {m['repos']}")
+check(m["repos"] == [{"name": "deskhub", "count": 200}, {"name": "secret-game", "count": 120},
+                     {"name": "Cafe", "count": 50}, {"name": "dots", "count": 20}],
+      f"top 4 repos, private ones counted from their history: {m['repos']}")
 check(m["week_days"] == [x["contributionCount"] for x in days[-5:]], f"this week by day: {m['week_days']}")
 check(len(m["last_week_days"]) == 7 and sum(m["last_week_days"]) == m["last_week"], "last week by day")
 best_i = max(range(len(days)), key=lambda i: days[i]["contributionCount"])
@@ -96,7 +103,7 @@ check(g.poll() is not None, "first poll sends")
 posts.clear()
 check(g.poll() is None and posts == [], "no request before 15 minutes")
 now[0] += gh.POLL_S
-check(g.poll() is None and posts == ["t"], "asks again; unchanged, so nothing to send")
+check(g.poll() is None and posts == ["t", "t"], "asks again (calendar, then private repos); unchanged, so nothing to send")
 bad = gh.GitHub("bad", post=fake_post, clock=lambda: now[0])
 check(bad.poll() is None, "a failure sends nothing")
 posts.clear()

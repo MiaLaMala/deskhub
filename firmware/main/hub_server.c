@@ -465,6 +465,7 @@ static void on_github(const cJSON *m)
     g.prs = (int)get_num(kinds, "prs", 0);
     g.reviews = (int)get_num(kinds, "reviews", 0);
     g.issues = (int)get_num(kinds, "issues", 0);
+    g.private_count = (int)get_num(kinds, "private", 0);
     cJSON_ArrayForEach(it, cJSON_GetObjectItemCaseSensitive(m, "repos")) {
         if (g.repo_count >= HUB_GH_REPOS) break;
         copy_str(g.repo_name[g.repo_count], sizeof(g.repo_name[0]), it, "name");

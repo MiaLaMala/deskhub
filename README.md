@@ -375,6 +375,8 @@ Add `"github"` to `[pages] enabled` to show it (setup offers to). Without a `[pa
 
 It needs a fine-grained personal access token with no extra permissions ([make one here](https://github.com/settings/personal-access-tokens/new)). Run `uv run deskhub-setup github`: it checks the token with GitHub, shows your total, keeps the token in the Windows credential store (not in `config.toml`) and offers to put the chart in the widest free spot on Home. Because the token is yours, private contributions count too when *Private contributions* is on in your profile settings.
 
+**Private repositories.** With the token above, private work counts in the squares and the total, and the page shows how many contributions were private, but GitHub doesn't say which repositories they were in. To list private repositories under *Top repos*, give the token *Repository access: All repositories* (or pick some) with *Metadata* and *Contents* read-only. The companion then counts your commits on each one's default branch over the last year.
+
 The companion asks GitHub's GraphQL API every 15 minutes, only while the widget or the page is on, and sends the board a new chart when something changed.
 
 ```toml

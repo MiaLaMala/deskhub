@@ -20,13 +20,20 @@ KEYRING_USER = "token"
 POLL_S = 15 * 60
 BACKOFF_S = 10 * 60
 LEVELS = {"NONE": 0, "FIRST_QUARTILE": 1, "SECOND_QUARTILE": 2, "THIRD_QUARTILE": 3, "FOURTH_QUARTILE": 4}
-QUERY = """query { viewer { login contributionsCollection {
+QUERY = """query { viewer { id login contributionsCollection {
   totalCommitContributions totalPullRequestContributions totalPullRequestReviewContributions
   totalIssueContributions restrictedContributionsCount
   commitContributionsByRepository(maxRepositories: 5) { repository { name } contributions { totalCount } }
   contributionCalendar {
   totalContributions weeks { contributionDays { date weekday contributionCount contributionLevel } } } } } }"""
 MAX_REPOS = 4
+# GitHub leaves private repositories out of commitContributionsByRepository for a
+# fine-grained token (it only gives restrictedContributionsCount), even when the token
+# can read them. So count your commits on each private repository's default branch.
+PRIVATE_QUERY = """query($id: ID!, $since: GitTimestamp!) { viewer { repositories(first: 50, privacy: PRIVATE,
+  ownerAffiliations: [OWNER, COLLABORATOR, ORGANIZATION_MEMBER], orderBy: {field: PUSHED_AT, direction: DESC}) {
+  nodes { name pushedAt defaultBranchRef { target { ... on Commit {
+    history(since: $since, author: {id: $id}) { totalCount } } } } } } } }"""
 MONTHS = "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split()
 
 
@@ -52,10 +59,10 @@ def set_token(token: str | None):
             pass
 
 
-def _http_post(token: str, query: str) -> dict:
+def _http_post(token: str, query: str, variables: dict | None = None) -> dict:
     import httpx
 
-    r = httpx.post(API, json={"query": query}, timeout=15,
+    r = httpx.post(API, json={"query": query, "variables": variables or {}}, timeout=30,
                    headers={"Authorization": f"Bearer {token}", "User-Agent": "deskhub"})
     r.raise_for_status()
     data = r.json()
@@ -75,9 +82,27 @@ def fetch(token: str, post=_http_post) -> dict:
              "issues": cc.get("totalIssueContributions", 0), "private": cc.get("restrictedContributionsCount", 0)}
     repos = [{"name": ascii_fold(r["repository"]["name"], 32), "count": int(r["contributions"]["totalCount"])}
              for r in cc.get("commitContributionsByRepository") or []]
+    if kinds["private"]:
+        try:
+            repos += private_repos(token, v["id"], post)
+        except Exception as e:  # the token can't read them: the public ones still show
+            log.debug("github private repos: %s", e)
     repos.sort(key=lambda r: -r["count"])
     return {"login": v["login"], "total": int(cal["totalContributions"]), "days": days,
             "kinds": {k: int(n or 0) for k, n in kinds.items()}, "repos": repos[:MAX_REPOS]}
+
+
+def private_repos(token: str, viewer_id: str, post=_http_post) -> list[dict]:
+    """Your commits in the last year on each private repository the token can read."""
+    since = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=365)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    nodes = post(token, PRIVATE_QUERY, {"id": viewer_id, "since": since})["viewer"]["repositories"]["nodes"]
+    out = []
+    for n in nodes or []:
+        history = ((n.get("defaultBranchRef") or {}).get("target") or {}).get("history") or {}
+        count = int(history.get("totalCount") or 0)
+        if count:
+            out.append({"name": ascii_fold(n["name"], 32), "count": count})
+    return out
 
 
 def streak(counts: list[int]) -> int:
