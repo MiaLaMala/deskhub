@@ -103,7 +103,7 @@ s.step_alerts(conf)
 check(installer_calls == [("hooks",)], f"outdated hooks get updated: {installer_calls}")
 import tomllib
 pages = tomllib.loads(conf.read_text())["pages"]["enabled"]
-check(pages == ["home", "stats", "ai", "calendar", "media", "printer", "shortcuts", "timer", "network"], f"pages saved: {pages}")
+check(pages == ["home", "stats", "ai", "calendar", "media", "printer", "timer", "network", "shortcuts"], f"pages saved: {pages}")
 check("# Home is always shown" in conf.read_text(), "pages comment kept")
 from deskhub.pages import layout_message
 check(tomllib.loads(conf.read_text())["pages"].get("nav") == "bottom", "nav bar position saved")
