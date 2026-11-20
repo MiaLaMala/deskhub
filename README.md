@@ -13,7 +13,7 @@ The board runs custom firmware (ESP-IDF + LVGL). A small Python app on your Wind
 | ![3D printer](docs/screenshots/printer.png) | ![Shortcuts](docs/screenshots/shortcuts.png) |
 | ![Timer](docs/screenshots/timer.png) | ![Waiting alert](docs/screenshots/alert.png) |
 | ![Games](docs/screenshots/games.png) | ![Internet](docs/screenshots/network.png) |
-| ![GitHub](docs/screenshots/github.png) | |
+| ![Home](docs/screenshots/home.png) | ![GitHub](docs/screenshots/github.png) |
 
 ## Contents
 
