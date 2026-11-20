@@ -13,6 +13,7 @@ The board runs custom firmware (ESP-IDF + LVGL). A small Python app on your Wind
 | ![3D printer](docs/screenshots/printer.png) | ![Shortcuts](docs/screenshots/shortcuts.png) |
 | ![Timer](docs/screenshots/timer.png) | ![Waiting alert](docs/screenshots/alert.png) |
 | ![Games](docs/screenshots/games.png) | ![Internet](docs/screenshots/network.png) |
+| ![GitHub](docs/screenshots/github.png) | |
 
 ## Contents
 
@@ -362,6 +363,8 @@ The `github` Home widget shows the green squares from your GitHub profile: one c
 The streak counts days in a row with contributions up to today; a quiet today doesn't break it until the day is over.
 
 **The GitHub page** (tap the widget, or its tab) has more detail:
+
+![GitHub page](docs/screenshots/github.png)
 
 - **Last year:** the whole year's chart with month and weekday labels, and the total split into commits, pull requests, reviews and issues.
 - **Streak:** the current streak, the longest one this year, and your busiest day.
