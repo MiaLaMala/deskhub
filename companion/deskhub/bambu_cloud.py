@@ -9,10 +9,10 @@ import httpx
 SERVICE = "deskhub-bambu"
 HEADERS = {
     "User-Agent": "bambu_network_agent/01.09.05.01",
-    "X-BBL-Client-Name": "OrcaSlicer",
     "X-BBL-Client-Type": "slicer",
     "X-BBL-Client-Version": "01.09.05.51",
     "Content-Type": "application/json",
+    "Accept": "application/json",
 }
 
 
@@ -43,7 +43,14 @@ def _json(r: httpx.Response) -> dict:
     try:
         data = r.json()
     except ValueError:
-        raise BambuError(f"unexpected reply from Bambu (HTTP {r.status_code}, not JSON)") from None
+        # Some sign-ins answer 200 with an empty body and the token in a cookie.
+        if r.status_code == 200 and r.cookies.get("token"):
+            return {"accessToken": r.cookies.get("token")}
+        if r.status_code == 200 and not r.content.strip():
+            return {}
+        kind = r.headers.get("content-type", "").split(";")[0] or "no content type"
+        raise BambuError(f"unexpected reply from Bambu (HTTP {r.status_code}, {kind}, "
+                         f"{len(r.content)} bytes, not JSON)") from None
     if not isinstance(data, dict):
         raise BambuError("unexpected reply from Bambu")
     return data
@@ -69,8 +76,11 @@ def _result(data: dict) -> dict:
 
 def login(client, region: str, account: str, password: str) -> dict:
     """-> {'status': 'ok', 'token': ...} or {'status': 'code'} (an emailed code is needed)."""
-    return _result(_post(client, region, "/v1/user-service/user/login",
-                         {"account": account, "password": password}))
+    data = _post(client, region, "/v1/user-service/user/login",
+                 {"account": account, "password": password})
+    # An empty 200 means the password passed but Bambu wants more; an emailed code
+    # signs in without it.
+    return {"status": "code"} if data == {} else _result(data)
 
 
 def send_code(client, region: str, email: str):
@@ -81,8 +91,10 @@ def send_code(client, region: str, email: str):
 
 
 def login_with_code(client, region: str, account: str, code: str) -> str:
-    res = _result(_post(client, region, "/v1/user-service/user/login",
-                        {"account": account, "code": code}))
+    data = _post(client, region, "/v1/user-service/user/login", {"account": account, "code": code})
+    if data == {}:
+        raise BambuError("Bambu sent an empty reply to the code sign-in")
+    res = _result(data)
     if res["status"] != "ok":
         raise AuthError("that code was not accepted")
     return res["token"]

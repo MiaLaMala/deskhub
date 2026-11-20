@@ -366,6 +366,17 @@ try:
     check(False, "html reply should raise")
 except bc.BambuError as e:
     check("HTML" not in str(e) and "<" not in str(e), "html reply handled")
+cookie = REAL_MAKE_CLIENT(transport=httpx.MockTransport(
+    lambda r: httpx.Response(200, headers={"set-cookie": "token=TOKEN-C; Path=/"})))
+check(bc.login(cookie, "us", "a@b.c", "pw") == {"status": "ok", "token": "TOKEN-C"}, "token from cookie")
+empty = REAL_MAKE_CLIENT(transport=httpx.MockTransport(lambda r: httpx.Response(200, text="")))
+check(bc.login(empty, "us", "a@b.c", "pw") == {"status": "code"}, "empty reply asks for a code")
+plain = REAL_MAKE_CLIENT(transport=httpx.MockTransport(lambda r: httpx.Response(200, text="hi")))
+try:
+    bc.login(plain, "us", "a@b.c", "pw")
+    check(False, "non-JSON reply should raise")
+except bc.BambuError as e:
+    check("2 bytes" in str(e), f"non-JSON reply detail: {e}")
 check(bc.mqtt_host("cn") == "cn.mqtt.bambulab.com" and bc.mqtt_host("us") == "us.mqtt.bambulab.com", "mqtt hosts")
 
 # Cloud worker credentials: user u_<uid>, token as password, verified TLS host.
