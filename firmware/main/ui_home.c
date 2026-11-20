@@ -621,7 +621,7 @@ static void layout_net(int w, int h)
 // total in the caption row and today / this week / streak along the bottom.
 // Tapping it opens the GitHub page.
 #define GH_STATS 3
-static lv_obj_t *s_gh_cap, *s_gh_total, *s_gh_chart, *s_gh_side_val, *s_gh_side_sub;
+static lv_obj_t *s_gh_cap, *s_gh_total, *s_gh_chart, *s_gh_side_val, *s_gh_side_sub, *s_gh_side_priv;
 static lv_obj_t *s_gh_month[HUB_GH_MONTHS];
 static lv_obj_t *s_gh_stat_val[GH_STATS], *s_gh_stat_cap[GH_STATS];
 
@@ -630,6 +630,8 @@ static void create_github(lv_obj_t *page)
     lv_obj_t *c = widget_card(page, PAGE_GITHUB);
     s_gh_cap = ui_caption(c, "GITHUB");
     s_gh_total = ui_label(c, g_font_14, COL_MUTED, "");
+    ui_marquee(s_gh_total);
+    lv_obj_set_style_text_align(s_gh_total, LV_TEXT_ALIGN_RIGHT, 0);
     s_gh_chart = github_chart_create(c);
     for (int i = 0; i < HUB_GH_MONTHS; i++) s_gh_month[i] = ui_label(c, g_font_14, COL_DIM, "");
     static const char *const caps[GH_STATS] = {"today", "this week", "day streak"};
@@ -640,6 +642,8 @@ static void create_github(lv_obj_t *page)
     s_gh_side_val = ui_label(c, g_font_24, COL_TEXT, "--");
     s_gh_side_sub = ui_label(c, g_font_14, COL_MUTED, "");
     ui_marquee(s_gh_side_sub);
+    s_gh_side_priv = ui_label(c, g_font_14, COL_MUTED, "");
+    ui_marquee(s_gh_side_priv);
     s_w[W_GITHUB] = c;
 }
 
@@ -664,8 +668,11 @@ static void layout_github(int w, int h)
         int cw = weeks * pitch - GH_GAP, ch = 7 * pitch - GH_GAP;
         int by = lh14 + (avail - (lh14 + 4 + ch)) / 2;
         int cx = (iw - cw) / 2;
+        // The total (and private count) fills the caption row right of "GITHUB".
         lv_obj_set_pos(s_gh_cap, 0, 0);
-        lv_obj_align(s_gh_total, LV_ALIGN_TOP_RIGHT, 0, 0);
+        int cap_w = lv_text_get_width("GITHUB", 6, g_font_14, 2) + 16;
+        lv_obj_set_size(s_gh_total, iw - cap_w, lh14);
+        lv_obj_set_pos(s_gh_total, cap_w, 0);
         lv_obj_remove_flag(s_gh_total, LV_OBJ_FLAG_HIDDEN);
         github_chart_set(s_gh_chart, cx, by + lh14 + 4, pitch, weeks);
         github_place_months(s_gh_month, s_gh_chart, by, true);
@@ -678,6 +685,7 @@ static void layout_github(int w, int h)
         }
         lv_obj_add_flag(s_gh_side_val, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(s_gh_side_sub, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(s_gh_side_priv, LV_OBJ_FLAG_HIDDEN);
     } else {
         // Chart on the left as tall as the card; caption, total and streak to its right.
         int tw = w >= 400 ? 128 : 100;
@@ -687,14 +695,29 @@ static void layout_github(int w, int h)
         if (weeks < 1) weeks = 1;
         github_chart_set(s_gh_chart, 0, (inner - (7 * pitch - GH_GAP)) / 2, pitch, weeks);
         github_place_months(s_gh_month, s_gh_chart, 0, false);
+        // Caption, total, streak and (with private work) the private count, spread
+        // from the top edge to the bottom one. Four lines take a smaller total when the
+        // card is short (above the bottom bar).
         int tx = iw - tw;
-        lv_obj_set_width(s_gh_side_sub, tw);
-        lv_obj_set_height(s_gh_side_sub, lh14);
-        lv_obj_set_pos(s_gh_cap, tx, 0);
-        lv_obj_set_pos(s_gh_side_val, tx, (inner - lh24) / 2);
-        lv_obj_set_pos(s_gh_side_sub, tx, inner - lh14);
+        bool priv = g_github.valid && g_github.private_count > 0;
+        const lv_font_t *vf = priv && inner < 3 * lh14 + lh24 + 6 ? g_font_20 : g_font_24;
+        lv_obj_set_style_text_font(s_gh_side_val, vf, 0);
+        lv_obj_t *rows[4] = {s_gh_cap, s_gh_side_val, s_gh_side_sub, s_gh_side_priv};
+        int n = priv ? 4 : 3, used = 0;
+        for (int i = 0; i < n; i++) {
+            used += i == 1 ? lv_font_get_line_height(vf) : lh14;
+            if (i >= 2) {
+                lv_obj_set_size(rows[i], tw, lh14);
+                lv_obj_remove_flag(rows[i], LV_OBJ_FLAG_HIDDEN);
+            }
+        }
+        if (!priv) lv_obj_add_flag(s_gh_side_priv, LV_OBJ_FLAG_HIDDEN);
+        int gap = (inner - used) / (n - 1), y = 0;
+        for (int i = 0; i < n; i++) {
+            lv_obj_set_pos(rows[i], tx, y);
+            y += (i == 1 ? lv_font_get_line_height(vf) : lh14) + gap;
+        }
         lv_obj_remove_flag(s_gh_side_val, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_remove_flag(s_gh_side_sub, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(s_gh_total, LV_OBJ_FLAG_HIDDEN);
         for (int i = 0; i < GH_STATS; i++) {
             lv_obj_add_flag(s_gh_stat_val[i], LV_OBJ_FLAG_HIDDEN);
@@ -707,7 +730,7 @@ void home_refresh_github(void)
 {
     if (!s_gh_chart) return;
     const hub_github_t *g = &g_github;
-    char buf[48], n[16];
+    char buf[80], n[16], priv[32] = "";
     if (!g->valid) {
         const char *why = g_pc_online ? "Waiting for the PC" : "PC offline";
         lv_label_set_text(s_gh_total, why);
@@ -715,13 +738,21 @@ void home_refresh_github(void)
         lv_label_set_text(s_gh_side_sub, why);
         for (int i = 0; i < GH_STATS; i++) lv_label_set_text(s_gh_stat_val[i], "--");
     } else {
+        // Contributions in private repositories, when there are any.
+        if (g->private_count > 0) {
+            github_fmt_count(n, sizeof(n), g->private_count);
+            snprintf(priv, sizeof(priv), "  " "•" "  %s private", n);
+        }
         github_fmt_count(n, sizeof(n), g->total);
-        snprintf(buf, sizeof(buf), "%s in the last year", n);
+        snprintf(buf, sizeof(buf), "%s in the last year%s", n, priv);
         lv_label_set_text(s_gh_total, buf);
         lv_label_set_text(s_gh_side_val, n);
         if (g->streak > 0) snprintf(buf, sizeof(buf), "%d-day streak", g->streak);
         else snprintf(buf, sizeof(buf), "%d today", g->today);
         lv_label_set_text(s_gh_side_sub, buf);
+        github_fmt_count(n, sizeof(n), g->private_count);
+        snprintf(buf, sizeof(buf), "%s private", n);
+        lv_label_set_text(s_gh_side_priv, buf);
         const int vals[GH_STATS] = {g->today, g->week, g->streak};
         for (int i = 0; i < GH_STATS; i++) {
             github_fmt_count(n, sizeof(n), vals[i]);
