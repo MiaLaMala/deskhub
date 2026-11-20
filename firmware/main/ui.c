@@ -675,6 +675,7 @@ static void tick_cb(lv_timer_t *t)
         claude_refresh();
         calendar_refresh(true);
         games_refresh();
+        home_refresh_github();
     }
     lv_obj_set_style_text_color(s_pc_icon, lv_color_hex(pc ? COL_GOOD : COL_DIM), 0);
 

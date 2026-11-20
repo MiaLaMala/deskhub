@@ -23,7 +23,7 @@ from .claude_usage import ClaudeUsage
 from .codex_usage import CodexUsage, codex_home
 from .media import Media
 from .netstats import NetStats
-from .pages import enabled_pages, home_message, layout_message, pc_sleep_mode
+from .pages import enabled_pages, home_grid, home_message, layout_message, pc_sleep_mode
 from .pc_power import PowerWatch
 from .printer import PrinterService
 from .shortcuts import hub_view, lit_message, load_tiles, run_tile
@@ -40,6 +40,7 @@ STEAM_TICK_S = 2
 STEAM_KEEPALIVE_S = 60
 NET_TICK_S = 2
 SPEEDTEST_MIN_GAP_S = 120
+GITHUB_TICK_S = 30
 
 
 LOG_FILE = pathlib.Path.home() / ".deskhub" / "companion.log"
@@ -151,6 +152,16 @@ class Companion:
                     if icfg.get("enabled", True) else None)
         self.net_msg = None
         self.speedtest_at = -SPEEDTEST_MIN_GAP_S
+        self.github = None
+        gcfg = cfg.get("github", {})
+        if gcfg.get("enabled", True) and any(g["widget"] == "github" for g in home_grid(cfg)):
+            from .github import GitHub, get_token
+
+            token = get_token()  # from `deskhub-setup github`
+            if token:
+                self.github = GitHub(token, accent=str(gcfg.get("colors", "green")).lower() == "accent")
+            else:
+                log.info("the GitHub widget is on Home but no token is saved; run: uv run deskhub-setup github")
         self.connected_once = False
         self.ws = None
         self.loop = None
@@ -305,6 +316,16 @@ class Companion:
                 log.warning("net stats failed: %s", e)
             await asyncio.sleep(NET_TICK_S)
 
+    async def github_loop(self):
+        while True:
+            try:
+                msg = await asyncio.to_thread(self.github.poll)
+                if msg:
+                    await self.send(msg)
+            except Exception as e:
+                log.warning("github poll failed: %s", e)
+            await asyncio.sleep(GITHUB_TICK_S)
+
     async def speedtest(self):
         """Run a speed test now (at most one at a time, one per two minutes)."""
         now = time.monotonic()
@@ -388,6 +409,8 @@ class Companion:
                 await self.send(self.printer_msg)
             if self.net_msg:
                 await self.send(self.net_msg)
+            if self.github and self.github.msg:
+                await self.send(self.github.msg)
             if self.steam_msg and self.steam:
                 await self.send(self.steam_msg)
                 for frame in await asyncio.to_thread(self.steam.all_frames):
@@ -417,6 +440,8 @@ class Companion:
             asyncio.create_task(self.printer_loop())
         if self.steam:
             asyncio.create_task(self.steam_loop())
+        if self.github:
+            asyncio.create_task(self.github_loop())
         if self.net:
             asyncio.create_task(self.net_loop())
             hours = float(self.cfg.get("internet", {}).get("speedtest_hours", 0))

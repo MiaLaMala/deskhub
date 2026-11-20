@@ -29,6 +29,8 @@ void ui_set_tile_state(uint32_t on_mask);
 void ui_set_steam(const hub_steam_t *s);
 void ui_set_steam_art(uint32_t appid, int kind, uint16_t w, uint16_t h, const uint8_t *rgb565);
 void ui_set_net(const hub_net_t *n);
+// GitHub contribution chart (a Home widget).
+void ui_set_github(const hub_github_t *g);
 // Navigation bar position: 0 left, 1 right, 2 bottom. Saved to NVS; restarts the board on change.
 void ui_set_nav(int nav);
 // Screensaver (a drifting clock) shown while the PC's display is asleep. A tap hides it.

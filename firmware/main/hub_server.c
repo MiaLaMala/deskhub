@@ -399,6 +399,51 @@ static void on_net(const cJSON *m)
     display_unlock();
 }
 
+// GitHub: {"type":"github","levels":"0012...","start_wday":0,"months":[[2,"Dec"],...],"total":..}.
+static void on_github(const cJSON *m)
+{
+    static hub_github_t g;
+    memset(&g, 0, sizeof(g));
+    g.valid = true;
+    g.accent = get_bool(m, "accent");
+    g.total = (int)get_num(m, "total", 0);
+    g.today = (int)get_num(m, "today", 0);
+    g.week = (int)get_num(m, "week", 0);
+    g.last_week = (int)get_num(m, "last_week", 0);
+    g.streak = (int)get_num(m, "streak", 0);
+    g.best = (int)get_num(m, "best", 0);
+    g.start_wday = (int)get_num(m, "start_wday", 0) % 7;
+    int shift = 0;   // week columns dropped from the front
+    const cJSON *lv = cJSON_GetObjectItemCaseSensitive(m, "levels");
+    if (cJSON_IsString(lv) && lv->valuestring) {
+        const char *s = lv->valuestring;
+        size_t n = strlen(s);
+        // Keep the newest days if there are ever more than fit.
+        if (n > HUB_GH_DAYS) {
+            int drop = (int)(n - HUB_GH_DAYS);
+            s += drop;
+            shift = (g.start_wday + drop) / 7;
+            g.start_wday = (g.start_wday + drop) % 7;
+            n = HUB_GH_DAYS;
+        }
+        for (size_t i = 0; i < n; i++) g.level[i] = s[i] >= '0' && s[i] <= '4' ? s[i] - '0' : 0;
+        g.day_count = (int)n;
+    }
+    const cJSON *it;
+    cJSON_ArrayForEach(it, cJSON_GetObjectItemCaseSensitive(m, "months")) {
+        if (g.month_count >= HUB_GH_MONTHS) break;
+        const cJSON *col = cJSON_GetArrayItem(it, 0), *name = cJSON_GetArrayItem(it, 1);
+        if (!cJSON_IsNumber(col) || !cJSON_IsString(name)) continue;
+        if (col->valueint - shift < 0) continue;
+        g.month_col[g.month_count] = (int16_t)(col->valueint - shift);
+        strlcpy(g.month_name[g.month_count], name->valuestring, sizeof(g.month_name[0]));
+        g.month_count++;
+    }
+    display_lock();
+    ui_set_github(&g);
+    display_unlock();
+}
+
 // Toggle tiles that are on: {"type":"tile_state","on":[0,1]}.
 static void on_tile_state(const cJSON *m)
 {
@@ -477,6 +522,7 @@ static void on_text(int fd, char *text)
         else if (strcmp(type, "tile_state") == 0) on_tile_state(m);
         else if (strcmp(type, "steam") == 0) on_steam(m);
         else if (strcmp(type, "net") == 0) on_net(m);
+        else if (strcmp(type, "github") == 0) on_github(m);
         else if (strcmp(type, "ping") == 0) { /* keeps the link marked online */ }
         else ESP_LOGD(TAG, "unknown type %s", type);
     }

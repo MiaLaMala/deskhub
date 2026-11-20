@@ -51,6 +51,7 @@ header = true
 # and y (0-2 down), w cells wide and h tall. Sizes each widget comes in:
 #   weather, net, claude, stats: 1-5 wide x 1      clock: 2-5 wide x 1-2
 #   media, printer, game: 2-5 wide x 1            events: 2-5 wide x 1-3
+#   github: 2-5 wide x 1-2 (needs a token: `uv run deskhub-setup github`)
 # Overlapping or off-grid widgets are left out, as are widgets for hidden pages.
 # `uv run deskhub-setup` (Home screen step) can place them for you.
 grid = [
@@ -60,6 +61,12 @@ grid = [
   { widget = "media",   x = 3, y = 1, w = 2, h = 1 },
   { widget = "stats",   x = 3, y = 2, w = 2, h = 1 },
 ]
+
+# The GitHub contribution chart (the "github" Home widget). The token lives in the
+# Windows credential store; add it with `uv run deskhub-setup github`.
+# [github]
+# enabled = true
+# colors = "green"   # or "accent" for shades of the board's amber
 
 [steam]
 # Show the game you are playing and your recent Steam games, and launch them from the

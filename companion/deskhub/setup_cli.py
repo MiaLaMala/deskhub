@@ -486,6 +486,66 @@ def step_steam_key():
     print("Saved. Restart the companion to show friends and playtime.")
 
 
+def step_github(config_path: pathlib.Path):
+    """The GitHub contribution chart: a token in the credential store and the Home widget."""
+    from . import github
+    from .pages import home_grid, place
+
+    heading("GitHub")
+    print("A Home widget can show your GitHub contribution chart, the green squares from\n"
+          "your profile. It needs a fine-grained personal access token with no extra\n"
+          "permissions: https://github.com/settings/personal-access-tokens/new\n"
+          "It's kept in the Windows credential store, not in config.toml.")
+    if github.get_token():
+        if yes("A GitHub token is saved. Keep using it", True):
+            token = github.get_token()
+        else:
+            github.set_token(None)
+            print("Removed the GitHub token.")
+            return
+    else:
+        if not yes("Add a GitHub token", False):
+            return
+        token = getpass.getpass("GitHub token (hidden): ").strip()
+        if not token:
+            return
+        try:
+            cal = github.fetch(token)
+        except Exception as e:
+            print(f"GitHub didn't accept the token ({getattr(getattr(e, 'response', None), 'status_code', e)}); "
+                  "not saved.")
+            return
+        github.set_token(token)
+        print(f"Saved. @{cal['login']}: {cal['total']:,} contributions in the last year.")
+    doc = tomlkit.parse(config_path.read_text(encoding="utf-8"))
+    grid = home_grid(doc.unwrap())
+    if any(g["widget"] == "github" for g in grid) or not yes("Put the chart on Home", True):
+        return
+    # The widest spot that's free: 5 wide shows the whole year.
+    for w, h in ((5, 1), (4, 1), (3, 1), (2, 1), (5, 2), (3, 2), (2, 2)):
+        new_grid, left_out = place([("github", w, h)], grid)
+        if not left_out:
+            break
+    else:
+        print("Home has no free spot for it. Run: uv run deskhub-setup home")
+        return
+    home = doc.get("home") or tomlkit.table()
+    arr = tomlkit.array()
+    for g in new_grid:
+        t = tomlkit.inline_table()
+        t.update({"widget": g["widget"], "x": g["x"], "y": g["y"], "w": g["w"], "h": g["h"]})
+        arr.append(t)
+    arr.multiline(True)
+    home["grid"] = arr
+    for old in ("left", "right"):   # replaced by the grid
+        if old in home:
+            del home[old]
+    doc["home"] = home
+    config_path.write_text(tomlkit.dumps(doc), encoding="utf-8")
+    print(f"Placed it {w}x{h} on Home:")
+    print(grid_map(new_grid))
+
+
 def step_pages(config_path: pathlib.Path):
     heading("Pages")
     print("Choose which pages the board shows. Home is always shown.")
@@ -555,7 +615,8 @@ def step_display(config_path: pathlib.Path):
 
 # A sensible first size for each widget when you add it.
 DEFAULT_SIZE = {"clock": "3x1", "claude": "3x1", "events": "2x2", "weather": "2x1", "media": "3x1",
-                "stats": "2x1", "printer": "2x1", "game": "2x1", "net": "2x1"}
+                "stats": "2x1", "printer": "2x1", "game": "2x1", "net": "2x1",
+                "github": "5x1"}
 
 
 def grid_map(grid: list[dict]) -> str:
@@ -710,6 +771,7 @@ TOPICS = {
     "home":      ("the Home grid and the top bar", ["grid"]),
     "display":   ("screen sleep with the PC, and night mode", ["sleep", "night"]),
     "internet":  ("connection checks, speed test schedule and public IP", ["network", "net"]),
+    "github":    ("GitHub token and the contribution chart on Home", ["contributions"]),
     "claude":    ("live limits, waiting alerts and which agent the AI page shows", ["ai", "codex"]),
     "alerts":    ("waiting alerts only", []),
     "flash":     ("build the firmware and install it on the board", []),
@@ -768,6 +830,7 @@ def run_topic(topic: str, config_path: pathlib.Path, firmware: pathlib.Path):
         "home": lambda: step_home(config_path),
         "display": lambda: step_display(config_path),
         "internet": lambda: step_internet(config_path),
+        "github": lambda: step_github(config_path),
         "claude": lambda: (step_live_limits(config_path), step_alerts(config_path), step_agent(config_path)),
         "alerts": lambda: step_alerts(config_path),
         "flash": lambda: step_flash(firmware, config_path),
@@ -827,6 +890,7 @@ def main():
     step_home(config_path)
     step_display(config_path)
     step_internet(config_path)
+    step_github(config_path)
     step_live_limits(config_path)
     step_alerts(config_path)
     step_agent(config_path)

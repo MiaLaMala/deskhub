@@ -153,6 +153,22 @@ typedef struct {
     int friend_count;
 } hub_steam_t;
 
+// GitHub contribution chart: a level 0-4 per day for the last year, oldest first.
+#define HUB_GH_DAYS 378     // 54 weeks: a year plus the partial weeks at both ends
+#define HUB_GH_MONTHS 14
+typedef struct {
+    bool valid;
+    bool accent;            // shades of the accent colour instead of GitHub's greens
+    int total;              // contributions in the last year
+    int today, week, last_week, streak, best;
+    int start_wday;         // weekday of the first day, 0 = Sunday
+    int day_count;          // today is level[day_count - 1]
+    uint8_t level[HUB_GH_DAYS];
+    int month_count;
+    int16_t month_col[HUB_GH_MONTHS];   // week column of each month label
+    char month_name[HUB_GH_MONTHS][4];
+} hub_github_t;
+
 // Internet connection: latency, outages, data used and the last speed test.
 #define HUB_NET_HIST 60
 typedef struct {

@@ -48,15 +48,17 @@ fw = root / "firmware"; fw.mkdir()
                               'CONFIG_HUB_FAHRENHEIT=y\n# CONFIG_HUB_24H is not set\n')
 conf = root / "config.toml"
 shutil.copy(pathlib.Path(__file__).parent.parent / "config.example.toml", conf)
-# Wi-Fi, city, pick, F, 24h, calendars, printers, games, shortcuts, 10 pages (hide Weather and Games), nav bar, top bar, home (keep? no; events 2x2, a bad name, weather default, events again, stats with a bad size), PC sleep, night (bad, good, style), internet (on, speed test hours, IP), live limits, alerts, hooks, idle seconds, flash, start with Windows
+# Wi-Fi, city, pick, F, 24h, calendars, printers, games, shortcuts, 10 pages (hide Weather and Games), nav bar, top bar, home (keep? no; events 2x2, a bad name, weather default, events again, stats with a bad size), PC sleep, night (bad, good, style), internet (on, speed test hours, IP), GitHub token, live limits, alerts, hooks, idle seconds, flash, start with Windows
 answers = iter(["", "Charlotte, NC", "1", "", "", "n", "n", "n", "n",
-                "", "", "", "n", "", "", "", "", "n", "", "bottom", "y", "n", "events", "2x2", "bogus", "weather", "", "events", "stats", "9x9", "3x1", "", "clock", "25:00-7", "11pm-7:30am", "clock", "", "", "", "y", "", "", "", "codex", "n", "y"])
+                "", "", "", "n", "", "", "", "", "n", "", "bottom", "y", "n", "events", "2x2", "bogus", "weather", "", "events", "stats", "9x9", "3x1", "", "clock", "25:00-7", "11pm-7:30am", "clock", "", "", "", "n", "y", "", "", "", "codex", "n", "y"])
 builtins.input = lambda prompt="": next(answers)
 # Never touch the real Claude Code settings: point the alerts step at a temp file.
 s.CLAUDE_SETTINGS = root / "claude_settings.json"
 installer_calls = []
 s.run_installer = lambda *a: installer_calls.append(a) or True
 getpass.getpass = lambda prompt="": ""
+import deskhub.github as _gh
+_gh.get_token = lambda: ""   # never read the real credential store
 # ...and put the login shortcut in a temp "Startup" folder.
 import deskhub.install_startup as startup
 startup.startup_dir = lambda: root / "Startup"

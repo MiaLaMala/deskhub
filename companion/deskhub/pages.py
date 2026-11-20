@@ -108,6 +108,7 @@ HOME_WIDGETS = {
     "printer": "3D print progress",
     "game": "Steam game",
     "net": "Internet",
+    "github": "GitHub contributions",
 }
 # Defaults with the slim top bar (the default): the clock widget isn't needed.
 DEFAULT_LEFT = ["claude", "events"]
@@ -147,6 +148,7 @@ HOME_SIZES = {
     "printer": (range(2, 6), range(1, 2)),
     "game": (range(2, 6), range(1, 2)),
     "net": (range(1, 6), range(1, 2)),
+    "github": (range(2, 6), range(1, 3)),
 }
 
 

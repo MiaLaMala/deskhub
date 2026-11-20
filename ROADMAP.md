@@ -18,12 +18,7 @@ Ideas for Desk Hub, roughly in order of value. Each item notes how it would work
   - **Controls:** Jellyfin can pause, resume, seek and stop a session through `/Sessions/{id}/Playing/{command}`, so the board's buttons would work. Plex can only reach players that support remote control, which many don't, so Plex may stay display-only at first.
   - **Setup:** a *Media servers* step that finds Plex and Jellyfin on the network (both answer local discovery), signs in to get the token or takes the API key, and tests the connection.
 
-- [ ] **GitHub contribution chart.**
-  - **Why:** the green squares from a GitHub profile, on the desk: a quick look at how steady the last year has been, and today's square filling in as you commit.
-  - **Approach:** the companion asks GitHub's GraphQL API for `user { contributionsCollection { contributionCalendar } }`. That returns every day of the last year with its count, its level (`NONE` to `FOURTH_QUARTILE`) and the year's total, which is what the profile chart draws. A fine-grained personal access token with no extra permissions is enough; queried as yourself, private work counts too when "Private contributions" is on in the profile. Poll every 15 minutes, and sooner after a `git push` from this PC if that's easy to spot. The token goes in the Windows credential store.
-  - **On the board:** a Home widget sized by its width: a 5-wide one fits all 53 weeks (about 13 px squares), a 3-wide one the last half year, a 2-wide one the last few months. Month labels on top, the year's total and the current streak in the caption, today's square outlined. Levels use five greens like GitHub's dark theme (or the accent colour, as an option). An optional Stats view could add this week vs last and the busiest day.
-  - **Message:** one byte per day for the level plus the counts for today and the year, about 400 bytes, sent when anything changes.
-  - **Setup:** a *GitHub* step that takes the username and token and shows the year's total as the test.
+- [ ] **GitHub extras.** Refresh the contribution chart soon after a `git push` from this PC instead of waiting up to 15 minutes, and a Stats view with this week vs last and the busiest day (the companion already sends both).
 
 ## Day-to-day polish
 
@@ -57,3 +52,4 @@ Ideas for Desk Hub, roughly in order of value. Each item notes how it would work
 - [x] Firmware updates over Wi-Fi: `deskhub-flash` (and setup) send new builds to the board, which asks Install / Deny and rolls back a build that can't start; USB as the fallback
 - [x] Home as a 5 × 3 grid: widgets placed by cell with sizes they support, checked by the companion; setup places them for you
 - [x] GitHub repository with CI: the firmware builds with ESP-IDF 5.5 and the companion tests run on Windows
+- [x] GitHub contribution chart: a Home widget with the last year of contributions, today outlined, the total and the streak, set up with `deskhub-setup github`
