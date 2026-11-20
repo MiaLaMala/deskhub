@@ -75,4 +75,29 @@ finally:
     builtins.input = real_input
 check(saved == [G("weather", 0, 0, 2, 1), G("events", 2, 0, 2, 2)], f"undo and clear in setup: {saved}")
 
+# Navigation bar order follows [pages] enabled; Home leads; unknown names and repeats go.
+from deskhub.pages import enabled_pages, layout_message
+
+ordered = enabled_pages({"pages": {"enabled": ["shortcuts", "github", "Stats", "bogus", "home", "stats"]}})
+check(ordered == ["home", "shortcuts", "github", "stats"], f"pages in listed order: {ordered}")
+msg = layout_message({"pages": {"enabled": ["timer", "ai"]}})
+check(msg["pages"] == ["home", "timer", "ai"] and msg["ordered"] is True, f"layout sends the order: {msg}")
+default = enabled_pages({"printers": [{}], "games": [{}]})
+check(default[-1] == "shortcuts" and default[0] == "home" and "github" not in default,
+      f"default order keeps Shortcuts last: {default}")
+
+# Setup's Pages step keeps the order; a page turned on goes at the end.
+with tempfile.TemporaryDirectory() as d:
+    path = pathlib.Path(d) / "config.toml"
+    path.write_text('[pages]\nenabled = ["home", "timer", "stats"]\n', encoding="utf-8")
+    # One answer per page after Home: turn on "ai", keep timer and stats, then the nav bar.
+    answers = iter(["", "y", "", "", "", "", "", "", "", "", "", "", "left"])
+    builtins.input = lambda prompt="": next(answers)
+    try:
+        setup_cli.step_pages(path)
+    finally:
+        builtins.input = real_input
+    got = tomlkit.parse(path.read_text(encoding="utf-8")).unwrap()["pages"]["enabled"]
+check(got == ["home", "timer", "stats", "ai"], f"setup keeps the order: {got}")
+
 print("\nPROBLEMS:" if problems else "\nOK", problems if problems else "")

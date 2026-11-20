@@ -141,14 +141,14 @@ check(pr.model_of({"serial": "01P00A1"}) == "P1S" and pr.model_of({"serial": "09
 # ---- pages ----------------------------------------------------------------------
 import deskhub.pages as _pg  # noqa: E402
 _pg.steam_installed = lambda: False
-check(enabled_pages({}) == ["home", "stats", "ai", "calendar", "weather", "media", "shortcuts", "timer", "network"], "default pages")
+check(enabled_pages({}) == ["home", "stats", "ai", "calendar", "weather", "media", "timer", "network", "shortcuts"], "default pages")
 _pg.steam_installed = lambda: True
-check(enabled_pages({}) == ["home", "stats", "ai", "calendar", "weather", "media", "shortcuts", "timer", "games", "network"], "games auto-added")
+check(enabled_pages({}) == ["home", "stats", "ai", "calendar", "weather", "media", "timer", "games", "network", "shortcuts"], "games auto-added")
 _pg.steam_installed = lambda: False
 check("printer" in enabled_pages({"printers": [{"serial": "x"}]}), "printer auto-added")
 check(enabled_pages({"pages": {"enabled": ["stats"]}, "printers": [{"serial": "x"}]}) == ["home", "stats"],
       "explicit pages win; home forced")
-check(layout_message({"pages": {"enabled": ["media", "home"]}}) == {"type": "layout", "pages": ["home", "media"], "nav": "left",
+check(layout_message({"pages": {"enabled": ["media", "home"]}}) == {"type": "layout", "pages": ["home", "media"], "ordered": True, "nav": "left",
                                                                       "pc_sleep": "off", "night_start": -1, "night_end": -1,
                                                                       "night_style": "off"},
       "layout message")

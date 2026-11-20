@@ -252,15 +252,15 @@ When Home doesn't show the *Up next* widget, a small dot on the sidebar's Calend
 
 ## Choosing pages
 
-Home is always shown. To hide other pages, list the ones you want in `companion/config.toml`:
+Home is always shown. To hide other pages, list the ones you want in `companion/config.toml`. The navigation bar shows them in the order you list them, after Home:
 
 ```toml
 [pages]
-enabled = ["home", "stats", "ai", "calendar", "weather", "media", "printer", "shortcuts", "timer", "games", "network"]
+enabled = ["home", "stats", "ai", "calendar", "weather", "media", "printer", "timer", "games", "network", "shortcuts"]
 nav = "left"   # where the navigation bar goes: "left" (default), "right" or "bottom"
 ```
 
-Remove a name to hide that page. Without a `[pages]` block everything is shown except the 3D printer page, which turns on by itself once you add a printer, the Games page, which turns on when Steam is installed, and the GitHub page, which turns on when its widget is on Home. Add `"github"` to the list for the [GitHub page](#github-contributions). Setup asks about each page too (the *Pages* step). The companion sends the list to the board every time it connects, so restart the companion after editing. Changing `nav` restarts the board once so every page is laid out for the new space.
+Remove a name to hide that page, or move it to move its tab. Without a `[pages]` block everything is shown except the 3D printer page, which turns on by itself once you add a printer, the Games page, which turns on when Steam is installed, and the GitHub page, which turns on when its widget is on Home. Add `"github"` to the list for the [GitHub page](#github-contributions). Without a list the tabs go in the order above, with Shortcuts last. Setup asks about each page too (the *Pages* step); it keeps your order and adds pages you turn on at the end. The companion sends the list to the board every time it connects, so restart the companion after editing. Changing `nav` restarts the board once so every page is laid out for the new space.
 
 ## When the PC sleeps
 

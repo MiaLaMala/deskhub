@@ -556,8 +556,9 @@ def step_pages(config_path: pathlib.Path):
     print("Choose which pages the board shows. Home is always shown.")
     doc = tomlkit.parse(config_path.read_text(encoding="utf-8"))
     current = enabled_pages(doc.unwrap())
-    chosen = ["home"] + [p for p in ALL_PAGES if p != "home"
-                         and yes(f"Show {PAGE_LABELS[p]}", p in current)]
+    picked = {p for p in ALL_PAGES if p != "home" and yes(f"Show {PAGE_LABELS[p]}", p in current)}
+    # Keep the navigation bar order the list already has; new pages go at the end.
+    chosen = ["home"] + [p for p in current if p in picked] + [p for p in ALL_PAGES if p in picked and p not in current]
     pages = doc.get("pages")
     if pages is None:
         pages = tomlkit.table()

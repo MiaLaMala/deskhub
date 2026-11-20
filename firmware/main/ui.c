@@ -524,6 +524,73 @@ void ui_set_layout(uint32_t mask)
     apply_layout();
 }
 
+// Tab order in the bar: page indices, Home first. Starts as the order the tabs are
+// built in (Shortcuts last); the companion's [pages] list can change it.
+static uint8_t s_order[PAGE_COUNT];
+
+static void default_order(uint8_t *order)
+{
+    for (int n = 0; n < PAGE_COUNT; n++) {
+        order[n] = n < PAGE_SHORTCUTS ? n : n == PAGE_COUNT - 1 ? PAGE_SHORTCUTS : n + 1;
+    }
+}
+
+// Listed pages first (Home always leads), then the rest in the default order.
+static void merge_order(const uint8_t *want, int n, uint8_t *out)
+{
+    bool used[PAGE_COUNT] = {0};
+    int k = 0;
+    out[k++] = PAGE_HOME;
+    used[PAGE_HOME] = true;
+    for (int i = 0; i < n; i++) {
+        if (want[i] < PAGE_COUNT && !used[want[i]]) {
+            out[k++] = want[i];
+            used[want[i]] = true;
+        }
+    }
+    uint8_t def[PAGE_COUNT];
+    default_order(def);
+    for (int i = 0; i < PAGE_COUNT; i++) {
+        if (!used[def[i]]) out[k++] = def[i];
+    }
+}
+
+static void apply_order(void)
+{
+    for (int i = 0; i < PAGE_COUNT; i++) {
+        if (s_nav[s_order[i]]) lv_obj_move_to_index(s_nav[s_order[i]], i);
+    }
+}
+
+static void load_order(void)
+{
+    default_order(s_order);
+    nvs_handle_t h;
+    if (nvs_open("hub", NVS_READONLY, &h) == ESP_OK) {
+        uint8_t saved[PAGE_COUNT + 8];
+        size_t len = sizeof(saved);
+        // Saved by older firmware with fewer pages: the new ones fall in at their default spot.
+        if (nvs_get_blob(h, "order", saved, &len) == ESP_OK) merge_order(saved, (int)len, s_order);
+        nvs_close(h);
+    }
+    apply_order();
+}
+
+void ui_set_page_order(const uint8_t *order, int n)
+{
+    uint8_t merged[PAGE_COUNT];
+    merge_order(order, n, merged);
+    if (memcmp(merged, s_order, sizeof(s_order)) == 0) return;
+    memcpy(s_order, merged, sizeof(s_order));
+    nvs_handle_t h;
+    if (nvs_open("hub", NVS_READWRITE, &h) == ESP_OK) {
+        nvs_set_blob(h, "order", order, n);
+        nvs_commit(h);
+        nvs_close(h);
+    }
+    apply_order();
+}
+
 void ui_set_home(const char *spec)
 {
     home_set_layout(spec);
@@ -777,6 +844,7 @@ void ui_init(void)
         creators[i](p);
     }
     load_layout();
+    load_order();
     apply_layout();
     ui_show_page(PAGE_HOME);
     lv_timer_create(tick_cb, 1000, NULL);

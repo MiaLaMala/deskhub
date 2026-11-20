@@ -254,15 +254,23 @@ static void on_layout(const cJSON *m)
     static const char *names[] = {"home", "stats", "ai", "calendar", "weather", "media", "printer", "shortcuts", "timer", "games", "network",
                                   "github"};
     uint32_t mask = 1; // Home is always shown
+    uint8_t order[32];
+    int n = 0;
     const cJSON *it;
     cJSON_ArrayForEach(it, cJSON_GetObjectItemCaseSensitive(m, "pages")) {
         if (!cJSON_IsString(it)) continue;
         for (int i = 0; i < (int)(sizeof(names) / sizeof(names[0])); i++) {
-            if (strcmp(it->valuestring, names[i]) == 0) mask |= 1u << i;
+            if (strcmp(it->valuestring, names[i]) == 0) {
+                if (!(mask & (1u << i)) && n < (int)sizeof(order)) order[n++] = (uint8_t)i;
+                mask |= 1u << i;
+            }
         }
     }
     display_lock();
     ui_set_layout(mask);
+    // "ordered": true means "pages" is in navigation bar order (older companions
+    // sent a fixed order).
+    if (get_bool(m, "ordered")) ui_set_page_order(order, n);
     // "nav": "left" | "right" | "bottom" (restarts the board when it changes).
     char nav[8];
     copy_str(nav, sizeof(nav), m, "nav");

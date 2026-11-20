@@ -18,6 +18,9 @@ void ui_set_claude(const hub_claude_t *c);
 void ui_set_printers(const hub_printer_t *p, int n);
 // Bit i set = page i shown (see the PAGE_* order in ui_internal.h). Saved to NVS.
 void ui_set_layout(uint32_t pages_mask);
+// Navigation bar order: page indices (PAGE_*), first tab first. Home always leads;
+// pages not listed follow in the default order. Saved to NVS.
+void ui_set_page_order(const uint8_t *order, int n);
 // Home widgets per column, e.g. "clock,claude,events|weather,media,stats". Saved to NVS.
 void ui_set_home(const char *spec);
 // Full-screen "agent waiting" alert; a->active false hides it.

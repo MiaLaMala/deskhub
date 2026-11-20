@@ -16,8 +16,13 @@ PAGE_LABELS = {
 }
 
 
+# The navigation bar's order without a [pages] list: Shortcuts last, by the status icons.
+DEFAULT_ORDER = [p for p in ALL_PAGES if p != "shortcuts"] + ["shortcuts"]
+
+
 def enabled_pages(cfg: dict) -> list[str]:
-    """Page names to show, in board order. Without a [pages] block everything is on except
+    """Page names to show, in navigation bar order: Home first, then the order of
+    [pages] enabled (unknown names and repeats dropped). Without a [pages] block everything is on except
     the printer page (on once a printer is configured), the games page (on when Steam
     is installed or [[games]] are configured) and the GitHub page (on when its widget is
     on Home)."""
@@ -30,9 +35,12 @@ def enabled_pages(cfg: dict) -> list[str]:
             want.add("games")
         if any(g["widget"] == "github" for g in home_grid(cfg)):
             want.add("github")
-    else:
-        want = {str(p).lower() for p in pages["enabled"]}
-    return [p for p in ALL_PAGES if p == "home" or p in want]
+        return [p for p in DEFAULT_ORDER if p == "home" or p in want]
+    order = ["home"]
+    for name in (str(p).lower() for p in pages["enabled"]):
+        if name in ALL_PAGES and name not in order:
+            order.append(name)
+    return order
 
 
 NAV_POSITIONS = ("left", "right", "bottom")
@@ -94,7 +102,9 @@ def night_style(cfg: dict) -> str:
 def layout_message(cfg: dict) -> dict:
     # The board restarts when "nav" changes, so it always gets one.
     night = night_schedule(cfg)
-    return {"type": "layout", "pages": enabled_pages(cfg), "nav": nav_position(cfg),
+    # "ordered": the board lays out its tabs in the order of "pages" (older companions
+    # sent them in a fixed order, which the board ignores).
+    return {"type": "layout", "pages": enabled_pages(cfg), "ordered": True, "nav": nav_position(cfg),
             "pc_sleep": pc_sleep_mode(cfg),
             # Always sent, so removing the schedule turns night mode off on the board.
             "night_start": night[0] if night else -1, "night_end": night[1] if night else -1,
