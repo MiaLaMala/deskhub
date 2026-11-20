@@ -10,6 +10,8 @@ import datetime as dt
 import logging
 import time
 
+from .text import ascii_fold
+
 log = logging.getLogger(__name__)
 
 API = "https://api.github.com/graphql"
@@ -18,8 +20,13 @@ KEYRING_USER = "token"
 POLL_S = 15 * 60
 BACKOFF_S = 10 * 60
 LEVELS = {"NONE": 0, "FIRST_QUARTILE": 1, "SECOND_QUARTILE": 2, "THIRD_QUARTILE": 3, "FOURTH_QUARTILE": 4}
-QUERY = """query { viewer { login contributionsCollection { contributionCalendar {
+QUERY = """query { viewer { login contributionsCollection {
+  totalCommitContributions totalPullRequestContributions totalPullRequestReviewContributions
+  totalIssueContributions restrictedContributionsCount
+  commitContributionsByRepository(maxRepositories: 5) { repository { name } contributions { totalCount } }
+  contributionCalendar {
   totalContributions weeks { contributionDays { date weekday contributionCount contributionLevel } } } } } }"""
+MAX_REPOS = 4
 MONTHS = "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split()
 
 
@@ -60,9 +67,17 @@ def _http_post(token: str, query: str) -> dict:
 def fetch(token: str, post=_http_post) -> dict:
     """The viewer's login and contribution calendar, straight from GitHub."""
     v = post(token, QUERY)["viewer"]
-    cal = v["contributionsCollection"]["contributionCalendar"]
+    cc = v["contributionsCollection"]
+    cal = cc["contributionCalendar"]
     days = [d for w in cal["weeks"] for d in w["contributionDays"]]
-    return {"login": v["login"], "total": int(cal["totalContributions"]), "days": days}
+    kinds = {"commits": cc.get("totalCommitContributions", 0), "prs": cc.get("totalPullRequestContributions", 0),
+             "reviews": cc.get("totalPullRequestReviewContributions", 0),
+             "issues": cc.get("totalIssueContributions", 0), "private": cc.get("restrictedContributionsCount", 0)}
+    repos = [{"name": ascii_fold(r["repository"]["name"], 32), "count": int(r["contributions"]["totalCount"])}
+             for r in cc.get("commitContributionsByRepository") or []]
+    repos.sort(key=lambda r: -r["count"])
+    return {"login": v["login"], "total": int(cal["totalContributions"]), "days": days,
+            "kinds": {k: int(n or 0) for k, n in kinds.items()}, "repos": repos[:MAX_REPOS]}
 
 
 def streak(counts: list[int]) -> int:
@@ -73,6 +88,14 @@ def streak(counts: list[int]) -> int:
     while end - run >= 0 and counts[end - run] > 0:
         run += 1
     return run
+
+
+def longest_streak(counts: list[int]) -> int:
+    best = run = 0
+    for c in counts:
+        run = run + 1 if c > 0 else 0
+        best = max(best, run)
+    return best
 
 
 def message(cal: dict, accent: bool = False) -> dict:
@@ -93,10 +116,19 @@ def message(cal: dict, accent: bool = False) -> dict:
     week = sum(counts[len(counts) - 1 - today_wday:]) if counts else 0
     last_week = sum(counts[max(0, len(counts) - 8 - today_wday):len(counts) - 1 - today_wday])
     best = max(range(len(days)), key=lambda i: counts[i]) if days else -1
+    best_date = ""
+    if best >= 0 and counts[best] > 0:
+        b = dt.date.fromisoformat(days[best]["date"])
+        best_date = f"{MONTHS[b.month - 1]} {b.day}"
+    # This week Sunday to today, and all of last week, a count per day.
+    week_days = counts[len(counts) - 1 - today_wday:] if counts else []
+    last_week_days = counts[max(0, len(counts) - 8 - today_wday):len(counts) - 1 - today_wday]
     return {"type": "github", "login": cal["login"], "total": cal["total"], "levels": levels,
             "start_wday": start_wday, "months": months, "today": counts[-1] if counts else 0,
             "week": week, "last_week": last_week, "streak": streak(counts),
-            "best": counts[best] if best >= 0 else 0, "accent": accent}
+            "longest": longest_streak(counts), "best": counts[best] if best >= 0 else 0,
+            "best_date": best_date, "week_days": week_days, "last_week_days": last_week_days,
+            "kinds": cal.get("kinds", {}), "repos": cal.get("repos", []), "accent": accent}
 
 
 class GitHub:

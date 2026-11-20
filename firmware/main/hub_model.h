@@ -156,6 +156,7 @@ typedef struct {
 // GitHub contribution chart: a level 0-4 per day for the last year, oldest first.
 #define HUB_GH_DAYS 378     // 54 weeks: a year plus the partial weeks at both ends
 #define HUB_GH_MONTHS 14
+#define HUB_GH_REPOS 4
 typedef struct {
     bool valid;
     bool accent;            // shades of the accent colour instead of GitHub's greens
@@ -167,6 +168,17 @@ typedef struct {
     int month_count;
     int16_t month_col[HUB_GH_MONTHS];   // week column of each month label
     char month_name[HUB_GH_MONTHS][4];
+    // For the GitHub page.
+    char login[40];
+    int longest;            // longest streak in the year, days
+    char best_date[8];      // "Nov 19"
+    int week_days[7];       // this week, Sunday to today
+    int week_day_count;
+    int last_week_days[7];
+    int commits, prs, reviews, issues;
+    int repo_count;
+    char repo_name[HUB_GH_REPOS][32];   // most commits in the year first
+    int repo_commits[HUB_GH_REPOS];
 } hub_github_t;
 
 // Internet connection: latency, outages, data used and the last speed test.

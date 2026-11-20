@@ -6,25 +6,30 @@ from .steam import steam_installed
 
 log = logging.getLogger(__name__)
 
-ALL_PAGES = ["home", "stats", "ai", "calendar", "weather", "media", "printer", "shortcuts", "timer", "games", "network"]
+ALL_PAGES = ["home", "stats", "ai", "calendar", "weather", "media", "printer", "shortcuts", "timer", "games", "network",
+             "github"]
 PAGE_LABELS = {
     "stats": "PC stats", "ai": "AI agent usage", "calendar": "Calendar", "weather": "Weather",
     "media": "Now playing", "printer": "3D printer", "shortcuts": "Shortcuts",
     "timer": "Timer", "games": "Games", "network": "Internet (a view on the Stats page)",
+    "github": "GitHub contributions",
 }
 
 
 def enabled_pages(cfg: dict) -> list[str]:
     """Page names to show, in board order. Without a [pages] block everything is on except
-    the printer page (on once a printer is configured) and the games page (on when Steam
-    is installed or [[games]] are configured)."""
+    the printer page (on once a printer is configured), the games page (on when Steam
+    is installed or [[games]] are configured) and the GitHub page (on when its widget is
+    on Home)."""
     pages = cfg.get("pages")
     if not isinstance(pages, dict) or not isinstance(pages.get("enabled"), list):
-        want = {p for p in ALL_PAGES if p not in ("printer", "games")}
+        want = {p for p in ALL_PAGES if p not in ("printer", "games", "github")}
         if cfg.get("printers"):
             want.add("printer")
         if steam_installed() or cfg.get("games"):
             want.add("games")
+        if any(g["widget"] == "github" for g in home_grid(cfg)):
+            want.add("github")
     else:
         want = {str(p).lower() for p in pages["enabled"]}
     return [p for p in ALL_PAGES if p == "home" or p in want]

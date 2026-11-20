@@ -81,7 +81,7 @@ bool ui_media_has_art(void);
 void ui_show_page(int page);
 
 enum { PAGE_HOME, PAGE_STATS, PAGE_CLAUDE, PAGE_CALENDAR, PAGE_WEATHER, PAGE_MEDIA, PAGE_PRINTER, PAGE_SHORTCUTS, PAGE_TIMER, PAGE_GAMES, PAGE_NETWORK,
-       PAGE_COUNT };
+       PAGE_GITHUB, PAGE_COUNT };
 
 // Pages shown in the rail (bit per PAGE_*). Home is always on.
 extern uint32_t g_pages_mask;
@@ -176,6 +176,17 @@ void ui_fmt_ago(char *buf, size_t n, time_t t);         // "5m ago", "2h ago"
 void home_refresh_net(void);
 extern hub_github_t g_github;
 void home_refresh_github(void);
+// GitHub contribution chart, shared by the Home widget and the GitHub page.
+#define GH_GAP 2   // between squares
+lv_obj_t *github_chart_create(lv_obj_t *parent);
+// Squares from (x, y) in the parent, pitch px apart, the newest `weeks` columns.
+void github_chart_set(lv_obj_t *chart, int x, int y, int pitch, int weeks);
+int github_total_weeks(void);
+// Month names over the chart's columns at row y (HUB_GH_MONTHS labels); show false hides them.
+void github_place_months(lv_obj_t *const *labels, lv_obj_t *chart, int y, bool show);
+void github_fmt_count(char *buf, size_t n, int v);   // "1,019"
+void github_page_create(lv_obj_t *page);
+void github_page_refresh(void);
 void net_refresh_live(void);   // the "Now" line, on each stats message
 void stats_set_view(int view);          // 0 = PC, 1 = Internet
 void stats_set_net_enabled(bool on);

@@ -56,7 +56,7 @@ The board runs custom firmware (ESP-IDF + LVGL). A small Python app on your Wind
 | Games | The Steam game you're playing with its cover and session time, your five most recent games, and a tap to launch one (optional) | companion, from Steam's local files |
 | Stats: Internet view | Online status, latency, jitter and packet loss with a one-minute chart, uptime and the last drop, data used today and this month, and an on-demand speed test | companion |
 | Timer | Countdown with presets from 1 to 45 minutes, pause and reset, and a full-screen "Time's up" card. The time left shows on its sidebar tab | the board itself, works without the PC |
-| Home: GitHub widget | Your contribution chart for the last year, today's square outlined, the year's total and your streak (optional) | companion, from GitHub's API with your token |
+| GitHub | Your contribution chart for the whole year with month and weekday labels, contributions by kind, your current and longest streak and best day, this week against last week day by day, and your top repositories by commits; plus a Home widget (optional) | companion, from GitHub's API with your token |
 
 Home is a 5 × 3 grid you arrange yourself, with widgets in the sizes you choose ([Customizing Home](#customizing-home)). Beyond the pages:
 
@@ -117,7 +117,7 @@ It asks these questions in order. When you run it again, each answer you gave be
 9. **Home screen**: whether the time and date go in a slim top bar, then whether to keep the current layout. To change it, add widgets one at a time with a size each; `undo` takes the last one off and `clear` starts over. See [Customizing Home](#customizing-home).
 10. **Screen sleep and night mode**: whether the board goes dark (`off`), shows a dim clock (`clock`) or stays as it is (`none`) while the PC's screen sleeps, then night-mode hours such as `23:00-07:00` (or `off`) and what it shows at night. See [When the PC sleeps](#when-the-pc-sleeps).
 11. **Internet**: how often to run a speed test (`0`, the default, runs one only when you tap the button) and whether to show your public IP. See [Internet](#internet).
-12. **GitHub**: whether to add a token for the contribution chart, then whether to put the chart on Home. See [GitHub contributions](#github-contributions).
+12. **GitHub**: whether to add a token for the contribution chart, whether to show the GitHub page, then whether to put the chart on Home. See [GitHub contributions](#github-contributions).
 13. **Claude Code limits**: whether to turn on live limits. See [Claude Code usage](#claude-code-usage).
 14. **Waiting alerts**: whether the board shows when a Claude Code session is waiting for you. Setup offers to add the hooks to Claude Code's settings, update hooks from an older version, or remove them when you turn alerts off. See [Waiting alerts](#waiting-alerts).
 15. **AI agent**: which agent the AI page shows: `auto`, `claude` or `codex`.
@@ -150,7 +150,7 @@ uv run deskhub-setup calendar
 | `home` | the Home grid and the top bar (also `grid`) |
 | `display` | screen sleep with the PC, and night mode (also `sleep`, `night`) |
 | `internet` | connection checks on or off, speed test schedule and public IP (also `network`) |
-| `github` | the GitHub token, and the contribution chart on Home (also `contributions`) |
+| `github` | the GitHub token, the GitHub page, and the contribution chart on Home (also `contributions`) |
 | `claude` | live limits, waiting alerts and the AI page's agent (also `ai`, `codex`) |
 | `alerts` | waiting alerts, and how long a finished session waits before it alerts |
 | `flash` | builds the firmware and installs it on the board |
@@ -260,7 +260,7 @@ enabled = ["home", "stats", "ai", "calendar", "weather", "media", "printer", "sh
 nav = "left"   # where the navigation bar goes: "left" (default), "right" or "bottom"
 ```
 
-Remove a name to hide that page. Without a `[pages]` block everything is shown except the 3D printer page, which turns on by itself once you add a printer, and the Games page, which turns on when Steam is installed. Setup asks about each page too (the *Pages* step). The companion sends the list to the board every time it connects, so restart the companion after editing. Changing `nav` restarts the board once so every page is laid out for the new space.
+Remove a name to hide that page. Without a `[pages]` block everything is shown except the 3D printer page, which turns on by itself once you add a printer, the Games page, which turns on when Steam is installed, and the GitHub page, which turns on when its widget is on Home. Add `"github"` to the list for the [GitHub page](#github-contributions). Setup asks about each page too (the *Pages* step). The companion sends the list to the board every time it connects, so restart the companion after editing. Changing `nav` restarts the board once so every page is laid out for the new space.
 
 ## When the PC sleeps
 
@@ -361,9 +361,18 @@ The `github` Home widget shows the green squares from your GitHub profile: one c
 
 The streak counts days in a row with contributions up to today; a quiet today doesn't break it until the day is over.
 
+**The GitHub page** (tap the widget, or its tab) has more detail:
+
+- **Last year:** the whole year's chart with month and weekday labels, and the total split into commits, pull requests, reviews and issues.
+- **Streak:** the current streak, the longest one this year, and your busiest day.
+- **This week:** contributions since Sunday and the change from last week, with a pair of bars per day (last week dim, this week green).
+- **Top repos:** the four repositories with the most commits this year.
+
+Add `"github"` to `[pages] enabled` to show it (setup offers to). Without a `[pages]` block it shows whenever the widget is on Home.
+
 It needs a fine-grained personal access token with no extra permissions ([make one here](https://github.com/settings/personal-access-tokens/new)). Run `uv run deskhub-setup github`: it checks the token with GitHub, shows your total, keeps the token in the Windows credential store (not in `config.toml`) and offers to put the chart in the widest free spot on Home. Because the token is yours, private contributions count too when *Private contributions* is on in your profile settings.
 
-The companion asks GitHub's GraphQL API every 15 minutes, only while the widget is on Home, and sends the board a new chart when something changed.
+The companion asks GitHub's GraphQL API every 15 minutes, only while the widget or the page is on, and sends the board a new chart when something changed.
 
 ```toml
 [github]
@@ -407,7 +416,7 @@ How the grid behaves:
 - **Cell size** comes from the space the navigation bar leaves: beside a side bar each cell is about 125 px wide, above a bottom bar about 145 px. Every widget lines up on the same cells.
 - **Checks:** the companion leaves out (and logs) a widget that overlaps another, runs off the grid, or asks for a size it doesn't come in.
 - **Hidden pages:** a widget whose page you've turned off in `[pages]` is skipped, and its cells stay empty.
-- **Tapping a widget** opens its page (the clock and GitHub widgets have none). A Claude Code alert on a 1-wide `claude` card widens over its neighbours so the text fits.
+- **Tapping a widget** opens its page (the clock widget has none). A Claude Code alert on a 1-wide `claude` card widens over its neighbours so the text fits.
 
 Without a `grid`, the older two-column form still works and is converted for you: `left = [...]` becomes 3 cells wide and `right = [...]` 2 cells wide, one row per widget, with `events` taking the rest of its column. Without a `[home]` block you get Claude limits and Up next on the left, and weather, now playing and PC stats on the right (3D print instead of PC stats once you've added a printer). The board remembers the layout, so it looks right at boot even before the companion connects.
 

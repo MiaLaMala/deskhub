@@ -73,4 +73,5 @@ static const hub_icon_t HUB_ICONS[] = {
 #define ICON_OPEN_IN_NEW       "\xEE\xA2\x9E" /* e89e */
 #define ICON_SPORTS_ESPORTS    "\xEE\xA8\xA8" /* ea28 */
 #define ICON_PUBLIC            "\xEE\xA0\x8B" /* e80b */
-#define ICON_REFRESH           "\xEE\x97\x95" /* e5d5 */
+#define ICON_COMMIT            "\xEE\xAB\xB5" /* eaf5 */
+#define ICON_REFRESH          "\xEE\x97\x95" /* e5d5 */

@@ -518,6 +518,11 @@ def step_github(config_path: pathlib.Path):
         github.set_token(token)
         print(f"Saved. @{cal['login']}: {cal['total']:,} contributions in the last year.")
     doc = tomlkit.parse(config_path.read_text(encoding="utf-8"))
+    pages = doc.get("pages")
+    if pages is not None and isinstance(pages.get("enabled"), list) and "github" not in pages["enabled"]:
+        if yes("Add the GitHub page (more detail: streaks, this week, top repositories)", True):
+            pages["enabled"].append("github")
+            config_path.write_text(tomlkit.dumps(doc), encoding="utf-8")
     grid = home_grid(doc.unwrap())
     if any(g["widget"] == "github" for g in grid) or not yes("Put the chart on Home", True):
         return

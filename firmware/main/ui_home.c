@@ -615,99 +615,23 @@ static void layout_net(int w, int h)
 }
 
 // ---- GitHub contributions ----------------------------------------------------
-// The squares from a GitHub profile: one column per week (Sunday on top), the
-// newest week on the right, as many weeks as the widget has room for.
-// One row tall: the chart fills the height and the year's total and streak sit
-// to its right. Two rows: month labels over the chart, the total in the caption
-// row and today / this week / streak along the bottom.
-hub_github_t g_github;
-#define GH_GAP 2
+// The squares from a GitHub profile (drawn by ui_github.c), as many weeks as the
+// widget has room for. One row tall: the chart fills the height and the year's
+// total and streak sit to its right. Two rows: month labels over the chart, the
+// total in the caption row and today / this week / streak along the bottom.
+// Tapping it opens the GitHub page.
 #define GH_STATS 3
 static lv_obj_t *s_gh_cap, *s_gh_total, *s_gh_chart, *s_gh_side_val, *s_gh_side_sub;
 static lv_obj_t *s_gh_month[HUB_GH_MONTHS];
 static lv_obj_t *s_gh_stat_val[GH_STATS], *s_gh_stat_cap[GH_STATS];
-static int s_gh_pitch = 12, s_gh_weeks = 53;
-static bool s_gh_tall;
-
-static int gh_total_weeks(void)
-{
-    const hub_github_t *g = &g_github;
-    return g->day_count > 0 ? (g->day_count - 1 + g->start_wday) / 7 + 1 : 53;
-}
-
-static uint32_t gh_color(int level)
-{
-    static const uint32_t green[5] = {COL_CARD_HI, 0x0e4429, 0x006d32, 0x26a641, 0x39d353};
-    if (level <= 0 || level > 4) return COL_CARD_HI;
-    if (!g_github.accent) return green[level];
-    // Shades of the accent over the empty square: 30%, 55%, 80%, 100%.
-    static const uint8_t mix[5] = {0, 77, 140, 204, 255};
-    lv_color_t c = lv_color_mix(lv_color_hex(COL_ACCENT), lv_color_hex(COL_CARD_HI), mix[level]);
-    return lv_color_to_u32(c) & 0xffffff;
-}
-
-static void gh_draw_cb(lv_event_t *e)
-{
-    lv_obj_t *obj = lv_event_get_target(e);
-    lv_layer_t *layer = lv_event_get_layer(e);
-    lv_area_t box;
-    lv_obj_get_coords(obj, &box);
-    const hub_github_t *g = &g_github;
-    int sq = s_gh_pitch - GH_GAP;
-    int first = gh_total_weeks() - s_gh_weeks;   // oldest week column shown
-    lv_draw_rect_dsc_t d;
-    lv_draw_rect_dsc_init(&d);
-    d.radius = sq >= 10 ? 2 : 1;
-    d.bg_opa = LV_OPA_COVER;
-    int days = g->day_count > 0 ? g->day_count : s_gh_weeks * 7;
-    int start = g->day_count > 0 ? g->start_wday : 0;
-    for (int i = 0; i < days; i++) {
-        int col = (i + start) / 7 - (g->day_count > 0 ? first : 0);
-        if (col < 0) continue;
-        int row = (i + start) % 7;
-        lv_area_t a;
-        a.x1 = box.x1 + 1 + col * s_gh_pitch;
-        a.y1 = box.y1 + 1 + row * s_gh_pitch;
-        a.x2 = a.x1 + sq - 1;
-        a.y2 = a.y1 + sq - 1;
-        d.bg_color = lv_color_hex(gh_color(g->day_count > 0 ? g->level[i] : 0));
-        lv_draw_rect(layer, &d, &a);
-        if (g->day_count > 0 && i == g->day_count - 1) {
-            // Today: an outline in the gap around the square, so its colour still shows.
-            lv_draw_rect_dsc_t o;
-            lv_draw_rect_dsc_init(&o);
-            o.radius = d.radius + 1;
-            o.bg_opa = LV_OPA_TRANSP;
-            o.border_width = 1;
-            o.border_color = lv_color_hex(COL_TEXT);
-            o.border_opa = LV_OPA_COVER;
-            lv_area_t r = {a.x1 - 1, a.y1 - 1, a.x2 + 1, a.y2 + 1};
-            lv_draw_rect(layer, &o, &r);
-        }
-    }
-}
-
-static void fmt_count(char *buf, size_t n, int v)
-{
-    if (v >= 1000) snprintf(buf, n, "%d,%03d", v / 1000, v % 1000);
-    else snprintf(buf, n, "%d", v);
-}
 
 static void create_github(lv_obj_t *page)
 {
-    lv_obj_t *c = ui_card(page);
-    if (UI_COMPACT) lv_obj_set_style_pad_ver(c, 9, 0);
-    lv_obj_remove_flag(c, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_t *c = widget_card(page, PAGE_GITHUB);
     s_gh_cap = ui_caption(c, "GITHUB");
     s_gh_total = ui_label(c, g_font_14, COL_MUTED, "");
-    s_gh_chart = lv_obj_create(c);
-    lv_obj_remove_style_all(s_gh_chart);
-    lv_obj_remove_flag(s_gh_chart, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_add_event_cb(s_gh_chart, gh_draw_cb, LV_EVENT_DRAW_MAIN, NULL);
-    for (int i = 0; i < HUB_GH_MONTHS; i++) {
-        s_gh_month[i] = ui_label(c, g_font_14, COL_DIM, "");
-        lv_obj_add_flag(s_gh_month[i], LV_OBJ_FLAG_HIDDEN);
-    }
+    s_gh_chart = github_chart_create(c);
+    for (int i = 0; i < HUB_GH_MONTHS; i++) s_gh_month[i] = ui_label(c, g_font_14, COL_DIM, "");
     static const char *const caps[GH_STATS] = {"today", "this week", "day streak"};
     for (int i = 0; i < GH_STATS; i++) {
         s_gh_stat_val[i] = ui_label(c, g_font_24, COL_TEXT, "--");
@@ -719,59 +643,32 @@ static void create_github(lv_obj_t *page)
     s_w[W_GITHUB] = c;
 }
 
-// Month labels over the week columns shown, skipping any that would crowd the one before.
-static void gh_place_months(int chart_x, int y)
-{
-    const hub_github_t *g = &g_github;
-    int first = gh_total_weeks() - s_gh_weeks, last_x = -1000;
-    for (int i = 0; i < HUB_GH_MONTHS; i++) {
-        lv_obj_t *l = s_gh_month[i];
-        int col = i < g->month_count ? g->month_col[i] - first : -1;
-        if (!s_gh_tall || col < 0 || col >= s_gh_weeks) {
-            lv_obj_add_flag(l, LV_OBJ_FLAG_HIDDEN);
-            continue;
-        }
-        int x = chart_x + col * s_gh_pitch;
-        int tw = lv_text_get_width(g->month_name[i], strlen(g->month_name[i]), g_font_14, 0);
-        if (x < last_x + 6 || col + (tw + s_gh_pitch - 1) / s_gh_pitch > s_gh_weeks) {
-            lv_obj_add_flag(l, LV_OBJ_FLAG_HIDDEN);
-            continue;
-        }
-        lv_label_set_text(l, g->month_name[i]);
-        lv_obj_set_pos(l, x, y);
-        lv_obj_remove_flag(l, LV_OBJ_FLAG_HIDDEN);
-        last_x = x + tw;
-    }
-}
-
 static void layout_github(int w, int h)
 {
     lv_obj_t *c = s_w[W_GITHUB];
     int inner = inner_height(c, h), iw = w - 32;
     int lh14 = lv_font_get_line_height(g_font_14), lh24 = lv_font_get_line_height(g_font_24);
-    s_gh_tall = inner >= 150;
-    int weeks_have = gh_total_weeks();
-    if (s_gh_tall) {
+    bool tall = inner >= 150;
+    int weeks_have = github_total_weeks();
+    if (tall) {
         // Caption row on top, the stats row on the bottom edge, months and chart between.
         int stat_h = lh24 + lh14;
         int avail = inner - lh14 - stat_h;
         int pitch_h = (avail - 16 - lh14 - 4 + GH_GAP) / 7;
         int pitch_w = (iw + GH_GAP) / 53;
         if (pitch_w < 12) pitch_w = 12;
-        s_gh_pitch = pitch_h < pitch_w ? pitch_h : pitch_w;
-        if (s_gh_pitch < 6) s_gh_pitch = 6;
-        s_gh_weeks = (iw + GH_GAP) / s_gh_pitch;
-        if (s_gh_weeks > weeks_have) s_gh_weeks = weeks_have;
-        int cw = s_gh_weeks * s_gh_pitch - GH_GAP, ch = 7 * s_gh_pitch - GH_GAP;
-        int block = lh14 + 4 + ch;
-        int by = lh14 + (avail - block) / 2;
+        int pitch = pitch_h < pitch_w ? pitch_h : pitch_w;
+        if (pitch < 6) pitch = 6;
+        int weeks = (iw + GH_GAP) / pitch;
+        if (weeks > weeks_have) weeks = weeks_have;
+        int cw = weeks * pitch - GH_GAP, ch = 7 * pitch - GH_GAP;
+        int by = lh14 + (avail - (lh14 + 4 + ch)) / 2;
         int cx = (iw - cw) / 2;
         lv_obj_set_pos(s_gh_cap, 0, 0);
         lv_obj_align(s_gh_total, LV_ALIGN_TOP_RIGHT, 0, 0);
         lv_obj_remove_flag(s_gh_total, LV_OBJ_FLAG_HIDDEN);
-        gh_place_months(cx, by);
-        lv_obj_set_pos(s_gh_chart, cx - 1, by + lh14 + 3);
-        lv_obj_set_size(s_gh_chart, cw + 2, ch + 2);
+        github_chart_set(s_gh_chart, cx, by + lh14 + 4, pitch, weeks);
+        github_place_months(s_gh_month, s_gh_chart, by, true);
         for (int i = 0; i < GH_STATS; i++) {
             int x = i * iw / GH_STATS;
             lv_obj_set_pos(s_gh_stat_val[i], x, inner - stat_h);
@@ -784,13 +681,12 @@ static void layout_github(int w, int h)
     } else {
         // Chart on the left as tall as the card; caption, total and streak to its right.
         int tw = w >= 400 ? 128 : 100;
-        s_gh_pitch = (inner + GH_GAP) / 7;
-        s_gh_weeks = (iw - tw - 12 + GH_GAP) / s_gh_pitch;
-        if (s_gh_weeks > weeks_have) s_gh_weeks = weeks_have;
-        if (s_gh_weeks < 1) s_gh_weeks = 1;
-        int cw = s_gh_weeks * s_gh_pitch - GH_GAP, ch = 7 * s_gh_pitch - GH_GAP;
-        lv_obj_set_pos(s_gh_chart, -1, (inner - ch) / 2 - 1);
-        lv_obj_set_size(s_gh_chart, cw + 2, ch + 2);
+        int pitch = (inner + GH_GAP) / 7;
+        int weeks = (iw - tw - 12 + GH_GAP) / pitch;
+        if (weeks > weeks_have) weeks = weeks_have;
+        if (weeks < 1) weeks = 1;
+        github_chart_set(s_gh_chart, 0, (inner - (7 * pitch - GH_GAP)) / 2, pitch, weeks);
+        github_place_months(s_gh_month, s_gh_chart, 0, false);
         int tx = iw - tw;
         lv_obj_set_width(s_gh_side_sub, tw);
         lv_obj_set_height(s_gh_side_sub, lh14);
@@ -804,9 +700,7 @@ static void layout_github(int w, int h)
             lv_obj_add_flag(s_gh_stat_val[i], LV_OBJ_FLAG_HIDDEN);
             lv_obj_add_flag(s_gh_stat_cap[i], LV_OBJ_FLAG_HIDDEN);
         }
-        gh_place_months(0, 0);
     }
-    lv_obj_invalidate(s_gh_chart);
 }
 
 void home_refresh_github(void)
@@ -821,7 +715,7 @@ void home_refresh_github(void)
         lv_label_set_text(s_gh_side_sub, why);
         for (int i = 0; i < GH_STATS; i++) lv_label_set_text(s_gh_stat_val[i], "--");
     } else {
-        fmt_count(n, sizeof(n), g->total);
+        github_fmt_count(n, sizeof(n), g->total);
         snprintf(buf, sizeof(buf), "%s in the last year", n);
         lv_label_set_text(s_gh_total, buf);
         lv_label_set_text(s_gh_side_val, n);
@@ -830,7 +724,7 @@ void home_refresh_github(void)
         lv_label_set_text(s_gh_side_sub, buf);
         const int vals[GH_STATS] = {g->today, g->week, g->streak};
         for (int i = 0; i < GH_STATS; i++) {
-            fmt_count(n, sizeof(n), vals[i]);
+            github_fmt_count(n, sizeof(n), vals[i]);
             lv_label_set_text(s_gh_stat_val[i], n);
         }
     }
@@ -839,12 +733,6 @@ void home_refresh_github(void)
     if (card && !lv_obj_has_flag(card, LV_OBJ_FLAG_HIDDEN)) {
         layout_github(lv_obj_get_width(card), lv_obj_get_height(card));
     }
-}
-
-void ui_set_github(const hub_github_t *g)
-{
-    g_github = *g;
-    home_refresh_github();
 }
 
 // Slim top bar: big time + AM/PM on the left, full date on the right, and a

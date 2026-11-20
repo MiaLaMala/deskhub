@@ -18,7 +18,7 @@ Ideas for Desk Hub, roughly in order of value. Each item notes how it would work
   - **Controls:** Jellyfin can pause, resume, seek and stop a session through `/Sessions/{id}/Playing/{command}`, so the board's buttons would work. Plex can only reach players that support remote control, which many don't, so Plex may stay display-only at first.
   - **Setup:** a *Media servers* step that finds Plex and Jellyfin on the network (both answer local discovery), signs in to get the token or takes the API key, and tests the connection.
 
-- [ ] **GitHub extras.** Refresh the contribution chart soon after a `git push` from this PC instead of waiting up to 15 minutes, and a Stats view with this week vs last and the busiest day (the companion already sends both).
+- [ ] **GitHub extras.** Refresh the contribution chart soon after a `git push` from this PC instead of waiting up to 15 minutes.
 
 ## Day-to-day polish
 
@@ -53,3 +53,4 @@ Ideas for Desk Hub, roughly in order of value. Each item notes how it would work
 - [x] Home as a 5 × 3 grid: widgets placed by cell with sizes they support, checked by the companion; setup places them for you
 - [x] GitHub repository with CI: the firmware builds with ESP-IDF 5.5 and the companion tests run on Windows
 - [x] GitHub contribution chart: a Home widget with the last year of contributions, today outlined, the total and the streak, set up with `deskhub-setup github`
+- [x] GitHub page: the year's chart with labels, contributions by kind, current and longest streak, this week vs last by day, and top repositories

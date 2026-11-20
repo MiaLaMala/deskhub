@@ -47,8 +47,14 @@ def fake_post(token, query):
     posts.append(token)
     if token == "bad":
         raise RuntimeError("Bad credentials")
-    return {"viewer": {"login": "octo", "contributionsCollection": {"contributionCalendar": {
-        "totalContributions": total, "weeks": weeks}}}}
+    return {"viewer": {"login": "octo", "contributionsCollection": {
+        "totalCommitContributions": 300, "totalPullRequestContributions": 40,
+        "totalPullRequestReviewContributions": 12, "totalIssueContributions": None,
+        "restrictedContributionsCount": 7,
+        "commitContributionsByRepository": [
+            {"repository": {"name": n}, "contributions": {"totalCount": c}}
+            for n, c in (("small", 3), ("deskhub", 200), ("Café", 50), ("dots", 20), ("old", 10))],
+        "contributionCalendar": {"totalContributions": total, "weeks": weeks}}}}
 
 
 cal = gh.fetch("t", fake_post)
@@ -67,6 +73,18 @@ labels = [name for _, name in m["months"]]
 check(labels[0] == "Dec" and labels[-1] == "Nov" and len(labels) == 12, f"month labels: {labels}")
 check(all(days[c * 7]["date"][8:] <= "07" for c, _ in m["months"]), "labels on each month's first full week")
 check(gh.message(cal, accent=True)["accent"] is True, "accent colours option")
+
+# For the GitHub page.
+check(m["kinds"] == {"commits": 300, "prs": 40, "reviews": 12, "issues": 0, "private": 7}, f"kinds: {m['kinds']}")
+check(m["repos"] == [{"name": "deskhub", "count": 200}, {"name": "Cafe", "count": 50},
+                     {"name": "dots", "count": 20}, {"name": "old", "count": 10}], f"top 4 repos: {m['repos']}")
+check(m["week_days"] == [x["contributionCount"] for x in days[-5:]], f"this week by day: {m['week_days']}")
+check(len(m["last_week_days"]) == 7 and sum(m["last_week_days"]) == m["last_week"], "last week by day")
+best_i = max(range(len(days)), key=lambda i: days[i]["contributionCount"])
+b = dt.date.fromisoformat(days[best_i]["date"])
+check(m["best_date"] == f"{gh.MONTHS[b.month - 1]} {b.day}", f"best day date: {m['best_date']}")
+check(gh.longest_streak([1, 1, 0, 1, 1, 1, 0]) == 3 and gh.longest_streak([]) == 0, "longest streak")
+check(m["longest"] >= m["streak"], "longest streak is at least the current one")
 
 check(gh.streak([1, 1, 0]) == 2, "empty today keeps yesterday's streak")
 check(gh.streak([1, 0, 0]) == 0, "two empty days end it")

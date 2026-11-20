@@ -218,7 +218,7 @@ target = ""
 # nav = "left"
 # Home is always shown. Remove names to hide pages. Without this block every page
 # except "printer" and "games" is shown; "printer" is added by itself once a printer is
-# configured and "games" when Steam is installed.
+# configured and "games" when Steam is installed. Add "github" for the GitHub page.
 enabled = ["home", "stats", "ai", "calendar", "weather", "media", "printer", "shortcuts", "timer", "games", "network"]
 
 [display]

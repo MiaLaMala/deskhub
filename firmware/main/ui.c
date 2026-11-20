@@ -69,7 +69,7 @@ int g_nav = NAV_LEFT;
 static int s_page = -1;
 
 // Default until the companion says otherwise: everything but the printer page.
-uint32_t g_pages_mask = ((1u << PAGE_COUNT) - 1) & ~(1u << PAGE_PRINTER);
+uint32_t g_pages_mask = ((1u << PAGE_COUNT) - 1) & ~(1u << PAGE_PRINTER) & ~(1u << PAGE_GITHUB);
 hub_printer_t g_printers[HUB_MAX_PRINTERS];
 int g_printer_count;
 
@@ -539,7 +539,7 @@ void ui_set_printers(const hub_printer_t *p, int n)
 
 static const char *const s_glyphs[PAGE_COUNT] = {
     ICON_HOME, ICON_INSIGHTS, ICON_AUTO_AWESOME, ICON_EVENT, ICON_WB_SUNNY, ICON_MUSIC_NOTE,
-    ICON_VIEW_IN_AR, ICON_GRID_VIEW, ICON_TIMER, ICON_SPORTS_ESPORTS, ICON_PUBLIC,
+    ICON_VIEW_IN_AR, ICON_GRID_VIEW, ICON_TIMER, ICON_SPORTS_ESPORTS, ICON_PUBLIC, ICON_COMMIT,
 };
 
 void ui_rail_set_text(int page, const char *text)
@@ -676,6 +676,7 @@ static void tick_cb(lv_timer_t *t)
         calendar_refresh(true);
         games_refresh();
         home_refresh_github();
+        github_page_refresh();
     }
     lv_obj_set_style_text_color(s_pc_icon, lv_color_hex(pc ? COL_GOOD : COL_DIM), 0);
 
@@ -762,6 +763,7 @@ void ui_init(void)
     void (*creators[PAGE_COUNT])(lv_obj_t *) = {
         home_create, stats_create, claude_create, calendar_create, weather_page_create, media_create,
         printer_create, shortcuts_create, timer_page_create, games_page_create, page_none,
+        github_page_create,
     };
     for (int i = 0; i < PAGE_COUNT; i++) {
         lv_obj_t *p = lv_obj_create(scr);

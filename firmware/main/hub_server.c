@@ -251,7 +251,8 @@ static void on_printer(const cJSON *m)
 // Which pages to show: {"type":"layout","pages":["home","stats",...]}.
 static void on_layout(const cJSON *m)
 {
-    static const char *names[] = {"home", "stats", "ai", "calendar", "weather", "media", "printer", "shortcuts", "timer", "games", "network"};
+    static const char *names[] = {"home", "stats", "ai", "calendar", "weather", "media", "printer", "shortcuts", "timer", "games", "network",
+                                  "github"};
     uint32_t mask = 1; // Home is always shown
     const cJSON *it;
     cJSON_ArrayForEach(it, cJSON_GetObjectItemCaseSensitive(m, "pages")) {
@@ -438,6 +439,29 @@ static void on_github(const cJSON *m)
         g.month_col[g.month_count] = (int16_t)(col->valueint - shift);
         strlcpy(g.month_name[g.month_count], name->valuestring, sizeof(g.month_name[0]));
         g.month_count++;
+    }
+    copy_str(g.login, sizeof(g.login), m, "login");
+    g.longest = (int)get_num(m, "longest", 0);
+    copy_str(g.best_date, sizeof(g.best_date), m, "best_date");
+    cJSON_ArrayForEach(it, cJSON_GetObjectItemCaseSensitive(m, "week_days")) {
+        if (g.week_day_count >= 7) break;
+        g.week_days[g.week_day_count++] = cJSON_IsNumber(it) ? it->valueint : 0;
+    }
+    int lw = 0;
+    cJSON_ArrayForEach(it, cJSON_GetObjectItemCaseSensitive(m, "last_week_days")) {
+        if (lw >= 7) break;
+        g.last_week_days[lw++] = cJSON_IsNumber(it) ? it->valueint : 0;
+    }
+    const cJSON *kinds = cJSON_GetObjectItemCaseSensitive(m, "kinds");
+    g.commits = (int)get_num(kinds, "commits", 0);
+    g.prs = (int)get_num(kinds, "prs", 0);
+    g.reviews = (int)get_num(kinds, "reviews", 0);
+    g.issues = (int)get_num(kinds, "issues", 0);
+    cJSON_ArrayForEach(it, cJSON_GetObjectItemCaseSensitive(m, "repos")) {
+        if (g.repo_count >= HUB_GH_REPOS) break;
+        copy_str(g.repo_name[g.repo_count], sizeof(g.repo_name[0]), it, "name");
+        g.repo_commits[g.repo_count] = (int)get_num(it, "count", 0);
+        g.repo_count++;
     }
     display_lock();
     ui_set_github(&g);

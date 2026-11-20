@@ -154,14 +154,15 @@ class Companion:
         self.speedtest_at = -SPEEDTEST_MIN_GAP_S
         self.github = None
         gcfg = cfg.get("github", {})
-        if gcfg.get("enabled", True) and any(g["widget"] == "github" for g in home_grid(cfg)):
+        if gcfg.get("enabled", True) and (any(g["widget"] == "github" for g in home_grid(cfg))
+                                          or "github" in enabled_pages(cfg)):
             from .github import GitHub, get_token
 
             token = get_token()  # from `deskhub-setup github`
             if token:
                 self.github = GitHub(token, accent=str(gcfg.get("colors", "green")).lower() == "accent")
             else:
-                log.info("the GitHub widget is on Home but no token is saved; run: uv run deskhub-setup github")
+                log.info("the GitHub widget or page is on but no token is saved; run: uv run deskhub-setup github")
         self.connected_once = False
         self.ws = None
         self.loop = None
