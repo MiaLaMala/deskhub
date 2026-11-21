@@ -5,6 +5,7 @@ status, the worker and probe against a tiny local HTTP server, and the CLI.
 Prints OK or the problems found. Never touches the OS credential store.
 """
 import builtins
+import functools
 import getpass
 import json
 import pathlib
@@ -45,6 +46,7 @@ sys.modules["keyring"] = kr
 
 from deskhub import moonraker as mr  # noqa: E402
 from deskhub import printer as pr  # noqa: E402
+from deskhub import printer_poll as poll  # noqa: E402
 from deskhub import printers_cli  # noqa: E402
 from deskhub.pages import enabled_pages  # noqa: E402
 
@@ -172,7 +174,7 @@ def wait_for(cond, secs=8):
     return False
 
 
-mr.POLL_S = 0.1
+mr.MoonrakerWorker.POLL_S = 0.1
 entry = {"name": "Voron", "type": "moonraker", "host": "127.0.0.1", "port": PORT, "model": "Voron 2.4"}
 svc = pr.PrinterService([entry, {"name": "x", "type": "moonraker"}],
                         secret_getter=lambda s, k: store.get((s, k)))
@@ -187,16 +189,16 @@ Fake.status = status(print_stats={"state": "complete"})
 check(wait_for(lambda: svc.message()["printers"][0]["state"] == "FINISH"), "moonraker: update arrives")
 check(Fake.hits["meta"] == 1, f"metadata fetched once per file: {Fake.hits}")
 w = svc.workers[0]
-check(w.message(now=time.monotonic() + mr.STALE_S + 1)["state"] == "OFFLINE", "stale -> OFFLINE")
+check(w.message(now=time.monotonic() + pr.STALE_S + 1)["state"] == "OFFLINE", "stale -> OFFLINE")
 svc.stop()
 
 # Unreachable: offline, one log line, no crash.
 logs = []
-handler = type("H", (mr.logging.Handler,), {"emit": lambda self, rec: logs.append(rec.getMessage())})()
-mr.log.addHandler(handler)
+handler = type("H", (poll.logging.Handler,), {"emit": lambda self, rec: logs.append(rec.getMessage())})()
+poll.log.addHandler(handler)
 dead = pr.PrinterService([{"name": "Gone", "type": "moonraker", "host": "127.0.0.1", "port": 1}],
                          secret_getter=lambda s, k: None)
-mr.RETRY_S = 0.1
+mr.MoonrakerWorker.RETRY_S = 0.1
 dead.start()
 check(wait_for(lambda: len(logs) >= 1), "unreachable logs a line")
 time.sleep(0.5)
@@ -206,7 +208,7 @@ dead.stop()
 # API key: refused without it (clear hint), works with it from the credential store.
 Fake.api_key = "KEY123"
 logs.clear()
-store[(mr.SERVICE, mr.api_key_name("127.0.0.1", PORT))] = "KEY123"
+store[(poll.SERVICE, poll.secret_key("moonraker", "127.0.0.1", PORT))] = "KEY123"
 keyed = pr.PrinterService([entry], secret_getter=lambda s, k: store.get((s, k)))
 keyed.start()
 check(wait_for(lambda: keyed.message()["printers"][0]["online"]), "api key from credential store")
@@ -217,13 +219,16 @@ nokey.start()
 check(wait_for(lambda: any("trusted_clients" in line for line in logs)), f"401 hint: {logs}")
 check(not any("KEY123" in line for line in logs), "key not logged")
 nokey.stop()
-mr.log.removeHandler(handler)
+poll.log.removeHandler(handler)
 
-ok, text, host = mr.probe("127.0.0.1", PORT, "KEY123")
+r = mr.probe({"host": "127.0.0.1", "port": PORT}, "KEY123")
+ok, text, host = r.ok, r.message, r.name
 check(ok and host == "voron24", f"probe ok: {text}")
-ok, text, host = mr.probe("127.0.0.1", PORT)
+r = mr.probe({"host": "127.0.0.1", "port": PORT}, None)
+ok, text, host = r.ok, r.message, r.name
 check(not ok and "trusted_clients" in text, f"probe 401: {text}")
-ok, text, host = mr.probe("127.0.0.1", 1, timeout=1)
+r = mr.probe({"host": "127.0.0.1", "port": 1}, None, timeout=1)
+ok, text, host = r.ok, r.message, r.name
 check(not ok and "7125" in text, f"probe unreachable: {text}")
 Fake.api_key = None
 
@@ -238,6 +243,9 @@ tmp = pathlib.Path(tempfile.mkdtemp()) / "config.toml"
 tmp.write_text('# my config\n[hub]\nhost = "x"\n', encoding="utf-8")
 
 
+ADD = functools.partial(printers_cli.cmd_add_polled, spec=mr.SPEC)
+
+
 def run(cmd, answers, passwords):
     a, p = iter(answers), iter(passwords)
     builtins.input = lambda prompt="": next(a)
@@ -245,27 +253,27 @@ def run(cmd, answers, passwords):
     cmd(tmp)
 
 
-run(printers_cli.cmd_add_moonraker, ["127.0.0.1", str(PORT), "", "SV08"], [""])
+run(ADD, ["127.0.0.1", str(PORT), "", "SV08"], [""])
 cfg = tomllib.loads(tmp.read_text())
 check(cfg["printers"] == [{"name": "voron24", "type": "moonraker", "host": "127.0.0.1", "port": PORT,
                            "model": "SV08"}], f"moonraker saved: {cfg.get('printers')}")
-run(printers_cli.cmd_add_moonraker, ["127.0.0.1", str(PORT), "", ""], [""])
+run(ADD, ["127.0.0.1", str(PORT), "", ""], [""])
 check(len(tomllib.loads(tmp.read_text())["printers"]) == 1, "duplicate host refused")
-printers_cli.mr.probe = lambda *a, **k: (False, "No answer (stubbed)", "")
-run(printers_cli.cmd_add_moonraker, ["192.168.1.80", "", "y", "", ""], ["SECRETKEY"])
+mr.SPEC.probe = lambda *a, **k: poll.ProbeResult(False, "No answer (stubbed)")
+run(ADD, ["192.168.1.80", "", "y", "", ""], ["SECRETKEY"])
 cfg = tomllib.loads(tmp.read_text())
 check(cfg["printers"][1] == {"name": "Klipper", "type": "moonraker", "host": "192.168.1.80"},
       f"default port and model left out: {cfg['printers'][1]}")
-check(store.get((mr.SERVICE, "moonraker:192.168.1.80:7125")) == "SECRETKEY" and "SECRETKEY" not in tmp.read_text(),
+check(store.get((poll.SERVICE, "moonraker:192.168.1.80:7125")) == "SECRETKEY" and "SECRETKEY" not in tmp.read_text(),
       "api key in credential store only")
 check("Moonraker 192.168.1.80:7125" in printers_cli.describe(cfg["printers"][1]), "describe")
 run(printers_cli.cmd_remove, ["2", "y"], [])
-check((mr.SERVICE, "moonraker:192.168.1.80:7125") not in store and
+check((poll.SERVICE, "moonraker:192.168.1.80:7125") not in store and
       len(tomllib.loads(tmp.read_text())["printers"]) == 1, "remove deletes the key")
 run(printers_cli.cmd_remove, ["1"], [])  # no stored key: no question asked
 check(not tomllib.loads(tmp.read_text()).get("printers") and "# my config" in tmp.read_text(), "removed, comments kept")
-run(printers_cli.cmd_add_moonraker, ["not a host!", ], [])
-run(printers_cli.cmd_add_moonraker, ["1.2.3.4", "99999"], [])
+run(ADD, ["not a host!", ], [])
+run(ADD, ["1.2.3.4", "99999"], [])
 check(not tomllib.loads(tmp.read_text()).get("printers"), "bad host/port rejected")
 
 srv.shutdown()

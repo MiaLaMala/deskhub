@@ -303,20 +303,29 @@ def keyring_secret(service: str, key: str) -> str | None:
 
 
 class PrinterService:
-    """All configured printers. Bambu entries (type "local"/"cloud") need a serial;
-    Moonraker entries (type "moonraker") need a host."""
+    """All configured printers. Bambu entries (type "local"/"cloud") need a serial; the
+    network-polled brands in printer_types.py need a host."""
 
     def __init__(self, entries: list[dict], secret_getter=keyring_secret, **worker_kw):
-        from .moonraker import MoonrakerWorker
+        from . import printer_types
         self.workers = []
         for e in entries:
             if len(self.workers) >= MAX_PRINTERS:
                 break
-            if e.get("type") == "moonraker":
-                if e.get("host"):
-                    self.workers.append(MoonrakerWorker(e, secret_getter))
-            elif e.get("serial"):
+            kind = e.get("type")
+            if kind in printer_types.BACKENDS:
+                if not e.get("host"):
+                    continue
+                try:
+                    worker_cls = printer_types.module(kind).WORKER
+                except ModuleNotFoundError:
+                    log.error("printer %s: type %r isn't supported by this version", e.get("name"), kind)
+                    continue
+                self.workers.append(worker_cls(e, secret_getter))
+            elif kind in (None, "local", "cloud") and e.get("serial"):
                 self.workers.append(Worker(e, secret_getter, **worker_kw))
+            else:
+                log.error("printer %s: unknown type %r", e.get("name"), kind)
 
     def start(self):
         for w in self.workers:

@@ -5,37 +5,22 @@ Qidi, Elegoo Neptune 4, Snapmaker U1, and Creality K1/K2 where Moonraker is reac
 printer gets a worker thread that polls `/printer/objects/query`; the slicer metadata for the
 current file (estimated time, layer heights, filament colours) is fetched once per file.
 """
-import logging
 import math
 import re
-import threading
-import time
 from urllib.parse import quote
 
 import httpx
 
 from .calendar_feed import _safe_error
-from .printer import MAX_AMS, STALE_S, _COLOR, _int, _num, offline_message
+from .printer import MAX_AMS, _COLOR, _int, _num
+from .printer_poll import BackendSpec, PollingWorker, ProbeResult, host_port
 from .text import ascii_fold
 
-log = logging.getLogger(__name__)
-
-SERVICE = "deskhub-printers"
 DEFAULT_PORT = 7125
-POLL_S = 2
-RETRY_S = 15
 _STATES = {"printing": "RUNNING", "paused": "PAUSE", "complete": "FINISH", "error": "FAILED",
            "cancelled": "IDLE", "standby": "IDLE"}
 _BASE_OBJECTS = ["webhooks", "print_stats", "virtual_sdcard", "display_status", "gcode_move",
                  "toolhead", "heater_bed"]
-
-
-def api_key_name(host: str, port: int) -> str:
-    return f"moonraker:{host}:{port}"
-
-
-def base_url(host: str, port: int) -> str:
-    return f"http://[{host}]:{port}" if ":" in host else f"http://{host}:{port}"
 
 
 def chamber_object(objects: list[str]) -> str | None:
@@ -159,7 +144,8 @@ class MoonrakerClient:
     def __init__(self, host: str, port: int = DEFAULT_PORT, api_key: str | None = None,
                  timeout: float = 5):
         headers = {"X-Api-Key": api_key} if api_key else {}
-        self.http = httpx.Client(base_url=base_url(host, port), headers=headers, timeout=timeout)
+        self.http = httpx.Client(base_url=f"http://{host_port(host, port)}", headers=headers,
+                                 timeout=timeout)
 
     def close(self):
         self.http.close()
@@ -186,38 +172,32 @@ class MoonrakerClient:
         return self._get("/printer/info")
 
 
-class MoonrakerWorker(threading.Thread):
+class MoonrakerWorker(PollingWorker):
+    type = "moonraker"
+    default_port = DEFAULT_PORT
+    default_model = "Klipper"
+
     def __init__(self, entry: dict, secret_getter, client_factory=MoonrakerClient):
-        super().__init__(daemon=True, name=f"moonraker-{entry.get('name', '')}")
-        self.entry = entry
-        self.host = str(entry["host"])
-        self.port = _int(entry.get("port")) or DEFAULT_PORT
-        self.label = str(entry.get("name") or self.host)
-        self.model = ascii_fold(entry.get("model") or "Klipper", 15)
-        self.get_secret = secret_getter
+        super().__init__(entry, secret_getter)
         self.factory = client_factory
-        self.stop_event = threading.Event()
-        self.lock = threading.Lock()
-        self.last: dict | None = None
-        self.last_at = 0.0
         self._objects: list[str] | None = None
         self._meta_for: str | None = None
         self._meta: dict = {}
         self._was_printing = False
-        self._warned = False
 
-    def _fail(self, e: Exception, api_key: str | None):
-        status = getattr(getattr(e, "response", None), "status_code", None)
-        if status in (401, 403):
-            text = ("Moonraker refused the request. Add this PC to trusted_clients in moonraker.conf, "
+    def open(self):
+        return self.factory(self.host, self.port, self.secret)
+
+    def reset(self):
+        self._objects = None  # Klipper may come back with other sensors
+
+    def hint(self, e):
+        if getattr(getattr(e, "response", None), "status_code", None) in (401, 403):
+            return ("Moonraker refused the request. Add this PC to trusted_clients in moonraker.conf, "
                     "or set an API key with `deskhub-printers`.")
-        else:
-            text = _safe_error(e, api_key or "")
-        if not self._warned:
-            log.warning("printer %s: %s; retrying", self.label, text)
-            self._warned = True
+        return None
 
-    def poll(self, client) -> None:
+    def poll(self, client) -> dict:
         if self._objects is None:
             available = client.objects()
             extruders = [o for o in available if re.fullmatch(r"extruder\d*", o)]
@@ -233,59 +213,47 @@ class MoonrakerWorker(threading.Thread):
             self._meta = client.metadata(filename) if filename else {}
             self._meta_for = filename
         self._was_printing = printing
-        msg = build_message(self.label, self.model, status, self._meta)
-        with self.lock:
-            self.last, self.last_at = msg, time.monotonic()
-        if self._warned:
-            log.info("printer %s: connected", self.label)
-            self._warned = False
-
-    def run(self):
-        api_key = self.get_secret(SERVICE, api_key_name(self.host, self.port))
-        client = self.factory(self.host, self.port, api_key)
-        try:
-            while not self.stop_event.is_set():
-                try:
-                    self.poll(client)
-                    wait = POLL_S
-                except Exception as e:  # odd replies must not kill the thread
-                    self._fail(e, api_key)
-                    self._objects = None  # Klipper may come back with other sensors
-                    wait = RETRY_S if not self.last else POLL_S
-                self.stop_event.wait(wait)
-        finally:
-            client.close()
-
-    def stop(self):
-        self.stop_event.set()
-
-    def message(self, now: float | None = None) -> dict:
-        now = time.monotonic() if now is None else now
-        with self.lock:
-            if self.last and now - self.last_at <= STALE_S:
-                return dict(self.last)
-        return offline_message(self.label, self.model)
+        return build_message(self.label, self.model, status, self._meta)
 
 
-def probe(host: str, port: int = DEFAULT_PORT, api_key: str | None = None,
-          timeout: float = 5) -> tuple[bool, str, str]:
-    """Check that Moonraker answers. -> (ok, message for the user, printer hostname or "")."""
+def probe(entry: dict, api_key: str | None, timeout: float = 5) -> ProbeResult:
+    """Check that Moonraker answers; suggests the printer's hostname as its name."""
+    host, port = str(entry["host"]), int(entry.get("port") or DEFAULT_PORT)
     client = MoonrakerClient(host, port, api_key, timeout=timeout)
     try:
         info = client.info()
         state = str(info.get("state") or "")
         name = str(info.get("hostname") or "")
         if state and state != "ready":
-            return True, f"Moonraker answered, but Klipper is {state}. It is saved anyway.", name
-        return True, "Connected and Klipper is ready.", name
+            return ProbeResult(True, f"Moonraker answered, but Klipper is {state}. It is saved anyway.", name)
+        return ProbeResult(True, "Connected and Klipper is ready.", name)
     except httpx.HTTPStatusError as e:
         if e.response.status_code in (401, 403):
-            return False, ("Moonraker wants authorization. Add this PC's network to trusted_clients "
-                           "in moonraker.conf, or enter an API key (Mainsail/Fluidd settings)."), ""
-        return False, f"Moonraker answered with HTTP {e.response.status_code}. Is this the right port?", ""
+            return ProbeResult(False, "Moonraker wants authorization. Add this PC's network to trusted_clients "
+                                      "in moonraker.conf, or enter an API key (Mainsail/Fluidd settings).")
+        return ProbeResult(False, f"Moonraker answered with HTTP {e.response.status_code}. Is this the right port?")
     except (httpx.HTTPError, ValueError) as e:
-        return False, (f"No answer from {host}:{port} ({_safe_error(e, api_key or '')}). Check the IP "
-                       "address and port (Moonraker is usually 7125; try 80 if Mainsail or Fluidd "
-                       "is in front of it)."), ""
+        return ProbeResult(False, f"No answer from {host_port(host, port)} ({_safe_error(e, api_key or '')}). "
+                                  "Check the IP address and port (Moonraker is usually 7125; try 80 if "
+                                  "Mainsail or Fluidd is in front of it).")
     finally:
         client.close()
+
+
+SPEC = BackendSpec(
+    type="moonraker",
+    menu="Klipper (Moonraker): Voron, Sovol, Qidi, Creality K1/K2, Snapmaker U1...",
+    intro="""Klipper printer (Moonraker)
+  For printers running Klipper with Moonraker: Voron and other self-built printers, Sovol SV08,
+  Qidi, Elegoo Neptune 4, Snapmaker U1, and Creality K1/K2 with Moonraker enabled. If you open
+  Mainsail or Fluidd in a browser to control the printer, this is the one.
+  Moonraker listens on port 7125; use 80 if you only reach it through Mainsail/Fluidd.
+  Most setups let devices on the home network in without a key (trusted_clients in
+  moonraker.conf); otherwise enter an API key from Mainsail/Fluidd's settings.""",
+    default_port=DEFAULT_PORT,
+    default_model="Klipper",
+    probe=probe,
+    secret_prompt="API key (hidden, empty if none)",
+    brand="Moonraker",
+)
+WORKER = MoonrakerWorker

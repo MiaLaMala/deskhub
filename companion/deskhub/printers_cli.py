@@ -1,8 +1,9 @@
-"""Connect 3D printers: Bambu Lab (cloud account or LAN) and Klipper printers (Moonraker).
+"""Connect 3D printers: Bambu Lab (cloud account or LAN) and network printers of other brands.
 
-    uv run deskhub-printers [--config path/to/config.toml] [list|add-cloud|add-local|add-moonraker|remove]
+    uv run deskhub-printers [--config path/to/config.toml] [list|add-cloud|add-local|add-<type>|remove]
 """
 import argparse
+import functools
 import getpass
 import pathlib
 import re
@@ -10,7 +11,8 @@ import re
 import tomlkit
 
 from . import bambu_cloud as cloud
-from . import moonraker as mr
+from . import printer_poll as poll
+from . import printer_types as ptypes
 from .__main__ import find_config
 from .calendar_feed import _safe_error
 from .calendars_cli import ask, load, write
@@ -40,10 +42,13 @@ def _ensure_page(doc):
 
 
 def _same(a, b) -> bool:
-    if a.get("type") == "moonraker" or b.get("type") == "moonraker":
-        return (a.get("type"), a.get("host"), a.get("port", mr.DEFAULT_PORT)) == \
-               (b.get("type"), b.get("host"), b.get("port", mr.DEFAULT_PORT))
-    return a.get("serial") == b.get("serial")
+    if a.get("type") in ("local", "cloud") and b.get("type") in ("local", "cloud"):
+        return a.get("serial") == b.get("serial")
+    if a.get("type") != b.get("type"):
+        return False
+    spec = _spec(str(a.get("type", "")))
+    port = spec.default_port if spec else 0
+    return (a.get("host"), int(a.get("port", port))) == (b.get("host"), int(b.get("port", port)))
 
 
 def _add(path, doc, entry: dict) -> bool:
@@ -63,10 +68,19 @@ def _add(path, doc, entry: dict) -> bool:
     return True
 
 
+def _spec(kind: str):
+    try:
+        return ptypes.module(kind).SPEC if kind in ptypes.BACKENDS else None
+    except ModuleNotFoundError:
+        return None
+
+
 def describe(p) -> str:
-    if p.get("type") == "moonraker":
-        return (f"{p.get('name', '')}  [{p.get('model') or 'Klipper'}, Moonraker "
-                f"{p.get('host', '')}:{p.get('port', mr.DEFAULT_PORT)}]")
+    spec = _spec(str(p.get("type", "")))
+    if spec:
+        brand = spec.brand or spec.type
+        return (f"{p.get('name', '')}  [{p.get('model') or spec.default_model}, {brand} "
+                f"{p.get('host', '')}:{p.get('port', spec.default_port)}]")
     model = p.get("model") or MODELS.get(str(p.get("serial", ""))[:3], "")
     where = f"LAN {p.get('host', '')}" if p.get("type") == "local" else f"cloud {p.get('account', '')}"
     return f"{p.get('name', '')}  [{model + ', ' if model else ''}{where}, serial {p.get('serial', '')}]"
@@ -183,47 +197,53 @@ Local (LAN) printer
         print("Restart the companion to pick it up.")
 
 
-def cmd_add_moonraker(path):
-    print("""
-Klipper printer (Moonraker)
-  For printers running Klipper with Moonraker: Voron and other self-built printers, Sovol SV08,
-  Qidi, Elegoo Neptune 4, Snapmaker U1, and Creality K1/K2 with Moonraker enabled. If you open
-  Mainsail or Fluidd in a browser to control the printer, this is the one.
-  Moonraker listens on port 7125; use 80 if you only reach it through Mainsail/Fluidd.
-  Most setups let devices on the home network in without a key (trusted_clients in
-  moonraker.conf); otherwise enter an API key from Mainsail/Fluidd's settings.
-""")
+def cmd_add_polled(path, spec):
+    """Add a printer of any network-polled brand, asking what its BackendSpec lists."""
+    print("\n" + spec.intro + "\n")
     host = ask("Printer IP address or hostname (empty to cancel)")
     if not host:
         return
     if not _IP.fullmatch(host):
         print("That doesn't look like an IP address or hostname.")
         return
-    port_s = ask("Port", str(mr.DEFAULT_PORT))
-    if not port_s.isdigit() or not 0 < int(port_s) < 65536:
-        print("The port is a number from 1 to 65535.")
-        return
-    port = int(port_s)
-    api_key = getpass.getpass("API key (hidden, empty if none): ").strip()
+    port = spec.default_port
+    if spec.ask_port:
+        port_s = ask("Port", str(spec.default_port))
+        if not port_s.isdigit() or not 0 < int(port_s) < 65536:
+            print("The port is a number from 1 to 65535.")
+            return
+        port = int(port_s)
+    entry = {"name": "", "type": spec.type, "host": host}
+    if port != spec.default_port:
+        entry["port"] = port
+    for field in spec.fields:
+        value = ask(field.prompt, field.default)
+        if not value and field.required:
+            return
+        if value:
+            entry[field.key] = value
+    secret = None
+    if spec.secret_prompt:
+        secret = getpass.getpass(f"{spec.secret_prompt}: ").strip() or None
+        if spec.secret_required and not secret:
+            return
     print("Testing the connection...")
     try:
-        ok, msg, hostname = mr.probe(host, port, api_key or None)
+        res = spec.probe(dict(entry), secret)
     except Exception as e:
-        ok, msg, hostname = False, f"Connection test failed: {_safe_error(e, api_key)}", ""
-    print(msg)
-    if not ok and ask("Save it anyway? (y/n)", "n").lower() != "y":
+        res = poll.ProbeResult(False, f"Connection test failed: {_safe_error(e, secret or '')}")
+    print(res.message)
+    if not res.ok and ask("Save it anyway? (y/n)", "n").lower() != "y":
         return
-    name = ask("Name for this printer", hostname or "Klipper")
-    model = ask("Model, shown on the board (for example Voron 2.4, SV08)", "Klipper")
-    entry = {"name": name, "type": "moonraker", "host": host}
-    if port != mr.DEFAULT_PORT:
-        entry["port"] = port
-    if model and model != "Klipper":
+    secret = res.secret or secret
+    entry["name"] = ask("Name for this printer", res.name or res.model or spec.default_model)
+    model = ask("Model, shown on the board", res.model or spec.default_model)
+    if model and model != spec.default_model:
         entry["model"] = model
     if _add(path, load(path), entry):
-        if api_key:
-            _keyring().set_password(mr.SERVICE, mr.api_key_name(host, port), api_key)
-            print("API key saved to the credential store.")
+        if secret:
+            _keyring().set_password(poll.SERVICE, poll.secret_key(spec.type, host, port), secret)
+            print("Credential saved to the credential store.")
         print(f"Printer saved to {path}. Restart the companion to pick it up.")
 
 
@@ -241,9 +261,10 @@ def cmd_remove(path):
     del printers[int(n) - 1]
     write(path, doc)
     print("Removed.")
-    if gone.get("type") == "moonraker":
-        host, port = str(gone.get("host", "")), int(gone.get("port", mr.DEFAULT_PORT))
-        service, key = mr.SERVICE, mr.api_key_name(host, port)
+    spec = _spec(str(gone.get("type", "")))
+    if spec:
+        host, port = str(gone.get("host", "")), int(gone.get("port", spec.default_port))
+        service, key = poll.SERVICE, poll.secret_key(spec.type, host, port)
         try:
             if _keyring().get_password(service, key) is None:
                 return
@@ -263,38 +284,43 @@ def cmd_remove(path):
             pass
 
 
-COMMANDS = {"list": cmd_list, "add-cloud": cmd_add_cloud, "add-local": cmd_add_local,
-            "add-moonraker": cmd_add_moonraker, "remove": cmd_remove}
+def _commands() -> dict:
+    """name -> (menu label, function of path)."""
+    cmds = {"list": ("List printers", cmd_list),
+            "add-cloud": ("Bambu Lab: add printers from a Bambu cloud account", cmd_add_cloud),
+            "add-local": ("Bambu Lab: add a printer on the local network (LAN)", cmd_add_local)}
+    for kind in ptypes.available():
+        spec = ptypes.module(kind).SPEC
+        cmds[f"add-{kind}"] = (spec.menu, functools.partial(cmd_add_polled, spec=spec))
+    cmds["remove"] = ("Remove a printer", cmd_remove)
+    return cmds
 
 
 def main():
+    cmds = _commands()
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--config")
-    ap.add_argument("command", nargs="?", choices=list(COMMANDS))
+    ap.add_argument("command", nargs="?", choices=list(cmds))
     args = ap.parse_args()
     path = find_config(args.config)
     if args.command:
-        COMMANDS[args.command](path)
+        cmds[args.command][1](path)
         return
     menu(path)
 
 
 def menu(path: pathlib.Path):
     """Interactive printer menu; also used by `deskhub-setup`."""
-    names = list(COMMANDS)
-    labels = ["List printers", "Add Bambu Lab printers from a Bambu cloud account",
-              "Add a Bambu Lab printer on the local network (LAN)",
-              "Add a Klipper printer (Moonraker: Voron, Sovol, Qidi, Creality K1/K2...)",
-              "Remove a printer"]
+    cmds = list(_commands().values())
     while True:
         print(f"\nPrinters in {path}")
-        for i, label in enumerate(labels, 1):
-            print(f"  {i}. {label}")
-        choice = ask(f"Choose 1-{len(labels)}, or empty to quit")
+        for i, (label, _) in enumerate(cmds, 1):
+            print(f"  {i:>2}. {label}")
+        choice = ask(f"Choose 1-{len(cmds)}, or empty to quit")
         if not choice:
             return
-        if choice.isdigit() and 1 <= int(choice) <= len(names):
-            COMMANDS[names[int(choice) - 1]](path)
+        if choice.isdigit() and 1 <= int(choice) <= len(cmds):
+            cmds[int(choice) - 1][1](path)
 
 
 if __name__ == "__main__":
