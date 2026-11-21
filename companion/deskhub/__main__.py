@@ -277,15 +277,18 @@ class Companion:
             return
         service.start()
         sent_at = 0.0
-        while True:
-            msg = service.message()
-            now = asyncio.get_running_loop().time()
-            # Send on change (checked every 2 s) and at least every 30 s.
-            if msg != self.printer_msg or now - sent_at >= PRINTER_KEEPALIVE_S:
-                self.printer_msg = msg
-                sent_at = now
-                await self.send(msg)
-            await asyncio.sleep(PRINTER_TICK_S)
+        try:
+            while True:
+                msg = service.message()
+                now = asyncio.get_running_loop().time()
+                # Send on change (checked every 2 s) and at least every 30 s.
+                if msg != self.printer_msg or now - sent_at >= PRINTER_KEEPALIVE_S:
+                    self.printer_msg = msg
+                    sent_at = now
+                    await self.send(msg)
+                await asyncio.sleep(PRINTER_TICK_S)
+        finally:
+            service.stop()  # lets each printer connection close cleanly on exit
 
     async def steam_loop(self):
         if not (self.steam.use_steam and steam_installed()) and not self.steam.custom.games:

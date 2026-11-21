@@ -331,9 +331,14 @@ class PrinterService:
         for w in self.workers:
             w.start()
 
-    def stop(self):
+    def stop(self, timeout: float = 2.0):
+        """Stop every worker and give each a moment to close its connection cleanly (release
+        printer control, end the session), since they are daemon threads."""
         for w in self.workers:
             w.stop()
+        for w in self.workers:
+            if w.is_alive():
+                w.join(timeout)
 
     def message(self) -> dict:
         return {"type": "printer", "printers": [w.message() for w in self.workers]}

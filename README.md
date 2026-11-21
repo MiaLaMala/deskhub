@@ -54,7 +54,7 @@ The board runs custom firmware (ESP-IDF + LVGL). A small Python app on your Wind
 | Weather | Current conditions, the next 24 hours and 6 days | the board itself, from [Open-Meteo](https://open-meteo.com) |
 | Media | Whatever Windows lists as playing (Spotify, YouTube in a browser, VLC…) with the cover, a seek bar and controls | companion |
 | Shortcuts | Up to 16 buttons: key combos, apps, folders, URLs, volume, media, lock PC | companion |
-| 3D printer | Print state, progress, temperatures and filament colours for up to 4 Bambu Lab or Klipper (Moonraker) printers (optional) | companion, over MQTT (Bambu) or HTTP (Moonraker) |
+| 3D printer | Print state, progress, temperatures and filament colours for up to 4 printers: Bambu Lab, Klipper, Prusa, OctoPrint, Flashforge, Elegoo, Snapmaker, Anycubic (optional) | companion, over the local network (Bambu also through its cloud) |
 | Games | The Steam game you're playing with its cover and session time, your five most recent games, and a tap to launch one (optional) | companion, from Steam's local files |
 | Stats: Internet view | Online status, latency, jitter and packet loss with a one-minute chart, uptime and the last drop, data used today and this month, and an on-demand speed test | companion |
 | Timer | Countdown with presets from 1 to 45 minutes, pause and reset, and a full-screen "Time's up" card. The time left shows on its sidebar tab | the board itself, works without the PC |
@@ -112,7 +112,7 @@ It asks these questions in order. When you run it again, each answer you gave be
 2. **City**: type something like `Charlotte, NC` or `Paris, France` and pick from the matches. This sets the weather location and the time zone.
 3. **Units**: two yes/no questions. The first asks "Fahrenheit and mph", which defaults to yes for US cities. The second asks "24-hour clock".
 4. **Calendars**: setup asks whether you want to add Google or Apple calendars now. See [Calendars](#calendars).
-5. **3D printers**: whether to add or change 3D printers (Bambu Lab or Klipper). See [3D printer](#3d-printer).
+5. **3D printers**: whether to add or change 3D printers. See [3D printer](#3d-printer).
 6. **Games**: whether to add games that aren't on Steam, such as Minecraft. See [Games that aren't on Steam](#games-that-arent-on-steam).
 7. **Shortcuts**: whether to add, change, move or remove the buttons on the Shortcuts page. See [Shortcuts](#shortcuts).
 8. **Pages**: a yes/no for each page, to choose which ones the sidebar shows (Home is always shown), then where the navigation bar goes: `left`, `right` or `bottom`. Moving it restarts the board once so every page is laid out for the new space; with the bar along the bottom, pages use a slightly more compact layout.
@@ -221,7 +221,7 @@ Run these in `companion/`.
 | `uv run deskhub-flash` | Builds the firmware and sends it to the board over Wi-Fi, or USB. |
 | `uv run deskhub-install` | Starts the companion with Windows; `--remove` stops that. |
 | `uv run deskhub-calendars` | Lists, adds and removes calendars. |
-| `uv run deskhub-printers` | Adds and removes 3D printers (Bambu Lab, Klipper). |
+| `uv run deskhub-printers` | Adds and removes 3D printers. |
 | `uv run deskhub-games` | Adds a game that isn't on Steam, picked from the programs running now. |
 | `uv run python install_claude.py` | Installs the Claude Code status line and hooks; `statusline`, `hooks` and `--remove` narrow it down. |
 
@@ -443,21 +443,35 @@ grid = [
 
 The printer page shows state, progress, time left, layer, temperatures, speed, errors and filament colours for up to 4 printers, in any mix of:
 
-- **Bambu Lab**: A1, A1 mini, P1P, P1S, X1C, X1E and H2D, over MQTT.
-- **Klipper printers through Moonraker**: anything you control from Mainsail or Fluidd, such as a Voron, Sovol SV08, Qidi, Elegoo Neptune 4, Snapmaker U1, or a Creality K1/K2 with Moonraker enabled.
+| Brand | Printers | How |
+| --- | --- | --- |
+| [Bambu Lab](#bambu-lab) | A1, A1 mini, P1P, P1S, X1C, X1E, H2D | MQTT, on your network or through Bambu's cloud |
+| [Klipper (Moonraker)](#klipper-moonraker) | Voron, Sovol SV08, Qidi, Elegoo Neptune 4, Snapmaker U1, Creality K1/K2 with Moonraker, anything you run from Mainsail or Fluidd | Moonraker's HTTP API |
+| [Prusa](#prusa-prusalink) | MK4/MK4S, MK3.9, MK3.5, XL, MINI/MINI+, CORE One | PrusaLink |
+| [OctoPrint](#octoprint) | Any printer OctoPrint drives: older Creality Enders, Prusa MK3S, Anycubic i3 Mega... | OctoPrint's REST API |
+| [Flashforge](#flashforge) | Adventurer 5M / 5M Pro, AD5X; Adventurer 3/4, Creator Pro, Finder | HTTP API (newer), G-code port (older) |
+| [Elegoo](#elegoo-centauri-carbon) | Centauri Carbon | SDCP over WebSocket |
+| [Snapmaker](#snapmaker-20) | Snapmaker 2.0 A150, A250, A350 | Touchscreen Wi-Fi API |
+| [Anycubic](#anycubic-lan-mode) | Kobra 3 / 3 Max, Kobra S1 / S1 Max, Kobra 4, Kobra X, with ACE Pro | LAN Mode MQTT |
 
-Setup offers a *3D printers* step. You can also run it on its own, then restart the companion:
+Not supported yet: the Snapmaker J1, J1s and Artisan (they use Snapmaker's SACP protocol), Anycubic Kobra 2 (older LAN handshake), and Creality printers on stock firmware without Moonraker. Printers on Klipper or OctoPrint work whatever the brand.
+
+Setup offers a *3D printers* step. You can also run it on its own, pick the brand from the menu, then restart the companion:
 
 ```powershell
 uv run deskhub-printers
 ```
 
+Passwords, API keys, check codes and tokens go into Windows Credential Manager (under `deskhub-bambu` for Bambu, `deskhub-printers` for the rest), never into `config.toml`. Setup tests the connection before saving and tells you what it found. Everything except Bambu's cloud option needs the PC on the same network as the printer.
+
+None of the brands below were tested on real printers by this project: each one was built from the maker's published API, or from open-source tools that talk to that printer. If something shows wrong, please open an issue with your printer model and firmware version.
+
 ### Bambu Lab
 
 OrcaSlicer and Bambu Handy have no API of their own; they read the printer over MQTT, and so does the companion. Pick one way to connect per printer:
 
-- **Cloud**: choose *Add printers from a Bambu cloud account*, enter your Bambu email and password, and the emailed verification code if Bambu asks for one, then pick your printers. This works from anywhere, and OrcaSlicer and Bambu Handy keep working normally. Your password is not stored. Bambu's access token (valid about 3 months) goes into Windows Credential Manager under `deskhub-bambu`. When it expires the companion logs a line telling you to run `deskhub-printers` again. Use region `cn` only for China accounts.
-- **Local (LAN)**: choose *Add a printer on the local network* and enter:
+- **Cloud**: choose *Bambu Lab: add printers from a Bambu cloud account*, enter your Bambu email and password, and the emailed verification code if Bambu asks for one, then pick your printers. This works from anywhere, and OrcaSlicer and Bambu Handy keep working normally. Your password is not stored. Bambu's access token (valid about 3 months) goes into Windows Credential Manager under `deskhub-bambu`. When it expires the companion logs a line telling you to run `deskhub-printers` again. Use region `cn` only for China accounts.
+- **Local (LAN)**: choose *Bambu Lab: add a printer on the local network* and enter:
   - **IP address**: on the printer, *Settings → WLAN* (or *Network*); or your router's device list.
   - **Serial number**: *Settings → Device* on the printer, or the label on its back or underside.
   - **Access code**: 8 characters on the printer, under *Settings → WLAN* or *LAN Only Mode*.
@@ -478,7 +492,7 @@ host = "192.168.1.60"   # local only; cloud uses account = "you@example.com" and
 
 ### Klipper (Moonraker)
 
-Choose *Add a Klipper printer* and enter:
+Choose *Klipper (Moonraker)* and enter:
 
 - **IP address or hostname**: the address you open Mainsail or Fluidd at, without `http://`.
 - **Port**: Moonraker's own port is `7125`. If only Mainsail or Fluidd is reachable, use `80`.
@@ -494,6 +508,64 @@ host = "192.168.1.70"
 port = 7125             # optional, 7125 is the default
 model = "Voron 2.4"     # optional, shown on the board
 ```
+
+### Prusa (PrusaLink)
+
+Turn on PrusaLink on the printer (*Settings → Network → PrusaLink*), then choose *Prusa (PrusaLink)* and enter the IP address, the user name (usually `maker`) and the password from that same screen. The companion signs in with HTTP Digest, so the password never crosses the network as plain text. Shows state, progress, time left, file, nozzle and bed temperatures and the print speed. PrusaLink doesn't report layers or filament colours, so those stay empty.
+
+```toml
+[[printers]]
+name = "MK4"
+type = "prusalink"
+host = "192.168.1.71"
+user = "maker"
+model = "MK4S"
+```
+
+### OctoPrint
+
+For any printer you run through OctoPrint (usually OctoPi on a Raspberry Pi). Create an API key under *OctoPrint Settings → Application Keys*, choose *OctoPrint* and enter the Pi's address, the port (`80` for OctoPi, `5000` if you run OctoPrint yourself) and the key. Layer numbers show if the *DisplayLayerProgress* plugin is installed. When OctoPrint isn't connected to the printer, the board shows it idle with a note saying so.
+
+```toml
+[[printers]]
+name = "Ender 3"
+type = "octoprint"
+host = "octopi.local"
+```
+
+### Flashforge
+
+- **Adventurer 5M / 5M Pro, AD5X**: enter the IP address, the serial number (on the *About* screen, starts with `SN`) and the check code from the printer's network settings, the same pair Orca-Flashforge asks for. Turn on LAN-only mode if the printer doesn't answer. The AD5X material station's colours show on the board.
+- **Adventurer 3/4, Creator Pro, Finder and other older printers**: leave the serial number and check code empty. The companion then uses the G-code port (8899).
+
+```toml
+[[printers]]
+name = "AD5X"
+type = "flashforge"
+host = "192.168.1.72"
+serial = "SNMOMC9900000"
+```
+
+### Elegoo Centauri Carbon
+
+Choose *Elegoo Centauri Carbon* and enter the printer's IP address (*Settings → Network* on the printer). Nothing else is needed: no password or access code, just the printer and the PC on the same network. Shows state, progress, layers, time left, file, nozzle, bed and chamber temperatures, the print speed and print errors. Levelling or homing outside a print shows as preparing, without the last job's details. The printer allows only a handful of connections at once (slicer, phone app, Home Assistant...); the companion uses one, so close one of the others if setup can't connect.
+
+```toml
+[[printers]]
+name = "Centauri"
+type = "elegoo"
+host = "192.168.1.73"
+```
+
+Elegoo printers on Klipper (Neptune 4 series) go through [Moonraker](#klipper-moonraker) instead.
+
+### Snapmaker 2.0
+
+For the A150, A250 and A350. Turn on Wi-Fi on the touchscreen, choose *Snapmaker 2.0* and enter its IP address. While setup tests the connection, the touchscreen asks whether to allow it: tap **Yes** within a minute. The token it hands out goes into Windows Credential Manager. Laser and CNC jobs show their state and progress without temperatures. The Snapmaker U1 runs Klipper, so add it as a [Klipper printer](#klipper-moonraker).
+
+### Anycubic (LAN Mode)
+
+For the Kobra 3 / 3 Max, Kobra S1 / S1 Max, Kobra 4 and Kobra X on stock firmware. Turn on **LAN Mode** (*Settings → Network → LAN Mode*), choose *Anycubic (LAN Mode)* and enter the printer's IP address. No password: the companion asks the printer for its login each time it connects. ACE Pro slot colours show on the board, with the slot in use highlighted. LAN Mode takes the printer out of Anycubic's cloud and app until you pair it again.
 
 ## Claude Code usage
 

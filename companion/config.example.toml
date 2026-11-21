@@ -233,10 +233,10 @@ pc_sleep = "off"
 # What the board shows at night: "off" (screen dark) or "clock".
 # night_style = "off"
 
-# 3D printers: Bambu Lab (A1, A1 mini, P1P, P1S, X1C, X1E, H2D) and Klipper printers
-# through Moonraker. Easiest: run `uv run deskhub-printers`. Bambu access codes and cloud
-# tokens live in the OS credential store (service "deskhub-bambu"), never in this file.
-# Up to 4 printers, any mix.
+# 3D printers, up to 4 in any mix. Easiest: run `uv run deskhub-printers` and pick the
+# brand. Passwords, API keys, access codes and tokens live in the OS credential store
+# (service "deskhub-bambu" for Bambu, "deskhub-printers" for the rest), never in this file.
+# The README lists the models each `type` covers.
 #
 # Over your home network (needs LAN Only Mode or Developer Mode on the printer):
 # [[printers]]
@@ -262,3 +262,12 @@ pc_sleep = "off"
 # host = "192.168.1.70"
 # port = 7125
 # model = "Voron 2.4"
+#
+# Other types (same host / port / model keys; port defaults shown):
+#   type = "prusalink"   port 80, plus user = "maker"; password in the credential store
+#   type = "octoprint"   port 80; API key in the credential store
+#   type = "flashforge"  port 8898, plus serial = "SN..."; check code in the credential store
+#                        (no serial: older printers over the G-code port 8899)
+#   type = "elegoo"      Centauri Carbon, port 3030, nothing else
+#   type = "snapmaker"   Snapmaker 2.0, port 8080; token in the credential store
+#   type = "anycubic"    LAN Mode, port 18910, nothing else
