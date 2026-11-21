@@ -233,9 +233,10 @@ pc_sleep = "off"
 # What the board shows at night: "off" (screen dark) or "clock".
 # night_style = "off"
 
-# Bambu Lab 3D printers (A1, A1 mini, P1P, P1S, X1C, X1E, H2D). Easiest: run
-# `uv run deskhub-printers`. Access codes and cloud tokens live in the OS credential
-# store (service "deskhub-bambu"), never in this file. Up to 4 printers.
+# 3D printers: Bambu Lab (A1, A1 mini, P1P, P1S, X1C, X1E, H2D) and Klipper printers
+# through Moonraker. Easiest: run `uv run deskhub-printers`. Bambu access codes and cloud
+# tokens live in the OS credential store (service "deskhub-bambu"), never in this file.
+# Up to 4 printers, any mix.
 #
 # Over your home network (needs LAN Only Mode or Developer Mode on the printer):
 # [[printers]]
@@ -251,3 +252,13 @@ pc_sleep = "off"
 # serial = "030000000000000"
 # account = "you@example.com"
 # region = "us"
+#
+# Klipper printers through Moonraker (Voron, Sovol SV08, Qidi, Creality K1/K2 with
+# Moonraker...). An API key, if your setup needs one, goes in the credential store
+# (service "deskhub-printers"); most don't need one.
+# [[printers]]
+# name = "Voron"
+# type = "moonraker"
+# host = "192.168.1.70"
+# port = 7125
+# model = "Voron 2.4"

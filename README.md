@@ -35,7 +35,7 @@ The board runs custom firmware (ESP-IDF + LVGL). A small Python app on your Wind
 - [Steam](#steam) and [Games that aren't on Steam](#games-that-arent-on-steam)
 - [Internet](#internet) and [GitHub contributions](#github-contributions)
 - [Customizing Home](#customizing-home)
-- [3D printer (Bambu Lab)](#3d-printer-bambu-lab)
+- [3D printer](#3d-printer)
 - [Claude Code usage](#claude-code-usage), [Codex](#codex) and [Waiting alerts](#waiting-alerts)
 - [Shortcuts](#shortcuts)
 - [Troubleshooting](#troubleshooting)
@@ -54,7 +54,7 @@ The board runs custom firmware (ESP-IDF + LVGL). A small Python app on your Wind
 | Weather | Current conditions, the next 24 hours and 6 days | the board itself, from [Open-Meteo](https://open-meteo.com) |
 | Media | Whatever Windows lists as playing (Spotify, YouTube in a browser, VLC…) with the cover, a seek bar and controls | companion |
 | Shortcuts | Up to 16 buttons: key combos, apps, folders, URLs, volume, media, lock PC | companion |
-| 3D printer | Bambu Lab print state, progress, temperatures and AMS colours for up to 4 printers (optional) | companion, over MQTT |
+| 3D printer | Print state, progress, temperatures and filament colours for up to 4 Bambu Lab or Klipper (Moonraker) printers (optional) | companion, over MQTT (Bambu) or HTTP (Moonraker) |
 | Games | The Steam game you're playing with its cover and session time, your five most recent games, and a tap to launch one (optional) | companion, from Steam's local files |
 | Stats: Internet view | Online status, latency, jitter and packet loss with a one-minute chart, uptime and the last drop, data used today and this month, and an on-demand speed test | companion |
 | Timer | Countdown with presets from 1 to 45 minutes, pause and reset, and a full-screen "Time's up" card. The time left shows on its sidebar tab | the board itself, works without the PC |
@@ -112,7 +112,7 @@ It asks these questions in order. When you run it again, each answer you gave be
 2. **City**: type something like `Charlotte, NC` or `Paris, France` and pick from the matches. This sets the weather location and the time zone.
 3. **Units**: two yes/no questions. The first asks "Fahrenheit and mph", which defaults to yes for US cities. The second asks "24-hour clock".
 4. **Calendars**: setup asks whether you want to add Google or Apple calendars now. See [Calendars](#calendars).
-5. **3D printers**: whether to add or change Bambu Lab printers. See [3D printer](#3d-printer-bambu-lab).
+5. **3D printers**: whether to add or change 3D printers (Bambu Lab or Klipper). See [3D printer](#3d-printer).
 6. **Games**: whether to add games that aren't on Steam, such as Minecraft. See [Games that aren't on Steam](#games-that-arent-on-steam).
 7. **Shortcuts**: whether to add, change, move or remove the buttons on the Shortcuts page. See [Shortcuts](#shortcuts).
 8. **Pages**: a yes/no for each page, to choose which ones the sidebar shows (Home is always shown), then where the navigation bar goes: `left`, `right` or `bottom`. Moving it restarts the board once so every page is laid out for the new space; with the bar along the bottom, pages use a slightly more compact layout.
@@ -221,7 +221,7 @@ Run these in `companion/`.
 | `uv run deskhub-flash` | Builds the firmware and sends it to the board over Wi-Fi, or USB. |
 | `uv run deskhub-install` | Starts the companion with Windows; `--remove` stops that. |
 | `uv run deskhub-calendars` | Lists, adds and removes calendars. |
-| `uv run deskhub-printers` | Adds and removes Bambu Lab printers. |
+| `uv run deskhub-printers` | Adds and removes 3D printers (Bambu Lab, Klipper). |
 | `uv run deskhub-games` | Adds a game that isn't on Steam, picked from the programs running now. |
 | `uv run python install_claude.py` | Installs the Claude Code status line and hooks; `statusline`, `hooks` and `--remove` narrow it down. |
 
@@ -439,9 +439,12 @@ grid = [
 ]
 ```
 
-## 3D printer (Bambu Lab)
+## 3D printer
 
-The printer page shows state, progress, time left, layer, temperatures, speed mode, errors and the AMS filament colours for up to 4 printers. It works with the A1, A1 mini, P1P, P1S, X1C, X1E and H2D. OrcaSlicer and Bambu Handy have no API of their own; they read the printer over MQTT, and so does the companion.
+The printer page shows state, progress, time left, layer, temperatures, speed, errors and filament colours for up to 4 printers, in any mix of:
+
+- **Bambu Lab**: A1, A1 mini, P1P, P1S, X1C, X1E and H2D, over MQTT.
+- **Klipper printers through Moonraker**: anything you control from Mainsail or Fluidd, such as a Voron, Sovol SV08, Qidi, Elegoo Neptune 4, Snapmaker U1, or a Creality K1/K2 with Moonraker enabled.
 
 Setup offers a *3D printers* step. You can also run it on its own, then restart the companion:
 
@@ -449,7 +452,9 @@ Setup offers a *3D printers* step. You can also run it on its own, then restart 
 uv run deskhub-printers
 ```
 
-Pick one way to connect per printer:
+### Bambu Lab
+
+OrcaSlicer and Bambu Handy have no API of their own; they read the printer over MQTT, and so does the companion. Pick one way to connect per printer:
 
 - **Cloud**: choose *Add printers from a Bambu cloud account*, enter your Bambu email and password, and the emailed verification code if Bambu asks for one, then pick your printers. This works from anywhere, and OrcaSlicer and Bambu Handy keep working normally. Your password is not stored. Bambu's access token (valid about 3 months) goes into Windows Credential Manager under `deskhub-bambu`. When it expires the companion logs a line telling you to run `deskhub-printers` again. Use region `cn` only for China accounts.
 - **Local (LAN)**: choose *Add a printer on the local network* and enter:
@@ -469,6 +474,25 @@ name = "P1S"
 type = "local"          # or "cloud"
 serial = "01P00A000000000"
 host = "192.168.1.60"   # local only; cloud uses account = "you@example.com" and region = "us"
+```
+
+### Klipper (Moonraker)
+
+Choose *Add a Klipper printer* and enter:
+
+- **IP address or hostname**: the address you open Mainsail or Fluidd at, without `http://`.
+- **Port**: Moonraker's own port is `7125`. If only Mainsail or Fluidd is reachable, use `80`.
+- **API key**: usually left empty. Moonraker lets devices on your home network in when they match `trusted_clients` in `moonraker.conf`, which most printer images set up. Otherwise create a key in Mainsail or Fluidd's settings; it goes into Windows Credential Manager under `deskhub-printers`, not into `config.toml`.
+
+Setup checks that Moonraker answers, suggests the printer's hostname as its name, and asks for a model to show on the board (`Klipper` if you leave it). The companion polls the printer every 2 seconds. Time left comes from the slicer's estimate when the file has one, and the layer count from `SET_PRINT_STATS_INFO` or the file's layer height. Filament colours are the ones the slicer wrote into the file; on a toolchanger the tool in use is highlighted. Speed is Klipper's speed factor, such as `100%`.
+
+```toml
+[[printers]]
+name = "Voron"
+type = "moonraker"
+host = "192.168.1.70"
+port = 7125             # optional, 7125 is the default
+model = "Voron 2.4"     # optional, shown on the board
 ```
 
 ## Claude Code usage

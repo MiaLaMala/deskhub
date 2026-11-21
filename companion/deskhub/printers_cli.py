@@ -1,6 +1,6 @@
-"""Connect Bambu Lab 3D printers (cloud account or LAN).
+"""Connect 3D printers: Bambu Lab (cloud account or LAN) and Klipper printers (Moonraker).
 
-    uv run deskhub-printers [--config path/to/config.toml] [list|add-cloud|add-local|remove]
+    uv run deskhub-printers [--config path/to/config.toml] [list|add-cloud|add-local|add-moonraker|remove]
 """
 import argparse
 import getpass
@@ -10,6 +10,7 @@ import re
 import tomlkit
 
 from . import bambu_cloud as cloud
+from . import moonraker as mr
 from .__main__ import find_config
 from .calendar_feed import _safe_error
 from .calendars_cli import ask, load, write
@@ -38,10 +39,17 @@ def _ensure_page(doc):
         print("Added \"printer\" to [pages] enabled so the page shows.")
 
 
+def _same(a, b) -> bool:
+    if a.get("type") == "moonraker" or b.get("type") == "moonraker":
+        return (a.get("type"), a.get("host"), a.get("port", mr.DEFAULT_PORT)) == \
+               (b.get("type"), b.get("host"), b.get("port", mr.DEFAULT_PORT))
+    return a.get("serial") == b.get("serial")
+
+
 def _add(path, doc, entry: dict) -> bool:
     printers = printers_of(doc)
-    if any(p.get("serial") == entry["serial"] for p in printers):
-        print(f"{entry['serial']} is already configured.")
+    if any(_same(p, entry) for p in printers):
+        print(f"{entry.get('serial') or entry.get('host')} is already configured.")
         return False
     if len(printers) >= MAX_PRINTERS:
         print(f"The board shows at most {MAX_PRINTERS} printers. Remove one first.")
@@ -56,6 +64,9 @@ def _add(path, doc, entry: dict) -> bool:
 
 
 def describe(p) -> str:
+    if p.get("type") == "moonraker":
+        return (f"{p.get('name', '')}  [{p.get('model') or 'Klipper'}, Moonraker "
+                f"{p.get('host', '')}:{p.get('port', mr.DEFAULT_PORT)}]")
     model = p.get("model") or MODELS.get(str(p.get("serial", ""))[:3], "")
     where = f"LAN {p.get('host', '')}" if p.get("type") == "local" else f"cloud {p.get('account', '')}"
     return f"{p.get('name', '')}  [{model + ', ' if model else ''}{where}, serial {p.get('serial', '')}]"
@@ -172,6 +183,50 @@ Local (LAN) printer
         print("Restart the companion to pick it up.")
 
 
+def cmd_add_moonraker(path):
+    print("""
+Klipper printer (Moonraker)
+  For printers running Klipper with Moonraker: Voron and other self-built printers, Sovol SV08,
+  Qidi, Elegoo Neptune 4, Snapmaker U1, and Creality K1/K2 with Moonraker enabled. If you open
+  Mainsail or Fluidd in a browser to control the printer, this is the one.
+  Moonraker listens on port 7125; use 80 if you only reach it through Mainsail/Fluidd.
+  Most setups let devices on the home network in without a key (trusted_clients in
+  moonraker.conf); otherwise enter an API key from Mainsail/Fluidd's settings.
+""")
+    host = ask("Printer IP address or hostname (empty to cancel)")
+    if not host:
+        return
+    if not _IP.fullmatch(host):
+        print("That doesn't look like an IP address or hostname.")
+        return
+    port_s = ask("Port", str(mr.DEFAULT_PORT))
+    if not port_s.isdigit() or not 0 < int(port_s) < 65536:
+        print("The port is a number from 1 to 65535.")
+        return
+    port = int(port_s)
+    api_key = getpass.getpass("API key (hidden, empty if none): ").strip()
+    print("Testing the connection...")
+    try:
+        ok, msg, hostname = mr.probe(host, port, api_key or None)
+    except Exception as e:
+        ok, msg, hostname = False, f"Connection test failed: {_safe_error(e, api_key)}", ""
+    print(msg)
+    if not ok and ask("Save it anyway? (y/n)", "n").lower() != "y":
+        return
+    name = ask("Name for this printer", hostname or "Klipper")
+    model = ask("Model, shown on the board (for example Voron 2.4, SV08)", "Klipper")
+    entry = {"name": name, "type": "moonraker", "host": host}
+    if port != mr.DEFAULT_PORT:
+        entry["port"] = port
+    if model and model != "Klipper":
+        entry["model"] = model
+    if _add(path, load(path), entry):
+        if api_key:
+            _keyring().set_password(mr.SERVICE, mr.api_key_name(host, port), api_key)
+            print("API key saved to the credential store.")
+        print(f"Printer saved to {path}. Restart the companion to pick it up.")
+
+
 def cmd_remove(path):
     doc = load(path)
     printers = printers_of(doc)
@@ -186,7 +241,15 @@ def cmd_remove(path):
     del printers[int(n) - 1]
     write(path, doc)
     print("Removed.")
-    if gone.get("type") == "local":
+    if gone.get("type") == "moonraker":
+        host, port = str(gone.get("host", "")), int(gone.get("port", mr.DEFAULT_PORT))
+        service, key = mr.SERVICE, mr.api_key_name(host, port)
+        try:
+            if _keyring().get_password(service, key) is None:
+                return
+        except Exception:
+            return
+    elif gone.get("type") == "local":
         service, key = cloud.SERVICE, lan_key(str(gone.get("serial", "")))
     elif not any(p.get("account") == gone.get("account") for p in printers):
         service, key = cloud.SERVICE, str(gone.get("account", ""))
@@ -201,7 +264,7 @@ def cmd_remove(path):
 
 
 COMMANDS = {"list": cmd_list, "add-cloud": cmd_add_cloud, "add-local": cmd_add_local,
-            "remove": cmd_remove}
+            "add-moonraker": cmd_add_moonraker, "remove": cmd_remove}
 
 
 def main():
@@ -219,8 +282,10 @@ def main():
 def menu(path: pathlib.Path):
     """Interactive printer menu; also used by `deskhub-setup`."""
     names = list(COMMANDS)
-    labels = ["List printers", "Add printers from a Bambu cloud account",
-              "Add a printer on the local network (LAN)", "Remove a printer"]
+    labels = ["List printers", "Add Bambu Lab printers from a Bambu cloud account",
+              "Add a Bambu Lab printer on the local network (LAN)",
+              "Add a Klipper printer (Moonraker: Voron, Sovol, Qidi, Creality K1/K2...)",
+              "Remove a printer"]
     while True:
         print(f"\nPrinters in {path}")
         for i, label in enumerate(labels, 1):

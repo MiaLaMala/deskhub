@@ -82,6 +82,14 @@ def _packed(v) -> tuple[float | None, float | None]:
     return _num(v), None
 
 
+def offline_message(name: str, model: str) -> dict:
+    """The board's entry for a printer we can't reach (same shape for every brand)."""
+    return {"name": ascii_fold(name, 24), "model": model, "online": False, "state": "OFFLINE",
+            "pct": 0, "remaining_min": 0, "layer": 0, "layers": 0, "file": "", "nozzle": None,
+            "nozzle_target": None, "bed": None, "bed_target": None, "chamber": None, "speed": "",
+            "error": "", "ams": []}
+
+
 class PrinterState:
     def __init__(self):
         self.data: dict = {}
@@ -148,12 +156,9 @@ class PrinterState:
         with self.lock:
             d = copy.deepcopy(self.data)
             fresh = self.connected and self.last_data and now - self.last_data <= STALE_S
-        base = {"name": ascii_fold(name, 24), "model": model}
         if not fresh:
-            return {**base, "online": False, "state": "OFFLINE", "pct": 0, "remaining_min": 0,
-                    "layer": 0, "layers": 0, "file": "", "nozzle": None, "nozzle_target": None,
-                    "bed": None, "bed_target": None, "chamber": None, "speed": "", "error": "",
-                    "ams": []}
+            return offline_message(name, model)
+        base = {"name": ascii_fold(name, 24), "model": model}
         file = str(d.get("subtask_name") or d.get("gcode_file") or "").replace("\\", "/").rsplit("/", 1)[-1]
         file = re.sub(r"(\.gcode)?\.3mf$|\.gcode$", "", file, flags=re.I)
         code = _int(d.get("print_error"))
@@ -284,6 +289,9 @@ class Worker(threading.Thread):
     def stop(self):
         self.stop_event.set()
 
+    def message(self) -> dict:
+        return self.state.message(self.label, model_of(self.entry))
+
 
 def keyring_secret(service: str, key: str) -> str | None:
     import keyring
@@ -295,9 +303,20 @@ def keyring_secret(service: str, key: str) -> str | None:
 
 
 class PrinterService:
+    """All configured printers. Bambu entries (type "local"/"cloud") need a serial;
+    Moonraker entries (type "moonraker") need a host."""
+
     def __init__(self, entries: list[dict], secret_getter=keyring_secret, **worker_kw):
-        entries = [e for e in entries if e.get("serial")][:MAX_PRINTERS]
-        self.workers = [Worker(e, secret_getter, **worker_kw) for e in entries]
+        from .moonraker import MoonrakerWorker
+        self.workers = []
+        for e in entries:
+            if len(self.workers) >= MAX_PRINTERS:
+                break
+            if e.get("type") == "moonraker":
+                if e.get("host"):
+                    self.workers.append(MoonrakerWorker(e, secret_getter))
+            elif e.get("serial"):
+                self.workers.append(Worker(e, secret_getter, **worker_kw))
 
     def start(self):
         for w in self.workers:
@@ -308,8 +327,7 @@ class PrinterService:
             w.stop()
 
     def message(self) -> dict:
-        return {"type": "printer",
-                "printers": [w.state.message(w.label, model_of(w.entry)) for w in self.workers]}
+        return {"type": "printer", "printers": [w.message() for w in self.workers]}
 
 
 def probe_local(host: str, serial: str, code: str, timeout: float = 10, port: int = 8883,
