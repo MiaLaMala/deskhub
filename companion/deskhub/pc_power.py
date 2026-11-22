@@ -38,7 +38,8 @@ class POWERBROADCAST_SETTING(ctypes.Structure):
 
 
 LRESULT = ctypes.c_ssize_t
-WNDPROC = ctypes.WINFUNCTYPE(LRESULT, wt.HWND, wt.UINT, wt.WPARAM, wt.LPARAM)
+# CFUNCTYPE off Windows only so that importing this module works there (tests, Linux).
+WNDPROC = (ctypes.WINFUNCTYPE if sys.platform == "win32" else ctypes.CFUNCTYPE)(LRESULT, wt.HWND, wt.UINT, wt.WPARAM, wt.LPARAM)
 
 
 class WNDCLASSW(ctypes.Structure):
