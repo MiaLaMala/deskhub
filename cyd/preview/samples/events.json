@@ -1,0 +1,78 @@
+{
+ "type": "events",
+ "days": 7,
+ "events": [
+  {
+   "start": 1795474800,
+   "end": 1795561200,
+   "all_day": true,
+   "title": "Müllabfuhr",
+   "loc": "",
+   "cal": "Haus",
+   "color": "#b49cff"
+  },
+  {
+   "start": 1795512600,
+   "end": 1795515300,
+   "all_day": false,
+   "title": "Teambesprechung",
+   "loc": "Raum 2",
+   "cal": "Arbeit",
+   "color": "#6cb4ff"
+  },
+  {
+   "start": 1795521600,
+   "end": 1795534200,
+   "all_day": false,
+   "title": "Lernzeit Netzwerktechnik",
+   "loc": "Bibliothek",
+   "cal": "Schule",
+   "color": "#3dd68c"
+  },
+  {
+   "start": 1795590000,
+   "end": 1795593600,
+   "all_day": false,
+   "title": "Zahnarzt, Kontrolle",
+   "loc": "Praxis Süd",
+   "cal": "Privat",
+   "color": "#ffb224"
+  },
+  {
+   "start": 1795624200,
+   "end": 1795629600,
+   "all_day": false,
+   "title": "Sport",
+   "loc": "Halle Süd",
+   "cal": "Privat",
+   "color": "#ffb224"
+  },
+  {
+   "start": 1795690800,
+   "end": 1795694400,
+   "all_day": false,
+   "title": "Mittagessen",
+   "loc": "Kantine",
+   "cal": "Arbeit",
+   "color": "#6cb4ff"
+  },
+  {
+   "start": 1795734000,
+   "end": 1795820400,
+   "all_day": true,
+   "title": "Brückentag",
+   "loc": "",
+   "cal": "Haus",
+   "color": "#b49cff"
+  },
+  {
+   "start": 1795874400,
+   "end": 1795878000,
+   "all_day": false,
+   "title": "Ein sehr langer Termintitel, der ganz sicher nicht in eine Zeile passt",
+   "loc": "Überall und nirgends, Raum 404",
+   "cal": "Arbeit",
+   "color": "#ff6b6b"
+  }
+ ]
+}
