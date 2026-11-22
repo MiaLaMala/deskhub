@@ -14,7 +14,7 @@
 static lv_obj_t *s_title, *s_chart, *s_none, *s_body;
 static lv_obj_t *s_month[HUB_GH_MONTHS];
 static lv_obj_t *s_val[3], *s_unit[3];
-static lv_obj_t *s_week, *s_week_cap;
+static lv_obj_t *s_week, *s_week_cap, *s_rec, *s_rec_unit;
 
 static const uint32_t GREENS[5] = {0x1d2128, 0x0e4429, 0x006d32, 0x26a641, 0x39d353};
 static const uint32_t AMBERS[5] = {0x1d2128, 0x4d3a12, 0x8a6514, 0xc98f1b, COL_ACCENT};
@@ -117,8 +117,10 @@ void github_create(lv_obj_t *p)
         s_val[i] = ui_label_at(s_body, F20, COL_TEXT, PAD + i * cw, 16, "");
         s_unit[i] = ui_label_at(s_body, F12, COL_MUTED, PAD + i * cw, 24, "");
     }
-    s_week_cap = ui_label_at(s_body, F12, COL_MUTED, PAD, 48, "");
-    s_week = ui_box(s_body, 110, 46, SCR_W - 110 - PAD, 66);
+    s_week_cap = ui_label_at(s_body, F12, COL_MUTED, PAD, 50, "Rekord");
+    s_rec = ui_label_at(s_body, F20, COL_TEXT, PAD, 66, "");
+    s_rec_unit = ui_label_at(s_body, F12, COL_MUTED, PAD, 74, "");
+    s_week = ui_box(s_body, 110, 46, SCR_W - 110 - PAD, 56);
     lv_obj_add_event_cb(s_week, week_draw_cb, LV_EVENT_DRAW_MAIN, NULL);
     s_none = ui_label(p, F14, COL_MUTED, "GitHub kommt vom Begleiter");
     lv_obj_align(s_none, LV_ALIGN_CENTER, 0, 0);
@@ -174,7 +176,14 @@ void github_refresh(void)
     lv_label_set_text(s_unit[0], g->streak == 1 ? "Tag" : "Tage");
     lv_label_set_text(s_unit[1], "");
     lv_label_set_text(s_unit[2], "");
-    if (g->longest > 0) snprintf(buf, sizeof(buf), "Längste\nSerie %d", g->longest);
-    else buf[0] = 0;
-    lv_label_set_text(s_week_cap, buf);
+    // Laengste Serie wie die anderen Kennzahlen: Label klein, Zahl gross.
+    bool rec = g->longest > 0;
+    lv_obj_t *ro[] = {s_week_cap, s_rec, s_rec_unit};
+    for (int i = 0; i < 3; i++) { if (rec) lv_obj_remove_flag(ro[i], LV_OBJ_FLAG_HIDDEN); else lv_obj_add_flag(ro[i], LV_OBJ_FLAG_HIDDEN); }
+    if (rec) {
+        ui_fmt_int(buf, sizeof(buf), g->longest);
+        lv_label_set_text(s_rec, buf);
+        lv_label_set_text(s_rec_unit, g->longest == 1 ? "Tag" : "Tage");
+        lv_obj_set_x(s_rec_unit, PAD + lv_text_get_width(buf, strlen(buf), F20, 0) + 4);
+    }
 }

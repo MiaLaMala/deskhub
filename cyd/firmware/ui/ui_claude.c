@@ -53,10 +53,10 @@ static void hist_draw_cb(lv_event_t *e)
 void claude_create(lv_obj_t *p)
 {
     ui_header(p, "Claude", COL_CLAUDE);
-    make_limit(p, &s_l[0], 26, "5-Stunden-Fenster");
+    make_limit(p, &s_l[0], 26, "5 h");
     make_limit(p, &s_l[1], 92, "Woche");
     s_hist_cap = ui_label_at(p, F12, COL_MUTED, PAD, 158, "Woche, Verlauf");
-    s_hist = ui_box(p, 0, 175, (SCR_W - 2 * PAD) / HUB_CLAUDE_HIST * HUB_CLAUDE_HIST, 26);
+    s_hist = ui_box(p, 0, 175, (SCR_W - 2 * PAD) / HUB_CLAUDE_HIST * HUB_CLAUDE_HIST, 18);
     lv_obj_align(s_hist, LV_ALIGN_TOP_RIGHT, -PAD, 175);
     lv_obj_add_event_cb(s_hist, hist_draw_cb, LV_EVENT_DRAW_MAIN, NULL);
     s_today = ui_label_w(p, F14, COL_TEXT, PAD, 170, SCR_W - 2 * PAD, "");

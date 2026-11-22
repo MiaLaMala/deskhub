@@ -6,6 +6,7 @@
 #include <stddef.h>
 #include <time.h>
 #include "hub_model.h"
+#include <string.h>
 #include "lvgl.h"
 #include "platform.h"
 #include "ui.h"
@@ -114,7 +115,8 @@ void ui_fmt_clock(char *buf, size_t n, time_t t);        // "14:05"
 void ui_fmt_when(char *buf, size_t n, time_t t);         // "14:05", "gestern 14:05", "Mo 14:05", "12.11."
 void ui_fmt_since(char *buf, size_t n, time_t t);        // "seit 14:05" ...
 void ui_fmt_stand(char *buf, size_t n, time_t t);        // "Stand 14:05"
-void ui_fmt_countdown(char *buf, size_t n, time_t reset); // "zurück in 2 h 14 min"
+static inline int ui_text_w(const char *t, const lv_font_t *f) { return lv_text_get_width(t, strlen(t), f, 0); }
+void ui_fmt_countdown(char *buf, size_t n, time_t reset); // "neu in 2 h 14 min"
 void ui_fmt_temp(char *buf, size_t n, float t);          // "7°"
 void ui_fmt_int(char *buf, size_t n, long v);            // "1.019"
 void ui_fmt_day_title(char *buf, size_t n, time_t t);    // "Heute", "Morgen", "Dienstag, 24.11."

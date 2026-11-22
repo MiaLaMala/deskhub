@@ -56,9 +56,9 @@ void net_create(lv_obj_t *p)
     s_loss = ui_label_w(p, F14, COL_TEXT, 180, 47, SCR_W - 180 - PAD, "");
     s_jit = ui_label_w(p, F12, COL_MUTED, 180, 66, SCR_W - 180 - PAD, "");
     s_cap = ui_label_at(p, F12, COL_MUTED, PAD, 88, "Latenz, letzte Messungen");
-    s_graph = ui_box(p, PAD, 106, (SCR_W - 2 * PAD) / HUB_NET_HIST * HUB_NET_HIST, 64);
+    s_graph = ui_box(p, PAD, 108, (SCR_W - 2 * PAD) / HUB_NET_HIST * HUB_NET_HIST, 58);
     lv_obj_add_event_cb(s_graph, graph_draw_cb, LV_EVENT_DRAW_MAIN, NULL);
-    s_drop = ui_label_w(p, F12, COL_MUTED, PAD, 180, SCR_W - 2 * PAD, "");
+    s_drop = ui_label_w(p, F12, COL_MUTED, PAD, 175, SCR_W - 2 * PAD, "");
     s_none = ui_label(p, F14, COL_MUTED, "Netzdaten kommen vom Begleiter");
     lv_obj_align(s_none, LV_ALIGN_CENTER, 0, 0);
 }

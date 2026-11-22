@@ -28,7 +28,7 @@ void home_create(lv_obj_t *p)
     s_clock = ui_label_at(p, F48, COL_TEXT, PAD, 4, "--:--");
     s_wday = ui_label_at(p, F16, COL_TEXT, 168, 9, "");
     s_date = ui_label_at(p, F14, COL_MUTED, 168, 30, "");
-    s_link = ui_label_at(p, F12, COL_WARN, PAD + 22, 188, "");
+    s_link = ui_label_at(p, F12, COL_WARN, PAD + 22, 178, "");
 
     // Wartezustand
     s_wait = ui_box(p, 0, 62, SCR_W, PAGE_H - 62);
@@ -49,23 +49,22 @@ void home_create(lv_obj_t *p)
     s_ev_title = ui_label_w(s_body, F16, COL_TEXT, PAD + 22, 6, SCR_W - 2 * PAD - 22, "");
     s_ev_sub = ui_label_w(s_body, F12, COL_MUTED, PAD + 22, 26, SCR_W - 2 * PAD - 22, "");
 
-    // Claude: zwei Haelften
-    const int cy = 48, half = (SCR_W - 3 * PAD) / 2;
-    s_c_cap5 = ui_label_at(s_body, F12, COL_CLAUDE, PAD, cy, "Claude 5 h");
-    s_c5_val = ui_label(s_body, F16, COL_TEXT, "");
-    lv_obj_align(s_c5_val, LV_ALIGN_TOP_LEFT, PAD + half - 40, cy - 3);
-    s_c5_bar = ui_bar(s_body, PAD, cy + 18, half, 6, COL_CLAUDE, COL_CLAUDE_LO);
-    s_c_cap7 = ui_label_at(s_body, F12, COL_CLAUDE, 2 * PAD + half, cy, "Woche");
-    s_c7_val = ui_label(s_body, F16, COL_TEXT, "");
-    lv_obj_align(s_c7_val, LV_ALIGN_TOP_LEFT, 2 * PAD + 2 * half - 40, cy - 3);
-    s_c7_bar = ui_bar(s_body, 2 * PAD + half, cy + 18, half, 6, COL_CLAUDE, COL_CLAUDE_LO);
-    s_c_none = ui_label_at(s_body, F12, COL_DIM, PAD + 70, cy, "");
+    // Claude: zwei Haelften, je Label und Wert direkt nebeneinander ("5 h 42 %"),
+    // Balken darunter; zwischen den Paaren bleibt Luft. Labels wie auf der Claude-Seite.
+    const int cy = 46, half = (SCR_W - 3 * PAD) / 2, x7 = 2 * PAD + half;
+    s_c_cap5 = ui_label_at(s_body, F12, COL_CLAUDE, PAD, cy + 2, "5 h");
+    s_c5_val = ui_label_at(s_body, F16, COL_TEXT, PAD + ui_text_w("5 h", F12) + 6, cy, "");
+    s_c5_bar = ui_bar(s_body, PAD, cy + 20, half, 6, COL_CLAUDE, COL_CLAUDE_LO);
+    s_c_cap7 = ui_label_at(s_body, F12, COL_CLAUDE, x7, cy + 2, "Woche");
+    s_c7_val = ui_label_at(s_body, F16, COL_TEXT, x7 + ui_text_w("Woche", F12) + 6, cy, "");
+    s_c7_bar = ui_bar(s_body, x7, cy + 20, half, 6, COL_CLAUDE, COL_CLAUDE_LO);
+    s_c_none = ui_label_at(s_body, F12, COL_DIM, PAD + 70, cy + 2, "");
 
-    s_wx_icon = ui_label_at(s_body, &icons_16, COL_MUTED, PAD, 85, ICON_CLOUD);
-    s_wx_text = ui_label_w(s_body, F14, COL_TEXT, PAD + 22, 84, SCR_W - 2 * PAD - 22, "");
+    s_wx_icon = ui_label_at(s_body, &icons_16, COL_MUTED, PAD, 79, ICON_CLOUD);
+    s_wx_text = ui_label_w(s_body, F14, COL_TEXT, PAD + 22, 78, SCR_W - 2 * PAD - 22, "");
 
-    s_hl_dot = dot(s_body, PAD + 4, 116, COL_DIM);
-    s_hl_text = ui_label_w(s_body, F14, COL_TEXT, PAD + 22, 111, SCR_W - 2 * PAD - 22, "");
+    s_hl_dot = dot(s_body, PAD + 4, 106, COL_DIM);
+    s_hl_text = ui_label_w(s_body, F14, COL_TEXT, PAD + 22, 101, SCR_W - 2 * PAD - 22, "");
 }
 
 static const hub_event_t *next_event(void)
@@ -132,7 +131,7 @@ static void fill_claude(void)
         lv_label_set_text(s_c_none, "noch keine Limits");
         return;
     }
-    lv_label_set_text(s_c_cap5, "Claude 5 h");
+    lv_label_set_text(s_c_cap5, "5 h");
     lv_label_set_text(s_c_none, "");
     bool stale = ui_stale_at(P_CLAUDE) != 0;
     struct { bool has; float pct; lv_obj_t *val, *bar; } r[2] = {
@@ -142,7 +141,6 @@ static void fill_claude(void)
         snprintf(buf, sizeof(buf), "%d %%", (int)(r[i].pct + 0.5f));
         lv_label_set_text(r[i].val, buf);
         lv_obj_set_style_text_color(r[i].val, lv_color_hex(stale ? COL_MUTED : r[i].pct >= 80 ? COL_BAD : COL_TEXT), 0);
-        lv_obj_align(r[i].val, LV_ALIGN_TOP_RIGHT, i == 0 ? -(SCR_W - PAD - (SCR_W - 3 * PAD) / 2) : -PAD, 45);
         lv_bar_set_value(r[i].bar, (int)(r[i].pct + 0.5f), LV_ANIM_OFF);
     }
 }

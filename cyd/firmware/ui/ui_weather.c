@@ -7,7 +7,7 @@
 #define NH 6   // Stunden-Spalten
 #define ND 6   // Tages-Spalten
 
-static lv_obj_t *s_title, *s_icon, *s_temp, *s_cond, *s_det1, *s_det2, *s_none, *s_grid;
+static lv_obj_t *s_title, *s_icon, *s_temp, *s_cond, *s_det1, *s_det2, *s_det3, *s_none, *s_grid;
 static lv_obj_t *s_h_t[NH], *s_h_i[NH], *s_h_v[NH], *s_h_p[NH];
 static lv_obj_t *s_d_t[ND], *s_d_i[ND], *s_d_v[ND];
 
@@ -27,31 +27,37 @@ void weather_create(lv_obj_t *p)
     s_title = lv_obj_get_child(p, 0);
     s_icon = ui_label_at(p, &icons_36, COL_MUTED, PAD, 32, ICON_CLOUD);
     s_temp = ui_label_at(p, F48, COL_TEXT, PAD + 44, 24, "");
-    s_cond = ui_label_w(p, F16, COL_TEXT, 170, 28, SCR_W - 170 - PAD, "");
-    s_det1 = ui_label_w(p, F12, COL_MUTED, 170, 49, SCR_W - 170 - PAD, "");
-    s_det2 = ui_label_w(p, F12, COL_MUTED, 170, 66, SCR_W - 170 - PAD, "");
+    // Je eine kurze Zeile: passt auch bei "gefühlt −19°", 100 % und 112 km/h.
+    s_cond = ui_label_w(p, F16, COL_TEXT, 170, 23, SCR_W - 170 - PAD, "");
+    s_det1 = ui_label_w(p, F12, COL_MUTED, 170, 43, SCR_W - 170 - PAD, "");
+    s_det2 = ui_label_w(p, F12, COL_MUTED, 170, 59, SCR_W - 170 - PAD, "");
+    s_det3 = ui_label_w(p, F12, COL_MUTED, 170, 75, SCR_W - 170 - PAD, "");
 
-    s_grid = ui_box(p, 0, 82, SCR_W, PAGE_H - 82);
+    s_grid = ui_box(p, 0, 91, SCR_W, PAGE_H - 91);
     lv_obj_t *sep = ui_box(s_grid, PAD, 0, SCR_W - 2 * PAD, 1);
     lv_obj_set_style_bg_opa(sep, LV_OPA_COVER, 0);
     lv_obj_set_style_bg_color(sep, lv_color_hex(COL_BORDER), 0);
     const int colw = (SCR_W - 2 * PAD) / NH;
     for (int i = 0; i < NH; i++) {
         int cx = PAD + colw * i + colw / 2;
-        s_h_t[i] = centered(s_grid, F12, COL_MUTED, cx, 2);
-        s_h_i[i] = centered(s_grid, &icons_16, COL_MUTED, cx, 18);
-        s_h_v[i] = centered(s_grid, F14, COL_TEXT, cx, 35);
-        s_h_p[i] = centered(s_grid, F12, COL_BLUE, cx, 53);
+        s_h_t[i] = centered(s_grid, F12, COL_MUTED, cx, 0);
+        s_h_i[i] = centered(s_grid, &icons_16, COL_MUTED, cx, 16);
+        s_h_v[i] = centered(s_grid, F14, COL_TEXT, cx, 33);
+        s_h_p[i] = centered(s_grid, F12, COL_BLUE, cx, 51);
     }
-    sep = ui_box(s_grid, PAD, 70, SCR_W - 2 * PAD, 1);
+    sep = ui_box(s_grid, PAD, 67, SCR_W - 2 * PAD, 1);
     lv_obj_set_style_bg_opa(sep, LV_OPA_COVER, 0);
     lv_obj_set_style_bg_color(sep, lv_color_hex(COL_BORDER), 0);
     const int dw = (SCR_W - 2 * PAD) / ND;
     for (int i = 0; i < ND; i++) {
         int cx = PAD + dw * i + dw / 2;
-        s_d_t[i] = centered(s_grid, F12, COL_MUTED, cx, 72);
-        s_d_i[i] = centered(s_grid, &icons_16, COL_MUTED, cx, 88);
-        s_d_v[i] = centered(s_grid, F12, COL_TEXT, cx, 105);
+        // Tag und Symbol nebeneinander ("Mi ☁"), heute in der Akzentfarbe: spart eine Zeile.
+        s_d_t[i] = ui_label(s_grid, F12, COL_MUTED, "");
+        lv_obj_set_width(s_d_t[i], 22);
+        lv_obj_set_pos(s_d_t[i], cx - 22, 70);
+        lv_obj_set_style_text_align(s_d_t[i], LV_TEXT_ALIGN_RIGHT, 0);
+        s_d_i[i] = ui_label_at(s_grid, &icons_16, COL_MUTED, cx + 2, 69, "");
+        s_d_v[i] = centered(s_grid, F12, COL_TEXT, cx, 87);
     }
     s_none = ui_label(p, F14, COL_MUTED, "Wetter kommt vom Begleiter");
     lv_obj_align(s_none, LV_ALIGN_CENTER, 0, 0);
@@ -78,18 +84,13 @@ void weather_refresh(void)
     ui_fmt_temp(a, sizeof(a), w->temp);
     lv_label_set_text(s_temp, a);
     lv_label_set_text(s_cond, weather_text(w->code));
-    // Zwei kurze Zeilen statt einer gekuerzten: "gefühlt 4°, Feuchte 81 %" / "Wind 18 km/h".
-    buf[0] = 0;
-    if (w->feels == w->feels) { ui_fmt_temp(b, sizeof(b), w->feels); snprintf(buf, sizeof(buf), "gefühlt %s", b); }
-    if (w->humidity >= 0) {
-        char h[24];
-        snprintf(h, sizeof(h), "%sFeuchte %d %%", buf[0] ? ", " : "", w->humidity);
-        strlcat(buf, h, sizeof(buf));
-    }
-    lv_label_set_text(s_det1, buf);
-    buf[0] = 0;
-    if (w->wind >= 0) snprintf(buf, sizeof(buf), "Wind %d km/h", (int)(w->wind + 0.5f));
-    lv_label_set_text(s_det2, buf);
+    // Drei kurze Zeilen; fehlende Werte ruecken nach oben (keine Luecken, keine Nullen).
+    lv_obj_t *det[3] = {s_det1, s_det2, s_det3};
+    int nd = 0;
+    if (w->feels == w->feels) { ui_fmt_temp(b, sizeof(b), w->feels); snprintf(buf, sizeof(buf), "gefühlt %s", b); lv_label_set_text(det[nd++], buf); }
+    if (w->humidity >= 0) { snprintf(buf, sizeof(buf), "Feuchte %d %%", w->humidity); lv_label_set_text(det[nd++], buf); }
+    if (w->wind >= 0) { snprintf(buf, sizeof(buf), "Wind %d km/h", (int)(w->wind + 0.5f)); lv_label_set_text(det[nd++], buf); }
+    while (nd < 3) lv_label_set_text(det[nd++], "");
 
     // Stunden: die naechsten, die noch kommen (jede zweite, wenn genug da sind).
     time_t now = plat_now();
@@ -125,7 +126,8 @@ void weather_refresh(void)
         // Tage kommen als Mitternacht UTC oder lokal: Mittag nehmen, dann stimmt der Wochentag.
         ui_localtime(w->day_t[i] + 12 * 3600, &tm);
         long d = ui_days_between(now, w->day_t[i] + 12 * 3600);
-        lv_label_set_text(s_d_t[i], d == 0 ? "Heute" : ui_wday_short(tm.tm_wday));
+        lv_label_set_text(s_d_t[i], ui_wday_short(tm.tm_wday));
+        lv_obj_set_style_text_color(s_d_t[i], lv_color_hex(d == 0 ? COL_ACCENT : COL_MUTED), 0);
         lv_label_set_text(s_d_i[i], weather_icon(w->day_code[i], true));
         lv_obj_set_style_text_color(s_d_i[i], lv_color_hex(weather_color(w->day_code[i], true)), 0);
         ui_fmt_temp(a, sizeof(a), w->day_hi[i]);

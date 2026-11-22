@@ -36,12 +36,12 @@ write("events", {"type": "events", "days": 7, "events": [
     {"start": at(0, 0), "end": at(1, 0), "all_day": True, "title": "Müllabfuhr", "loc": "", "cal": "Haus", "color": "#b49cff"},
     {"start": at(0, 10, 30), "end": at(0, 11, 15), "all_day": False, "title": "Teambesprechung", "loc": "Raum 2", "cal": "Arbeit", "color": "#6cb4ff"},
     {"start": at(0, 13, 0), "end": at(0, 16, 30), "all_day": False, "title": "Lernzeit Netzwerktechnik", "loc": "Bibliothek", "cal": "Schule", "color": "#3dd68c"},
+    {"start": at(0, 12, 0), "end": at(0, 12, 45), "all_day": False,  # zeigt die Kuerzung mit "..."
+     "title": "Ein sehr langer Termintitel, der ganz sicher nicht in eine Zeile passt", "loc": "Überall und nirgends, Raum 404", "cal": "Arbeit", "color": "#ff6b6b"},
     {"start": at(1, 8, 0), "end": at(1, 9, 0), "all_day": False, "title": "Zahnarzt, Kontrolle", "loc": "Praxis Süd", "cal": "Privat", "color": "#ffb224"},
     {"start": at(1, 17, 30), "end": at(1, 19, 0), "all_day": False, "title": "Sport", "loc": "Halle Süd", "cal": "Privat", "color": "#ffb224"},
     {"start": at(2, 12, 0), "end": at(2, 13, 0), "all_day": False, "title": "Mittagessen", "loc": "Kantine", "cal": "Arbeit", "color": "#6cb4ff"},
     {"start": at(3, 0), "end": at(4, 0), "all_day": True, "title": "Brückentag", "loc": "", "cal": "Haus", "color": "#b49cff"},
-    {"start": at(4, 15, 0), "end": at(4, 16, 0), "all_day": False,
-     "title": "Ein sehr langer Termintitel, der ganz sicher nicht in eine Zeile passt", "loc": "Überall und nirgends, Raum 404", "cal": "Arbeit", "color": "#ff6b6b"},
 ]})
 
 random.seed(7)
@@ -98,7 +98,7 @@ write("weather", {"type": "weather", "place": "Hamburg", "updated": NOW - 600,
 write("homelab", {"type": "homelab", "ok": True, "updated": NOW - 30, "up": 51, "total": 54, "down": [
     {"name": "Nextcloud", "since": NOW - 2 * H - 5 * 60},
     {"name": "Gäste-WLAN Portal", "since": at(-1, 21, 40)},
-    {"name": "Paperless-ngx Dokumentenarchiv mit langem Namen", "since": at(-5, 8, 0)},
+    {"name": "Paperless-ngx", "since": at(-5, 8, 0)},
 ]})
 # Quelle nicht erreichbar: letzter Stand von vor 40 Minuten.
 write("homelab_alt", {"type": "homelab", "ok": False, "updated": NOW - 40 * 60, "up": 53, "total": 54,

@@ -32,7 +32,7 @@ deps: $(LVGL)/lvgl.h $(CJSON)/cJSON.c
 
 $(BUILD)/liblvgl.a: | deps
 	$(MAKE) --no-print-directory lvgl-objs
-	ar rcs $@ $(shell find $(BUILD)/lv -name '*.o')
+	ar rcs $@ $$(find $(BUILD)/lv -name '*.o')   # erst nach dem Kompilieren suchen
 
 lvgl-objs: $(LV_OBJ)
 

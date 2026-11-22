@@ -1,4 +1,5 @@
-// Kalender: Termine nach Tag gruppiert, senkrecht verschiebbar.
+// Kalender: Termine nach Tag gruppiert. Nur ganze Zeilen; passt nicht alles,
+// steht unten "+N weitere" (resistiver Touch: kein Scrollen noetig).
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -7,16 +8,17 @@
 
 static lv_obj_t *s_list, *s_empty;
 
+#define LIST_Y (HDR_H + 2)
+#define LIST_H (PAGE_H - LIST_Y - 10)   // 10 px Luft zur Navigationsleiste
+#define DAY_H 22                         // Tageszeile
+#define ROW_H 40                         // Termin (Titel + Zeit/Ort)
+#define ROW_VIS 35                       // davon sichtbar belegt
+#define MORE_H 16                        // "+N weitere"
+
 void calendar_create(lv_obj_t *p)
 {
     ui_header(p, "Kalender", COL_TEXT);
-    s_list = lv_obj_create(p);
-    lv_obj_set_pos(s_list, 0, HDR_H + 2);
-    lv_obj_set_size(s_list, SCR_W, PAGE_H - HDR_H - 2);
-    lv_obj_set_scroll_dir(s_list, LV_DIR_VER);
-    lv_obj_set_scrollbar_mode(s_list, LV_SCROLLBAR_MODE_OFF);
-    lv_obj_remove_flag(s_list, LV_OBJ_FLAG_SCROLL_ELASTIC | LV_OBJ_FLAG_SCROLL_MOMENTUM);
-    lv_obj_add_flag(s_list, LV_OBJ_FLAG_GESTURE_BUBBLE);
+    s_list = ui_box(p, 0, LIST_Y, SCR_W, LIST_H);
     s_empty = ui_label(p, F14, COL_MUTED, "");
     lv_obj_align(s_empty, LV_ALIGN_CENTER, 0, 10);
 }
@@ -48,11 +50,18 @@ void calendar_refresh(void)
     int y = 0;
     long last_day = -9999;
     char buf[96], hm[8], hm2[8];
+    int shown = 0;
     for (int i = 0; i < n; i++) {
         const hub_event_t *e = &ev[i];
         // Ganztägiges, das schon läuft, steht unter heute.
         time_t day_t = e->start < now ? now : e->start;
         long d = ui_days_between(now, day_t);
+        // Passt der Termin (mit Tageszeile) noch ganz? Fuer die letzten Termine
+        // braucht es keinen Platz fuer den Hinweis.
+        int need = (d != last_day ? DAY_H : 0) + ROW_VIS;
+        int room = LIST_H - (i == n - 1 ? 0 : MORE_H);
+        if (y + need > room) break;
+        shown++;
         if (d != last_day) {
             last_day = d;
             ui_fmt_day_title(buf, sizeof(buf), day_t);
@@ -74,8 +83,11 @@ void calendar_refresh(void)
         }
         if (e->location[0]) { strlcat(buf, " · ", sizeof(buf)); strlcat(buf, e->location, sizeof(buf)); }
         ui_label_w(s_list, F12, COL_MUTED, PAD + 10, y + 19, SCR_W - 2 * PAD - 10, buf);
-        y += 40;
+        y += ROW_H;
     }
-    // Etwas Luft unter dem letzten Termin.
-    ui_box(s_list, 0, y, 1, 4);
+    if (shown < n) {
+        snprintf(buf, sizeof(buf), "+%d weitere", n - shown);
+        lv_obj_t *m = ui_label(s_list, F12, COL_MUTED, buf);
+        lv_obj_align(m, LV_ALIGN_BOTTOM_RIGHT, -PAD, 0);
+    }
 }

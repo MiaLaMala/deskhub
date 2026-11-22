@@ -48,7 +48,7 @@ void homelab_refresh(void)
         lv_label_set_text(s_state, "Alles läuft");
         lv_obj_set_style_text_color(s_state, lv_color_hex(COL_GOOD), 0);
     } else {
-        snprintf(buf, sizeof(buf), down == 1 ? "%d ausgefallen" : "%d ausgefallen", down);
+        snprintf(buf, sizeof(buf), "%d ausgefallen", down);
         lv_label_set_text(s_state, buf);
         lv_obj_set_style_text_color(s_state, lv_color_hex(COL_BAD), 0);
     }
@@ -57,18 +57,16 @@ void homelab_refresh(void)
     lv_obj_set_style_bg_color(sep, lv_color_hex(COL_BORDER), 0);
     int y = 6;
     for (int i = 0; i < h->down_count; i++) {
-        lv_obj_t *d = ui_box(s_list, PAD + 2, y + 6, 8, 8);
-        lv_obj_set_style_radius(d, 4, 0);
+        lv_obj_t *d = ui_box(s_list, PAD + 1, y + 6, 10, 10);
+        lv_obj_set_style_radius(d, 5, 0);
         lv_obj_set_style_bg_opa(d, LV_OPA_COVER, 0);
         lv_obj_set_style_bg_color(d, lv_color_hex(h->ok ? COL_BAD : COL_DIM), 0);
         buf[0] = 0;
         if (h->down_since[i]) ui_fmt_since(buf, sizeof(buf), h->down_since[i]);
         lv_obj_t *s = ui_label(s_list, F12, COL_MUTED, buf);
-        lv_obj_align(s, LV_ALIGN_TOP_RIGHT, -PAD, y + 3);
+        lv_obj_align(s, LV_ALIGN_TOP_RIGHT, -PAD, y + 4);
         int sw = lv_text_get_width(buf, strlen(buf), F12, 0);
-        ui_label_w(s_list, F14, COL_TEXT, PAD + 18, y + 1, SCR_W - 2 * PAD - 18 - sw - 8, h->down_name[i]);
-        y += 26;
+        ui_label_w(s_list, F16, h->ok ? COL_TEXT : COL_MUTED, PAD + 20, y, SCR_W - 2 * PAD - 20 - sw - 8, h->down_name[i]);
+        y += 28;
     }
-    if (h->down_count == 0 && h->ok && !bad)
-        ui_label_at(s_list, F12, COL_DIM, PAD, y + 2, "Kein Dienst ausgefallen.");
 }

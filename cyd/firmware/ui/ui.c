@@ -201,17 +201,17 @@ void ui_fmt_countdown(char *buf, size_t n, time_t reset)
     if (reset == 0) {
         buf[0] = 0;
     } else if (s <= 0) {
-        snprintf(buf, n, "wird gerade zurückgesetzt");
+        snprintf(buf, n, "wird gerade erneuert");
     } else if (s >= 86400) {
         struct tm tm;
         char hm[8];
         ui_localtime(reset, &tm);
         ui_fmt_clock(hm, sizeof(hm), reset);
-        snprintf(buf, n, "zurück am %s %s", ui_wday_short(tm.tm_wday), hm);
+        snprintf(buf, n, "neu am %s %s", ui_wday_short(tm.tm_wday), hm);
     } else if (s >= 3600) {
-        snprintf(buf, n, "zurück in %ld h %02ld min", s / 3600, (s / 60) % 60);
+        snprintf(buf, n, "neu in %ld h %02ld min", s / 3600, (s / 60) % 60);
     } else {
-        snprintf(buf, n, "zurück in %ld min", (s + 59) / 60);
+        snprintf(buf, n, "neu in %ld min", (s + 59) / 60);
     }
 }
 
@@ -219,7 +219,8 @@ void ui_fmt_temp(char *buf, size_t n, float t)
 {
     int v = (int)lroundf(t);
     if (v == 0) v = 0;   // kein "-0°"
-    snprintf(buf, n, "%d°", v);
+    if (v < 0) snprintf(buf, n, "\xe2\x88\x92%d°", -v);   // echtes Minus (U+2212)
+    else snprintf(buf, n, "%d°", v);
 }
 
 void ui_fmt_int(char *buf, size_t n, long v)

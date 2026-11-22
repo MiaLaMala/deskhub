@@ -104,6 +104,37 @@ static void check_layer(const char *scene, lv_obj_t *root)
     }
 }
 
+// Luft zur Navigationsleiste (y = 204): Tippziele 12 px, alles andere 10 px.
+#define DOCK_Y 204
+static void check_gap(const char *scene, lv_obj_t *o, bool in_page)
+{
+    if (lv_obj_has_flag(o, LV_OBJ_FLAG_HIDDEN)) return;
+    lv_area_t a;
+    lv_obj_get_coords(o, &a);
+    bool is_page = lv_obj_get_parent(o) == lv_screen_active() && lv_obj_get_height(o) >= 200;
+    if (in_page && a.y1 < DOCK_Y) {
+        bool label = lv_obj_check_type(o, &lv_label_class);
+        bool tap = lv_obj_has_flag(o, LV_OBJ_FLAG_CLICKABLE) && lv_obj_check_type(o, &lv_button_class);
+        bool drawn = lv_obj_get_event_count(o) > 0 && !lv_obj_has_flag(o, LV_OBJ_FLAG_CLICKABLE) &&
+                     lv_obj_get_height(o) < 120;
+        bool bar = lv_obj_check_type(o, &lv_bar_class);
+        int need = tap ? 12 : 10;
+        int gap = DOCK_Y - (a.y2 + 1);
+        // Labels: die Schrift reicht nicht bis zur Unterkante der Zeile (Unterlaenge).
+        if ((label && lv_label_get_text(o)[0]) || tap || drawn || bar) {
+            if (gap < need) {
+                printf("    ! %s: nur %d px über der Leiste (%s, %d,%d-%d,%d)%s%s\n", scene, gap,
+                       tap ? "Tippziel" : label ? "Text" : bar ? "Balken" : "Grafik", (int)a.x1, (int)a.y1,
+                       (int)a.x2, (int)a.y2, label ? " " : "", label ? lv_label_get_text(o) : "");
+                s_problems++;
+            }
+        }
+        if (label || tap) return;
+    }
+    for (uint32_t i = 0; i < lv_obj_get_child_count(o); i++)
+        check_gap(scene, lv_obj_get_child(o, i), in_page || is_page);
+}
+
 static void check_layout(const char *scene)
 {
     bool overlay = lv_obj_get_child_count(lv_layer_top()) > 0;
@@ -111,7 +142,10 @@ static void check_layout(const char *scene)
     for (uint32_t i = 0; i < lv_obj_get_child_count(lv_layer_top()); i++)
         if (really_visible(lv_obj_get_child(lv_layer_top(), i))) overlay_vis = true;
     if (overlay && overlay_vis) check_layer(scene, lv_layer_top());
-    else check_layer(scene, lv_screen_active());
+    else {
+        check_layer(scene, lv_screen_active());
+        check_gap(scene, lv_screen_active(), false);
+    }
 }
 
 static void shot(const char *name)
@@ -190,7 +224,20 @@ int main(int argc, char **argv)
     env_init();
     printf("Vorschau nach %s/\n", s_dir);
 
-    // 1. Ohne Begleiter: Warte-Zustand mit IP und Uhr.
+    // Alle Szenen relativ zur time-Nachricht der Beispieldaten (auch bei echten
+    // Daten liegt dann nichts in der Zukunft).
+    double t0 = SAMPLE_NOW;
+    {
+        char path[256];
+        snprintf(path, sizeof(path), "%s/time.json", s_samples);
+        cJSON *j = env_load_json(path);
+        cJSON *u = j ? cJSON_GetObjectItem(j, "unix") : NULL;
+        if (cJSON_IsNumber(u)) t0 = u->valuedouble;
+        cJSON_Delete(j);
+    }
+    // 1. Ohne Begleiter: Warte-Zustand mit IP und Uhr (Uhr per SNTP, also t0).
+    g_now = t0;
+    g_ms = 0;
     g_online = false;
     page(P_HOME);
     shot("warten");
@@ -209,6 +256,21 @@ int main(int argc, char **argv)
     page(P_CLAUDE);   shot("claude");
     page(P_CALENDAR); shot("calendar");
     page(P_WEATHER);  shot("weather");
+    {   // Frost: die laengsten Werte fuer die Detailzeilen.
+        char path[256];
+        snprintf(path, sizeof(path), "%s/weather.json", s_samples);
+        cJSON *j = env_load_json(path);
+        cJSON *now = cJSON_GetObjectItem(j, "now");
+        cJSON_ReplaceItemInObject(now, "temp", cJSON_CreateNumber(-12.4));
+        cJSON_ReplaceItemInObject(now, "feels", cJSON_CreateNumber(-18.6));
+        cJSON_ReplaceItemInObject(now, "humidity", cJSON_CreateNumber(100));
+        cJSON_ReplaceItemInObject(now, "wind", cJSON_CreateNumber(112));
+        cJSON_ReplaceItemInObject(now, "code", cJSON_CreateNumber(75));
+        proto_dispatch(j);
+        cJSON_Delete(j);
+        shot("weather_frost");
+        feed("weather");
+    }
     ui_timer_debug(25 * 60, 17 * 60 + 42, true, false);
     page(P_TIMER);    shot("timer");
     page(P_GITHUB);   shot("github");
@@ -243,10 +305,27 @@ int main(int argc, char **argv)
         feed("ai");
     }
 
-    // 6. Veraltet: 40 Minuten spaeter, Begleiter weg, Homelab-Quelle nicht erreichbar.
+    // 6. Veraltet: Homelab-Quelle faellt zur time-Nachricht aus (letzter Stand t0 - 2 min),
+    // dann 40 Minuten spaeter ohne Begleiter.
     g_online = true;
-    feed("homelab_alt");
-    g_now += 40 * 60;
+    {
+        char path[256];
+        snprintf(path, sizeof(path), "%s/homelab_alt.json", s_samples);
+        cJSON *j = env_load_json(path);
+        // Alle Zeitpunkte gleich weit verschieben: letzter Stand t0 - 2 min,
+        // "seit" bleibt relativ dazu (nichts liegt in der Zukunft).
+        cJSON *up = cJSON_GetObjectItem(j, "updated");
+        double shift = cJSON_IsNumber(up) ? (t0 - 120) - up->valuedouble : 0;
+        cJSON_ReplaceItemInObject(j, "updated", cJSON_CreateNumber(t0 - 120));
+        cJSON *d;
+        cJSON_ArrayForEach(d, cJSON_GetObjectItem(j, "down")) {
+            cJSON *since = cJSON_GetObjectItem(d, "since");
+            if (cJSON_IsNumber(since)) cJSON_SetNumberValue(since, since->valuedouble + shift);
+        }
+        proto_dispatch(j);
+        cJSON_Delete(j);
+    }
+    g_now = t0 + 40 * 60;
     g_ms += 40 * 60 * 1000;
     g_online = false;
     page(P_HOME);     shot("veraltet");

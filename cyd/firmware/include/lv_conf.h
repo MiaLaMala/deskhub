@@ -10,7 +10,7 @@
 #define LV_USE_STDLIB_STRING LV_STDLIB_BUILTIN
 #define LV_USE_STDLIB_SPRINTF LV_STDLIB_BUILTIN
 #ifndef LV_MEM_SIZE
-#define LV_MEM_SIZE (40 * 1024U)
+#define LV_MEM_SIZE (44 * 1024U)   // 56 KB passt nicht statisch ins DRAM (dram0_0_seg um 10,6 KB ueberlaufen)
 #endif
 
 #define LV_DEF_REFR_PERIOD 33

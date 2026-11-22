@@ -146,15 +146,15 @@ void timer_page_create(lv_obj_t *p)
 {
     ui_header(p, "Timer", COL_TEXT);
     s_time = ui_label(p, F48, COL_TEXT, "");
-    lv_obj_align(s_time, LV_ALIGN_TOP_MID, 0, 26);
-    s_bar = ui_bar(p, PAD, 88, SCR_W - 2 * PAD, 6, COL_ACCENT, COL_CARD_HI);
+    lv_obj_align(s_time, LV_ALIGN_TOP_MID, 0, 23);
+    s_bar = ui_bar(p, PAD, 84, SCR_W - 2 * PAD, 6, COL_ACCENT, COL_CARD_HI);
     const int bw = (SCR_W - 2 * PAD - 3 * 6) / 4;
     for (int i = 0; i < 4; i++)
-        ui_button(p, PAD + i * (bw + 6), 104, bw, 40, PRESET_TXT[i], false, preset_cb, (void *)(intptr_t)i);
+        ui_button(p, PAD + i * (bw + 6), 98, bw, 40, PRESET_TXT[i], false, preset_cb, (void *)(intptr_t)i);
     const int cw = (SCR_W - 2 * PAD - 8) / 2;
-    lv_obj_t *b = ui_button(p, PAD, 154, cw, 44, "Start", true, start_cb, NULL);
+    lv_obj_t *b = ui_button(p, PAD, 146, cw, 44, "Start", true, start_cb, NULL);
     s_start_l = lv_obj_get_child(b, 0);
-    s_reset = ui_button(p, PAD + cw + 8, 154, cw, 44, "Zurücksetzen", false, reset_cb, NULL);
+    s_reset = ui_button(p, PAD + cw + 8, 146, cw, 44, "Zurücksetzen", false, reset_cb, NULL);
 }
 
 void timer_page_refresh(void)
