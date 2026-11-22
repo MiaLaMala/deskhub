@@ -37,6 +37,7 @@ void ui_update_message(const char *text);
 void ui_update_hide(void);
 
 // Fuer Vorschau und Tests: Timer setzen (Sekunden), "Zeit um" zeigen.
+void ui_calendar_debug_scroll(int rows);   // Vorschau: Kalender um n Zeilen verschieben
 void ui_timer_debug(int total_s, int left_s, bool running, bool done);
 
 #ifdef __cplusplus

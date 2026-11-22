@@ -138,6 +138,7 @@ bool ui_waiting(void);   // kein Begleiter und noch nie Daten
 void home_create(lv_obj_t *p);       void home_refresh(void);     void home_tick(void);
 void claude_create(lv_obj_t *p);     void claude_refresh(void);
 void calendar_create(lv_obj_t *p);   void calendar_refresh(void);
+void calendar_page(int dir);   // senkrecht wischen: +1 weiter, -1 zurueck
 void weather_create(lv_obj_t *p);    void weather_refresh(void);
 void timer_page_create(lv_obj_t *p);      void timer_page_refresh(void);    void timer_page_tick(void);
 void github_create(lv_obj_t *p);     void github_refresh(void);

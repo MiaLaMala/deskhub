@@ -132,7 +132,16 @@ void weather_refresh(void)
         lv_obj_set_style_text_color(s_d_i[i], lv_color_hex(weather_color(w->day_code[i], true)), 0);
         ui_fmt_temp(a, sizeof(a), w->day_hi[i]);
         ui_fmt_temp(b, sizeof(b), w->day_lo[i]);
+        // Spalte 50 px: bei zweistelligem Frost erst das erste, dann beide Gradzeichen weglassen.
         snprintf(buf, sizeof(buf), "%s/%s", a, b);
+        if (ui_text_w(buf, F12) > 48) {
+            a[strlen(a) - 2] = 0;   // "°" sind 2 Bytes UTF-8
+            snprintf(buf, sizeof(buf), "%s/%s", a, b);
+        }
+        if (ui_text_w(buf, F12) > 48) {
+            b[strlen(b) - 2] = 0;
+            snprintf(buf, sizeof(buf), "%s/%s", a, b);
+        }
         lv_label_set_text(s_d_v[i], buf);
     }
 }

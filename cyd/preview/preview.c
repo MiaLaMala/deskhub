@@ -26,13 +26,13 @@ static int s_label_n, s_problems, s_shortened;
 static bool really_visible(lv_obj_t *o)
 {
     for (lv_obj_t *p = o; p; p = lv_obj_get_parent(p))
-        if (lv_obj_has_flag(p, LV_OBJ_FLAG_HIDDEN)) return false;
+        if (lv_obj_has_flag(p, LV_OBJ_FLAG_HIDDEN) || lv_obj_get_style_opa(p, 0) == LV_OPA_TRANSP) return false;
     return true;
 }
 
 static void collect(lv_obj_t *o)
 {
-    if (lv_obj_has_flag(o, LV_OBJ_FLAG_HIDDEN)) return;
+    if (lv_obj_has_flag(o, LV_OBJ_FLAG_HIDDEN) || lv_obj_get_style_opa(o, 0) == LV_OPA_TRANSP) return;
     if (lv_obj_check_type(o, &lv_label_class) && lv_label_get_text(o)[0] && s_label_n < MAX_LABELS)
         s_labels[s_label_n++] = o;
     for (uint32_t i = 0; i < lv_obj_get_child_count(o); i++) collect(lv_obj_get_child(o, i));
@@ -108,7 +108,7 @@ static void check_layer(const char *scene, lv_obj_t *root)
 #define DOCK_Y 204
 static void check_gap(const char *scene, lv_obj_t *o, bool in_page)
 {
-    if (lv_obj_has_flag(o, LV_OBJ_FLAG_HIDDEN)) return;
+    if (lv_obj_has_flag(o, LV_OBJ_FLAG_HIDDEN) || lv_obj_get_style_opa(o, 0) == LV_OPA_TRANSP) return;
     lv_area_t a;
     lv_obj_get_coords(o, &a);
     bool is_page = lv_obj_get_parent(o) == lv_screen_active() && lv_obj_get_height(o) >= 200;
@@ -255,6 +255,8 @@ int main(int argc, char **argv)
     page(P_HOME);     shot("home");
     page(P_CLAUDE);   shot("claude");
     page(P_CALENDAR); shot("calendar");
+    ui_calendar_debug_scroll(3);
+    shot("calendar_gescrollt");
     page(P_WEATHER);  shot("weather");
     {   // Frost: die laengsten Werte fuer die Detailzeilen.
         char path[256];
@@ -266,6 +268,24 @@ int main(int argc, char **argv)
         cJSON_ReplaceItemInObject(now, "humidity", cJSON_CreateNumber(100));
         cJSON_ReplaceItemInObject(now, "wind", cJSON_CreateNumber(112));
         cJSON_ReplaceItemInObject(now, "code", cJSON_CreateNumber(75));
+        // Stunden und Tage passend: Frost um -12 Grad, Schnee.
+        static const int hcode[] = {75, 75, 73, 73, 71, 71, 71, 73, 73, 75, 75, 71};
+        int k = 0;
+        cJSON *it;
+        cJSON_ArrayForEach(it, cJSON_GetObjectItem(j, "hours")) {
+            cJSON_ReplaceItemInObject(it, "temp", cJSON_CreateNumber(-12 - k / 3));
+            cJSON_ReplaceItemInObject(it, "code", cJSON_CreateNumber(hcode[k % 12]));
+            cJSON_ReplaceItemInObject(it, "precip", cJSON_CreateNumber(90 - 5 * k));
+            k++;
+        }
+        k = 0;
+        cJSON_ArrayForEach(it, cJSON_GetObjectItem(j, "days")) {
+            cJSON_ReplaceItemInObject(it, "min", cJSON_CreateNumber(-17 + k));
+            cJSON_ReplaceItemInObject(it, "max", cJSON_CreateNumber(-9 + k));
+            static const int dcode[] = {75, 73, 71, 71, 73, 3};
+            cJSON_ReplaceItemInObject(it, "code", cJSON_CreateNumber(dcode[k % 6]));
+            k++;
+        }
         proto_dispatch(j);
         cJSON_Delete(j);
         shot("weather_frost");

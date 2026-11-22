@@ -37,6 +37,7 @@ static const page_def_t PAGES[P_COUNT] = {
 
 static lv_obj_t *s_page, *s_dock, *s_hdr_status;
 static lv_obj_t *s_tab[P_COUNT], *s_tab_icon[P_COUNT], *s_tab_text[P_COUNT], *s_tab_line[P_COUNT];
+static lv_obj_t *s_tab_small[P_COUNT];   // kleines Symbol ueber einem Text (z. B. Timer-Restzeit)
 static uint8_t s_order[P_COUNT];
 static int s_order_n;
 static int s_current = -1;
@@ -352,6 +353,7 @@ static void build_dock(void)
     memset(s_tab_icon, 0, sizeof(s_tab_icon));
     memset(s_tab_text, 0, sizeof(s_tab_text));
     memset(s_tab_line, 0, sizeof(s_tab_line));
+    memset(s_tab_small, 0, sizeof(s_tab_small));
     s_dock = ui_box(lv_screen_active(), 0, PAGE_H, SCR_W, DOCK_H);
     lv_obj_set_style_bg_opa(s_dock, LV_OPA_COVER, 0);
     lv_obj_set_style_bg_color(s_dock, lv_color_hex(COL_RAIL), 0);
@@ -369,8 +371,13 @@ static void build_dock(void)
         s_tab[p] = t;
         s_tab_icon[p] = ui_label(t, &icons_20, COL_DIM, PAGES[p].icon);
         lv_obj_center(s_tab_icon[p]);
+        // Statt des Symbols: kleines Symbol oben, Text darunter (Timer + "17:42"),
+        // damit eine Restzeit nicht als zweite Uhr gelesen wird.
+        s_tab_small[p] = ui_label(t, &icons_16, COL_ACCENT, PAGES[p].icon);
+        lv_obj_align(s_tab_small[p], LV_ALIGN_TOP_MID, 0, 2);
+        lv_obj_add_flag(s_tab_small[p], LV_OBJ_FLAG_HIDDEN);
         s_tab_text[p] = ui_label(t, F12, COL_TEXT, "");
-        lv_obj_center(s_tab_text[p]);
+        lv_obj_align(s_tab_text[p], LV_ALIGN_BOTTOM_MID, 0, -1);
         lv_obj_add_flag(s_tab_text[p], LV_OBJ_FLAG_HIDDEN);
         s_tab_line[p] = ui_box(t, 6, 0, x1 - x0 - 12, 2);
         lv_obj_set_style_bg_opa(s_tab_line[p], LV_OPA_COVER, 0);
@@ -397,9 +404,11 @@ void ui_dock_set_text(int page, const char *text)
     if (text) {
         ui_set_text_if(s_tab_text[page], text);
         lv_obj_remove_flag(s_tab_text[page], LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_flag(s_tab_small[page], LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(s_tab_icon[page], LV_OBJ_FLAG_HIDDEN);
     } else {
         lv_obj_add_flag(s_tab_text[page], LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(s_tab_small[page], LV_OBJ_FLAG_HIDDEN);
         lv_obj_remove_flag(s_tab_icon[page], LV_OBJ_FLAG_HIDDEN);
     }
 }
@@ -467,6 +476,10 @@ static void gesture_cb(lv_event_t *e)
 {
     (void)e;
     lv_dir_t dir = lv_indev_get_gesture_dir(lv_indev_active());
+    if (s_current == P_CALENDAR && (dir == LV_DIR_TOP || dir == LV_DIR_BOTTOM)) {
+        calendar_page(dir == LV_DIR_TOP ? 1 : -1);   // Liste blaettern, ganze Zeilen
+        return;
+    }
     if (dir != LV_DIR_LEFT && dir != LV_DIR_RIGHT) return;
     int idx = 0;
     for (int i = 0; i < s_order_n; i++) if (s_order[i] == s_current) idx = i;
