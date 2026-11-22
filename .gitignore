@@ -15,3 +15,8 @@ cyd/firmware/.pio/
 cyd/firmware/include/secrets.h
 cyd/preview/out/
 cyd/preview/build/
+
+# Begleiter auf dem Pi: echte Config und Schluessel
+cyd/companion.toml
+cyd/*.key
+cyd/*.token
