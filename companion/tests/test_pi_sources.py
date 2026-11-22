@@ -94,11 +94,11 @@ data = {"termine": [
     ev("Vorbei", "2026-11-22T08:00:00", "2026-11-22T09:00:00"),
     ev("Laeuft noch", "2026-11-22T18:00:00", "2026-11-22T20:00:00"),
     ev("Ohne Ende", "2026-11-25T12:00:00", None),
-    ev("Aus Sammlung", "2026-11-25", None, all_day=True, cal="Sammlung"),
-    ev("Aeussere Uebung \u00fcber Gr\u00f6\u00dfe " + "x" * 120, "2026-11-26T12:00:00", "2026-11-26T13:00:00"),
+    ev("Ausgeblendet", "2026-11-25", None, all_day=True, cal="Ablage"),
+    ev("\u00c4u\u00dfere \u00dcbung \u201egro\u00df\u201c \U0001F600 " + "\u00e4" * 120, "2026-11-26T12:00:00", "2026-11-26T13:00:00"),
     {"title": "kaputt", "start": "kein Datum"},
 ], "kalender": [], "aufgaben_je_tag": {}}
-m = s.events_message(data, now, 7, BERLIN, skip_calendars=["Sammlung"])
+m = s.events_message(data, now, 7, BERLIN, skip_calendars=["Ablage"])
 check(m["days"] == 7 and len(m["events"]) == 6, f"events: {len(m['events'])} kept of 9 (past, skipped, broken left out)")
 valid(m, "events message")
 titles = [e["title"] for e in m["events"]]
@@ -108,8 +108,9 @@ check(first["start"] == ts(2026, 11, 23, 6, 30) and first["end"] == ts(2026, 11,
 ad = [e for e in m["events"] if e["all_day"]][0]
 check(ad["start"] == ts(2026, 11, 22, 23, 0) and ad["end"] == ts(2026, 11, 23, 23, 0), "all-day = local midnight to midnight")
 check([e for e in m["events"] if e["title"] == "Ohne Ende"][0]["end"] == ts(2026, 11, 25, 11, 0) + 3600, "missing end = +1 h")
-longt = [e for e in m["events"] if e["title"].startswith("Aeussere")][0]["title"]
-check(longt.startswith("Aeussere Uebung ueber Groesse") and len(longt) == 78, "umlauts spelled out, title cut to 78")
+longt = [e for e in m["events"] if e["title"].startswith("\u00c4u\u00dfere")][0]["title"]
+check(longt.startswith("\u00c4u\u00dfere \u00dcbung \"gro\u00df\" ") and len(longt.encode()) <= 79 and longt.endswith("\u00e4"),
+      f"umlauts kept, quotes and emoji folded, cut to 79 bytes on a character boundary: {len(longt.encode())}")
 check(any(e["title"] == "Laeuft noch" for e in m["events"]), "a running event stays")
 summer = s.events_message({"termine": [ev("S", "2026-07-01T12:00:00", "2026-07-01T13:00:00")]}, ts(2026, 6, 30), 7, BERLIN)
 check(summer["events"][0]["start"] == ts(2026, 7, 1, 10), "summer time (CEST) handled")
@@ -126,7 +127,7 @@ def handler(request):
 
 
 http = httpx.Client(transport=httpx.MockTransport(handler))
-got = s.fetch_events("http://miaos.example:8080/", 7, BERLIN, ["Sammlung"], http=http, clock=lambda: now)
+got = s.fetch_events("http://miaos.example:8080/", 7, BERLIN, ["Ablage"], http=http, clock=lambda: now)
 check(seen["url"] == "http://miaos.example:8080/api/termine?von=2026-11-21&bis=2026-11-29", f"events request: {seen['url']}")
 check(got == m, "fetch_events = events_message")
 
@@ -144,11 +145,11 @@ clk[0] += 120
 bad = {**all_up, "lage": {**all_up["lage"], "oben": 52}, "stoerungen": [
     {"name": "Dienst \u00c4", "status": 0, "meldung": "x"}, {"name": "Dienst B", "status": 3}]}
 m2 = lab.message(bad)
-check(m2["up"] == 52 and m2["down"] == [{"name": "Dienst Ae", "since": 1_800_000_120}, {"name": "Dienst B", "since": 1_800_000_120}],
+check(m2["up"] == 52 and m2["down"] == [{"name": "Dienst \u00c4", "since": 1_800_000_120}, {"name": "Dienst B", "since": 1_800_000_120}],
       "down list with since")
 clk[0] += 300
 m3 = lab.message({**bad, "stoerungen": bad["stoerungen"][:1]})
-check(m3["down"] == [{"name": "Dienst Ae", "since": 1_800_000_120}], "since stays while a service stays down, recovered one leaves")
+check(m3["down"] == [{"name": "Dienst \u00c4", "since": 1_800_000_120}], "since stays while a service stays down, recovered one leaves")
 f = lab.failed()
 check(f["ok"] is False and f["updated"] == m3["updated"] and f["up"] == 52 and f["down"] == m3["down"], "ok:false carries the last state and its time")
 valid(f, "homelab ok:false with last state")
@@ -224,7 +225,7 @@ valid(wm, "weather message")
 check(wm["now"] == {"temp": 7.2, "feels": 4.1, "code": 3, "is_day": False, "humidity": 81, "wind": 18}, f"now: {wm['now']}")
 check(len(wm["hours"]) == 12 and wm["hours"][0]["t"] == t0 + 3600, "12 hours starting with the current hour")
 check(len(wm["days"]) == 6 and wm["days"][0]["t"] == ts(2026, 11, 21, 23), "6 days")
-check(wm["place"] == "Zuerich" and wm["updated"] == t0 + 3600 + 900, "place folded, updated = now")
+check(wm["place"] == "Z\u00fcrich" and wm["updated"] == t0 + 3600 + 900, "place keeps its umlaut, updated = now")
 check(wm["hours"][4]["precip"] == 0, "null precipitation -> 0")
 req = {}
 http = httpx.Client(transport=httpx.MockTransport(lambda r: (req.update(url=r.url), httpx.Response(200, json=w))[1]))

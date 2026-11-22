@@ -30,8 +30,8 @@ history_file = "~/.deskhub/claude_history.json"
 url = "http://miaos.local:8080"
 # Wie viele Tage voraus die Terminliste reicht.
 days = 7
-# Kalender, die nicht aufs Display sollen (Name wie in Mia OS), z. B. die Sammlung.
-skip_calendars = ["Sammlung"]
+# Kalender, die nicht aufs Display sollen (Name wie in Mia OS).
+skip_calendars = []
 # Zeitzone, in der Mia OS seine Uhrzeiten ohne Zonenangabe liefert.
 timezone = "Europe/Berlin"
 

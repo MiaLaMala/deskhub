@@ -24,14 +24,18 @@ HISTORY_GAP_S = 30 * 60
 HISTORY_KEEP_S = 8 * 86400
 UA = "deskhub-pi/0.1 (+https://github.com/zacharyinserra/deskhub)"
 
-_UMLAUTS = str.maketrans({"ä": "ae", "ö": "oe", "ü": "ue", "Ä": "Ae", "Ö": "Oe", "Ü": "Ue", "ß": "ss"})
+# What the CYD fonts cover (cyd/firmware/tools: Latin-1 plus a few signs). Everything else is folded.
+_KEEP = {chr(c) for c in [*range(0x20, 0x7F), *range(0xA0, 0x100)]} | set("–…↑↓−")
+_QUOTES = {"„": '"', "‚": "'"}  # German low quotes; ascii_fold would drop them
 
 
-def fold(s, limit: int = 120) -> str:
-    """Text for the display: German umlauts spelled out, everything else folded to ASCII."""
+def fold(s, limit: int = 119) -> str:
+    """Text for the display, at most `limit` UTF-8 bytes (the firmware buffer minus its NUL), never cut
+    inside a character. Umlauts stay, the fonts have them."""
     from ..text import ascii_fold
 
-    return ascii_fold(str(s or "").translate(_UMLAUTS), limit)
+    s = "".join(c if c in _KEEP else _QUOTES.get(c) or ascii_fold(c, 4) for c in str(s or ""))
+    return " ".join(s.split()).encode()[:limit].decode(errors="ignore")
 
 
 def _get(url: str, *, params=None, headers=None, timeout: float = 20, http=None):
@@ -160,8 +164,8 @@ def events_message(data: dict, now: float, days: int, tz: ZoneInfo, skip_calenda
             end = start + (86400 if all_day else 3600)
         if end <= now:
             continue
-        events.append({"title": fold(e.get("title") or "(no title)", 78), "loc": fold(e.get("ort"), 62),
-                       "cal": fold(cal, 30), "start": start, "end": end, "all_day": all_day,
+        events.append({"title": fold(e.get("title") or "(no title)", 79), "loc": fold(e.get("ort"), 63),
+                       "cal": fold(cal, 31), "start": start, "end": end, "all_day": all_day,
                        "color": str(e.get("farbe") or "#7c9cff")})
     events.sort(key=lambda x: (x["start"], not x["all_day"]))
     return {"type": "events", "events": events[:MAX_EVENTS], "days": int(days)}
@@ -191,7 +195,7 @@ class Homelab:
         if not isinstance(total, int) or not isinstance(up, int):
             raise ValueError("no counts in the homelab answer")
         now = int(self.clock())
-        names = [fold(s.get("name") or "?", 40) for s in data.get("stoerungen") or [] if isinstance(s, dict)]
+        names = [fold(s.get("name") or "?", 31) for s in data.get("stoerungen") or [] if isinstance(s, dict)]
         self.down_since = {n: self.down_since.get(n, now) for n in names}
         msg = {"type": "homelab", "ok": True, "updated": now, "up": up, "total": total,
                "down": [{"name": n, "since": self.down_since[n]} for n in names[:MAX_DOWN]]}
@@ -276,7 +280,7 @@ def weather_message(data: dict, place: str, now: float) -> dict:
                          "max": round(float(daily["temperature_2m_max"][i]), 1),
                          "code": int(daily["weather_code"][i]),
                          "precip": int(daily["precipitation_probability_max"][i] or 0)})
-    return {"type": "weather", "place": fold(place, 30), "updated": int(now), "now": msg_now,
+    return {"type": "weather", "place": fold(place, 31), "updated": int(now), "now": msg_now,
             "hours": hours, "days": day_list}
 
 

@@ -8,6 +8,14 @@ import numbers
 PAGES = {"home", "claude", "calendar", "weather", "timer", "github", "homelab", "net"}
 
 
+
+# Characters the CYD fonts have (cyd/firmware/tools): Latin-1 plus a few signs.
+_FONT = {chr(c) for c in [*range(0x20, 0x7F), *range(0xA0, 0x100)]} | set("–…↑↓−")
+
+
+def covered(s: str) -> bool:
+    return set(s) <= _FONT
+
 def is_int(v):
     return isinstance(v, int) and not isinstance(v, bool)
 
@@ -53,9 +61,9 @@ def v_events(m):
         o += [f"{k} not str" for k in ("title", "loc", "cal", "color") if not isinstance(e.get(k), str)]
         if not isinstance(e.get("all_day"), bool):
             o.append("all_day not bool")
-        if isinstance(e.get("title"), str) and (len(e["title"].encode()) > 79 or not e["title"].isascii()):
+        if isinstance(e.get("title"), str) and (len(e["title"].encode()) > 79 or not covered(e["title"])):
             o.append("title too long or not ASCII")
-        if isinstance(e.get("loc"), str) and (len(e["loc"].encode()) > 63 or not e["loc"].isascii()):
+        if isinstance(e.get("loc"), str) and (len(e["loc"].encode()) > 63 or not covered(e["loc"])):
             o.append("loc too long or not ASCII")
         if is_int(e.get("start")) and is_int(e.get("end")) and e["end"] <= e["start"]:
             o.append("end <= start")
