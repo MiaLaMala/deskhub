@@ -1,0 +1,13 @@
+{
+ "type": "layout",
+ "pages": [
+  "home",
+  "claude",
+  "calendar",
+  "weather",
+  "timer",
+  "github",
+  "homelab",
+  "net"
+ ]
+}

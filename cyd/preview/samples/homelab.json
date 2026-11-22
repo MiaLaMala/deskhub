@@ -1,0 +1,21 @@
+{
+ "type": "homelab",
+ "ok": true,
+ "updated": 1795509630,
+ "up": 51,
+ "total": 54,
+ "down": [
+  {
+   "name": "Nextcloud",
+   "since": 1795502160
+  },
+  {
+   "name": "Jellyfin",
+   "since": 1795466400
+  },
+  {
+   "name": "Paperless-ngx Dokumentenarchiv mit langem Namen",
+   "since": 1795071600
+  }
+ ]
+}

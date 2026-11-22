@@ -1,0 +1,13 @@
+{
+ "type": "homelab",
+ "ok": false,
+ "updated": 1795507260,
+ "up": 53,
+ "total": 54,
+ "down": [
+  {
+   "name": "Nextcloud",
+   "since": 1795502160
+  }
+ ]
+}
