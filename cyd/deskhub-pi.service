@@ -1,0 +1,24 @@
+# systemd-Benutzereinheit fuer den Begleiter (nichts davon ist installiert; Anleitung in
+# cyd/README.md, Abschnitt "Begleiter auf dem Pi").
+# Pfade anpassen: %h ist das Heimverzeichnis des Benutzers.
+#   %h/deskhub-cyd              Checkout dieses Repos (Zweig mit cyd/ und companion/)
+#   %h/.venvs/deskhub           venv mit cyd/companion-requirements.txt
+#   %h/.config/deskhub/companion.toml   die echte Config (chmod 600)
+[Unit]
+Description=Desk Hub Begleiter fuer das CYD-Display
+# In einer Benutzereinheit gibt es kein network-online.target; der Begleiter
+# verbindet sich ohnehin mit Wartezeit neu, bis Netz und Display da sind.
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+WorkingDirectory=%h/deskhub-cyd/companion
+Environment=PYTHONPATH=%h/deskhub-cyd/companion
+Environment=PYTHONUNBUFFERED=1
+ExecStart=%h/.venvs/deskhub/bin/python -m deskhub.pi --config %h/.config/deskhub/companion.toml
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+
+[Install]
+WantedBy=default.target

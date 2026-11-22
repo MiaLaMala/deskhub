@@ -1,0 +1,67 @@
+# Desk Hub Begleiter auf dem Raspberry Pi (deskhub-pi). Kopieren nach
+# ~/.config/deskhub/companion.toml und anpassen; die echte Datei gehoert nicht ins Repo
+# (cyd/companion.toml ist in .gitignore) und sollte nur dem Benutzer gehoeren: chmod 600.
+# Alles in Anfuehrungszeichen unten ist ein Platzhalter.
+
+[hub]
+# Adresse des Displays (mDNS-Name oder IP, optional mit :Port). Ohne Angabe: deskhub.local
+host = "deskhub.local"
+# Muss zum HUB_TOKEN in der Firmware passen (cyd/firmware/include/secrets.h).
+token = "TOKEN-DES-DISPLAYS"
+
+[pages]
+# Reihenfolge der Navigationsleiste; "home" ist immer dabei. Ohne diese Liste kommen alle
+# Seiten, fuer die unten eine Quelle eingetragen ist (timer und net immer).
+# Moeglich: claude, calendar, weather, timer, github, homelab, net
+# enabled = ["claude", "calendar", "weather", "timer", "github", "homelab", "net"]
+
+[claude]
+# Kontingent-Dienst: GET <url> mit "Authorization: Bearer <key>". Antwort: ok, stand,
+# sitzung{prozent,zurueck}, woche{prozent,zurueck}; zurueck ist ein ISO-Zeitpunkt.
+url = "https://kontingent.example.org/kontingent"
+# Den Schluessel nicht hier eintragen, sondern in eine Datei nur fuer dich (chmod 600)
+# oder in die Umgebungsvariable KONTINGENT_KEY.
+key_file = "~/.config/deskhub/kontingent.key"
+# Eigene Mitschrift der 7-Tage-Werte fuer den Verlauf (ai.history).
+history_file = "~/.deskhub/claude_history.json"
+
+[miaos]
+# Mia OS: /api/termine und /api/homelab (ohne Anmeldung, nur im eigenen Netz erreichbar).
+url = "http://miaos.local:8080"
+# Wie viele Tage voraus die Terminliste reicht.
+days = 7
+# Kalender, die nicht aufs Display sollen (Name wie in Mia OS).
+skip_calendars = []
+# Zeitzone, in der Mia OS seine Uhrzeiten ohne Zonenangabe liefert.
+timezone = "Europe/Berlin"
+
+[github]
+# Beitragskalender ohne Token: oeffentliche Seite des Nutzers.
+user = "GITHUB-NUTZERNAME"
+# Optional, nur wenn der Pi einen Token haben soll (sonst leer lassen): Datei mit einem
+# Token ohne Schreibrechte, oder Umgebungsvariable DESKHUB_GITHUB_TOKEN. Mit Token
+# fragt der Begleiter GraphQL statt der oeffentlichen Seite und zaehlt Privates mit.
+# token_file = "~/.config/deskhub/github.token"
+
+[weather]
+# Open-Meteo, kein Schluessel. Der Ortsname erscheint auf dem Display.
+place = "ORTSNAME"
+latitude = 52.52
+longitude = 13.40
+timezone = "Europe/Berlin"
+
+[net]
+# Netzwerkkarte, deren Datenmenge gezaehlt wird (z. B. die zum Router). Leer = alle ausser lo.
+interface = ""
+# Zaehlerstand fuer "heute" und "Monat".
+state_file = "~/.deskhub/net_usage.json"
+
+[intervals]
+# Abstaende in Sekunden; hier stehen die Voreinstellungen. Nur eintragen, was anders sein soll.
+# ai = 60
+# events = 120
+# homelab = 120
+# weather = 900
+# github = 3600
+# time = 600
+# net = 5
