@@ -18,7 +18,18 @@ static void copy_str(char *dst, size_t n, const cJSON *obj, const char *key)
 {
     const cJSON *v = cJSON_GetObjectItemCaseSensitive(obj, key);
     if (cJSON_IsString(v) && v->valuestring) {
-        strlcpy(dst, v->valuestring, n);
+        size_t len = strlcpy(dst, v->valuestring, n);
+        // Gekuerzt: keine halbe UTF-8-Folge stehen lassen. Vom Ende her Folgebytes
+        // (0x80-0xBF) samt ihrem Startbyte entfernen, wenn die Folge unvollstaendig ist.
+        if (len >= n && n > 1) {
+            size_t end = n - 1, i = end;
+            while (i > 0 && ((unsigned char)dst[i - 1] & 0xC0) == 0x80) i--;
+            if (i > 0 && ((unsigned char)dst[i - 1] & 0x80)) {
+                unsigned char lead = (unsigned char)dst[i - 1];
+                size_t need = lead >= 0xF0 ? 4 : lead >= 0xE0 ? 3 : lead >= 0xC0 ? 2 : 1;
+                if (end - (i - 1) < need) dst[i - 1] = 0;
+            }
+        }
     } else {
         dst[0] = 0;
     }

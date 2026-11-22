@@ -174,6 +174,31 @@ int main(int argc, char **argv)
     CHECK(!g_homelab.ok && g_homelab.up == 53);
     CHECK(ui_stale_at(P_HOMELAB) == (time_t)NOW - 40 * 60);
 
+    printf("UTF-8 beim Kuerzen nicht zerschneiden\n");
+    {
+        char msg[400], t79[80];
+        memset(t79, 'a', 79);
+        t79[79] = 0;
+        // 79 Bytes ASCII + "ä": das "ä" passt nicht mehr ganz -> wegfallen lassen.
+        snprintf(msg, sizeof(msg), "{\"type\":\"events\",\"events\":[{\"start\":1,\"title\":\"%sä\"},"
+                 "{\"start\":2,\"title\":\"%.78sä\"},{\"start\":3,\"title\":\"%.77s€\"}]}", t79, t79, t79);
+        CHECK(proto_handle_text(msg));
+        CHECK(strlen(g_events[0].title) == 79 && g_events[0].title[78] == 'a');
+        // 78 Bytes + "ä" (2 Bytes) = 80: passt nicht in 79 -> "ä" faellt weg.
+        CHECK(strlen(g_events[1].title) == 78);
+        // 77 Bytes + "€" (3 Bytes) = 80: ebenso.
+        CHECK(strlen(g_events[2].title) == 77);
+        // Passt genau: 77 + "ä" = 79 Bytes bleibt ganz.
+        snprintf(msg, sizeof(msg), "{\"type\":\"homelab\",\"ok\":true,\"down\":[{\"name\":\"Gäste-WLAN mit sehr langem Namen\"}]}");
+        CHECK(proto_handle_text(msg));
+        CHECK(!strcmp(g_homelab.down_name[0], "Gäste-WLAN mit sehr langem Nam"));   // 31 Bytes
+        snprintf(msg, sizeof(msg), "{\"type\":\"events\",\"events\":[{\"start\":1,\"title\":\"%.77sä\"}]}", t79);
+        CHECK(proto_handle_text(msg));
+        CHECK(strlen(g_events[0].title) == 79 && !strcmp(g_events[0].title + 77, "ä"));
+        CHECK(feed("events"));
+        CHECK(feed("homelab"));
+    }
+
     printf("unbekannt, kaputt, ping\n");
     CHECK(!proto_handle_text("{\"type\":\"stats\",\"cpu\":5}"));
     CHECK(!proto_handle_text("{kein json"));

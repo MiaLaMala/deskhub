@@ -97,7 +97,7 @@ write("weather", {"type": "weather", "place": "Hamburg", "updated": NOW - 600,
 
 write("homelab", {"type": "homelab", "ok": True, "updated": NOW - 30, "up": 51, "total": 54, "down": [
     {"name": "Nextcloud", "since": NOW - 2 * H - 5 * 60},
-    {"name": "Jellyfin", "since": at(-1, 21, 40)},
+    {"name": "Gäste-WLAN Portal", "since": at(-1, 21, 40)},
     {"name": "Paperless-ngx Dokumentenarchiv mit langem Namen", "since": at(-5, 8, 0)},
 ]})
 # Quelle nicht erreichbar: letzter Stand von vor 40 Minuten.
