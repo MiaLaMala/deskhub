@@ -1,5 +1,7 @@
 # Desk Hub
 
+> **This fork** also runs on the ESP32-2432S028R ("Cheap Yellow Display", 320×240) with a companion for Linux / Raspberry Pi instead of Windows. German docs: [cyd/README.md](cyd/README.md).
+
 A desk display for the **Waveshare ESP32-S3-Touch-LCD-4.3B**. It shows the time, weather, your calendar, what's playing on your PC, CPU and GPU load, and your Claude Code usage. It also gives you a grid of buttons that run things on your PC.
 
 https://github.com/user-attachments/assets/2b18951c-0adb-42aa-9e92-08439c5763bc
